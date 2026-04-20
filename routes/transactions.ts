@@ -74,7 +74,7 @@ app.patch("/:id", zValidator("json", transactionSchema.partial()), async (c: Con
   const updates = c.req.valid("json");
   const userId = c.req.header("x-user-id");
 
-  const dbUpdates: Record<string, any> = {};
+  const dbUpdates: Record<string, unknown> = {};
   if (updates.date !== undefined) dbUpdates.date = updates.date;
   if (updates.currency !== undefined) dbUpdates.currency = updates.currency;
   if (updates.amountCents !== undefined) dbUpdates.amount_cents = updates.amountCents;
