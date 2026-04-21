@@ -1,0 +1,32 @@
+# Secrets & Environment
+.env
+.env.*
+!.env.example
+
+# Elm
+elm-stuff/
+
+# Ignore the compiled output
+public/elm.js
+
+# Deno
+node_modules/
+coverage/ 
+
+# Database & Migrations
+*.sql
+!migrations/
+!migrations/*.sql
+
+# Financial Safety (Remote Rupiah Specific)
+/data/raw/
+/exports/
+*.csv
+*.xlsx
+*.pdf
+
+# System & Tooling
+.DS_Store
+.vscode/
+.idea/
+*.log
