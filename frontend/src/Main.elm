@@ -3,8 +3,10 @@ module Main exposing (main)
 import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Svg exposing (svg, path, defs, linearGradient, stop, circle, g)
+import Money exposing (Money)
+import Svg exposing (circle, defs, g, linearGradient, path, stop, svg)
 import Svg.Attributes as SA
+import TaxLogic
 
 type alias Model = {}
 type Msg = NoOp
@@ -19,12 +21,62 @@ main =
 
 view : Model -> Html Msg
 view _ =
+    let
+        -- Setup Constants for Dashboard
+        annualGrossUSD =
+            Money.fromCents 5420000
+
+        kmkRate =
+            1612000 -- 16,120.00
+
+        midMarketRate =
+            1615000 -- 16,150.00
+
+        costBasisRate =
+            1595240 -- 15,952.40 (inferred)
+
+        usdBalance =
+            Money.fromCents 1240000
+
+        actualIdrReceived =
+            Money.fromCents 85475000000 -- Placeholder for realized IDR
+
+        -- Calculations
+        annualGrossIDR =
+            TaxLogic.calculateIdrValue annualGrossUSD kmkRate
+
+        taxableProfit =
+            TaxLogic.calculateNPPN annualGrossIDR
+
+        indoTaxDue =
+            TaxLogic.calculateIndoTax taxableProfit
+
+        usWithholding =
+            TaxLogic.calculateUsWithholding annualGrossIDR
+
+        pph24Credit =
+            TaxLogic.calculatePPh24Credit
+                { foreignNetIncome = taxableProfit
+                , totalTaxableIncome = taxableProfit
+                , totalIndoTaxDue = indoTaxDue
+                , actualForeignTaxPaid = usWithholding
+                }
+
+        finalPayable =
+            TaxLogic.calculateFinalPayable indoTaxDue pph24Credit
+
+        fxLeakage =
+            TaxLogic.calculateFXLeakage annualGrossUSD midMarketRate actualIdrReceived
+
+        unrealizedGain =
+            TaxLogic.calculateUnrealizedGain usdBalance midMarketRate costBasisRate
+    in
     div []
         [ topbar
         , div [ class "container" ]
-            [ dashboardHeader
-            , cardsGrid
-            , middleSection
+            [ dashboardHeader kmkRate
+            , cardsGrid annualGrossUSD annualGrossIDR indoTaxDue fxLeakage
+            , middleSection usdBalance midMarketRate unrealizedGain taxableProfit indoTaxDue usWithholding pph24Credit finalPayable
             , tableSection
             ]
         ]
@@ -56,33 +108,33 @@ topbar =
         ]
 
 -- HEADER
-dashboardHeader : Html Msg
-dashboardHeader =
+dashboardHeader : Int -> Html Msg
+dashboardHeader rate =
     div [ class "dashboard-header" ]
         [ h1 [] [ text "Dashboard" ]
         , div [ class "kmk-rate" ]
             [ div [ class "date" ] [ text "Current KMK Week Rate (17 Apr - 23 Apr)" ]
-            , div [ class "rate" ] [ text "1 USD = 16,120.00 IDR" ]
+            , div [ class "rate" ] [ text ("1 USD = " ++ formatWithCommas (rate // 100) ++ ".00 IDR") ]
             ]
         ]
 
 -- CARDS GRID
-cardsGrid : Html Msg
-cardsGrid =
+cardsGrid : Money -> Money -> Money -> Money -> Html Msg
+cardsGrid grossUsd grossIdr estTax leakage =
     div [ class "cards-grid" ]
         [ div [ class "card card-teal" ]
             [ h3 [] [ text "TOTAL ANNUAL GROSS (YTD)" ]
-            , div [ class "big-value" ] [ text "$54,200.00" ]
-            , div [ class "sub-value" ] [ text "Rp 867.200.000" ]
+            , div [ class "big-value" ] [ text (formatUSD grossUsd) ]
+            , div [ class "sub-value" ] [ text (formatIDR grossIdr) ]
             ]
         , div [ class "card card-default" ]
             [ h3 [] [ text "EST. TAX LIABILITY (PPh 21)" ]
-            , div [ class "big-value" ] [ text "Rp 77.400.000" ]
+            , div [ class "big-value" ] [ text (formatIDR estTax) ]
             , div [ class "sub-value" ] [ text "NPPN Applied (KLU 62010)" ]
             ]
         , div [ class "card card-red" ]
             [ h3 [] [ text "FX LEAKAGE (LOSS)" ]
-            , div [ class "big-value" ] [ text "Rp 12.450.000" ]
+            , div [ class "big-value" ] [ text (formatIDR leakage) ]
             , div [ class "sub-value" ] [ text "Average Spread: 2.1%" ]
             , div [ class "alert-icon" ] [ svgIcon "alert" ]
             ]
@@ -97,15 +149,15 @@ cardsGrid =
         ]
 
 -- MIDDLE SECTION
-middleSection : Html Msg
-middleSection =
+middleSection : Money -> Int -> Money -> Money -> Money -> Money -> Money -> Money -> Html Msg
+middleSection balance rate unrealized profit totalTax usTax credit payable =
     div [ class "middle-grid" ]
-        [ fxTrackerCard
-        , taxLogicEngine
+        [ fxTrackerCard balance rate unrealized
+        , taxLogicEngine profit totalTax usTax credit payable
         ]
 
-fxTrackerCard : Html Msg
-fxTrackerCard =
+fxTrackerCard : Money -> Int -> Money -> Html Msg
+fxTrackerCard balance rate unrealized =
     div [ class "chart-card" ]
         [ h2 [] [ text "FX PERFORMANCE TRACKER" ]
         , div [ class "flex justify-center items-center gap-6 text-xs text-secondary font-semibold" ]
@@ -138,8 +190,8 @@ fxTrackerCard =
             , div []
                 [ h3 [] [ text "UNREALIZED GAIN/LOSS" ]
                 , div [ class "text-sm text-secondary", style "line-height" "1.6" ]
-                    [ div [] [ text "Current USD Balance: $12,400" ]
-                    , div [] [ text "Unrealized Gain: ", span [ class "text-green" ] [ text "+Rp 2.450.000" ], text " (Market Rate: 16,150)" ]
+                    [ div [] [ text ("Current USD Balance: " ++ formatUSD balance) ]
+                    , div [] [ text "Unrealized Gain: ", span [ class "text-green" ] [ text (formatIDR unrealized) ], text (" (Market Rate: " ++ String.fromFloat (toFloat rate / 100.0) ++ ")") ]
                     ]
                 ]
             ]
@@ -185,21 +237,21 @@ svgChartPlaceholder =
         ]
 
 
-taxLogicEngine : Html Msg
-taxLogicEngine =
+taxLogicEngine : Money -> Money -> Money -> Money -> Money -> Html Msg
+taxLogicEngine profit totalTax usTax credit payable =
     div [ class "logic-engine" ]
         [ h2 [] [ text "TAX LOGIC ENGINE" ]
         , div [ class "calc-row" ]
             [ div [ class "text-secondary" ] [ text "Calculated Profit (Norma 50%):" ]
-            , div [ class "font-semibold" ] [ text "Rp 433.600.000" ]
+            , div [ class "font-semibold" ] [ text (formatIDR profit) ]
             ]
         , div [ class "calc-row" ]
             [ div [ class "text-secondary" ] [ text "Indonesian Tax Due (Progressive 2026):" ]
-            , div [ class "font-bold" ] [ text "Rp 77.400.000" ]
+            , div [ class "font-bold" ] [ text (formatIDR totalTax) ]
             ]
         , div [ class "calc-row" ]
             [ div [ class "text-secondary" ] [ text "US Withholding (W-8BEN 10%):" ]
-            , div [ class "font-semibold" ] [ text "$5,420 (Rp 87.370.400)" ]
+            , div [ class "font-semibold" ] [ text (formatIDR usTax) ]
             ]
         , div [ class "calc-block" ]
             [ div [ class "calc-block-header" ] [ text "ALLOWABLE PPh 24 CREDIT:" ]
@@ -207,19 +259,19 @@ taxLogicEngine =
                 [ div [ class "bracket-left" ] [ text "Lesser of" ]
                 , div [ class "brace" ] [ text "{" ]
                 , div [ class "bracket-content" ]
-                    [ div [] [ span [ class "font-semibold" ] [ text "min(" ], text "Actual US Tax: 87.3M" ]
-                    , div [] [ text "Indo Cap: 77.4M" ]
-                    , div [] [ text "Total Indo Tax: 77.4M", span [ class "font-semibold" ] [ text ")" ] ]
+                    [ div [] [ span [ class "font-semibold" ] [ text "min(" ], text ("Actual US Tax: " ++ formatIDR usTax) ]
+                    , div [] [ text ("Indo Cap: " ++ formatIDR credit) ]
+                    , div [] [ text ("Total Indo Tax: " ++ formatIDR totalTax), span [ class "font-semibold" ] [ text ")" ] ]
                     ]
                 , div [ class "bracket-right" ]
-                    [ div [ class "val" ] [ text "Rp 77.400.000" ]
+                    [ div [ class "val" ] [ text (formatIDR credit) ]
                     , div [ class "lbl" ] [ text "(Capped by Indo liability)" ]
                     ]
                 ]
             ]
         , div [ class "final-payable" ]
             [ div [] [ text "Final DJP Payable:" ]
-            , div [] [ text "Rp 0" ]
+            , div [] [ text (formatIDR payable) ]
             ]
         ]
 
@@ -307,3 +359,42 @@ svgIcon name =
                 [ path [ SA.d "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" ] [], path [ SA.d "M17 8l-5-5-5 5" ] [], path [ SA.d "M12 3v12" ] [] ]
         _ ->
             text ""
+
+
+-- FORMATTERS
+formatUSD : Money -> String
+formatUSD money =
+    let
+        cents = Money.toCents money
+        dollars = cents // 100
+        remCents = modBy 100 cents
+    in
+    "$" ++ formatWithCommas dollars ++ "." ++ String.padLeft 2 '0' (String.fromInt remCents)
+
+
+formatIDR : Money -> String
+formatIDR money =
+    let
+        cents = Money.toCents money
+        rupiah = cents // 100
+    in
+    "Rp " ++ formatWithCommas rupiah
+
+
+formatWithCommas : Int -> String
+formatWithCommas n =
+    let
+        str = String.fromInt (abs n)
+        prefix = if n < 0 then "-" else ""
+        reversed = String.reverse str
+        chunks = splitEvery 3 reversed
+    in
+    prefix ++ String.reverse (String.join "." chunks)
+
+
+splitEvery : Int -> String -> List String
+splitEvery n s =
+    if String.length s <= n then
+        [ s ]
+    else
+        String.left n s :: splitEvery n (String.dropLeft n s)
