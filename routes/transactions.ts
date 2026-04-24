@@ -3,6 +3,7 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import postgres from "postgres";
 import sql from "../db/client.ts";
+import { lookupKmkRate } from "../services/kmk.ts";
 
 const app = new Hono();
 
@@ -36,9 +37,19 @@ app.get("/", async (c: Context) => {
   return c.json({ success: true, transactions });
 });
 
-app.post("/", zValidator("json", transactionSchema), async (c: Context) => {
+app.post("/", zValidator("json", transactionSchema), async (c) => {
   const data = c.req.valid("json");
   const userId = c.req.header("x-user-id");
+
+  // Auto-resolve KMK rate from the stored weekly rates if not explicitly provided.
+  // Per tax_compliance rule: "Use the weekly KMK rate for the date of receipt."
+  let resolvedKmkRate = data.kmkRate ?? null;
+  if (resolvedKmkRate === null) {
+    const kmkEntry = await lookupKmkRate(data.date, data.currency);
+    if (kmkEntry) {
+      resolvedKmkRate = parseFloat(kmkEntry.midRate);
+    }
+  }
 
   const result = await withAuth(userId, async (tx) => {
     return await tx`
@@ -48,7 +59,7 @@ app.post("/", zValidator("json", transactionSchema), async (c: Context) => {
       ) VALUES (
         ${userId || "00000000-0000-0000-0000-000000000000"}, ${data.date}, ${data.currency}, ${data.amountCents}, 
         ${data.withholdingCents}, ${data.actualIdrReceivedCents ?? null}, 
-        ${data.kmkRate ?? null}, ${data.is1042sVerified}, ${data.metadata ?? null}
+        ${resolvedKmkRate}, ${data.is1042sVerified}, ${data.metadata ?? null}
       )
       RETURNING *
     `;
@@ -69,7 +80,7 @@ app.get("/:id", async (c: Context) => {
   return c.json({ success: true, data: result[0] });
 });
 
-app.patch("/:id", zValidator("json", transactionSchema.partial()), async (c: Context) => {
+app.patch("/:id", zValidator("json", transactionSchema.partial()), async (c) => {
   const id = c.req.param("id");
   const updates = c.req.valid("json");
   const userId = c.req.header("x-user-id");
