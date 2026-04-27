@@ -4,7 +4,10 @@ import { zValidator } from "@hono/zod-validator";
 import { syncKmkRates, lookupKmkRate, listKmkRates, backfillKmkRates } from "../services/kmk.ts";
 
 const app = new Hono(), key = Deno.env.get("ADMIN_API_KEY");
-const check = (c: Context) => (c.req.header("Authorization") || c.req.header("x-api-key")) === `Bearer ${key}`;
+const check = (c: Context) => {
+  if (!key) return false;
+  return (c.req.header("Authorization") || c.req.header("x-api-key")) === `Bearer ${key}`;
+};
 
 app.get("/latest", async c => {
   const r = await lookupKmkRate(new Date().toISOString().slice(0, 10), "USD");
