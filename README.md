@@ -9,6 +9,7 @@ It solves the high-friction problem of international double-taxation (US/ID) and
 - [Strategic Value Proposition](#strategic-value-proposition)
 - [Industrial-Grade Tech Stack](#industrial-grade-tech-stack)
 - [Financial Protocols](#financial-protocols)
+- [Agentic Governance](#agentic-governance)
 - [Interactive Demo & Local Setup](#interactive-demo--local-setup)
   - [Prerequisites](#prerequisites)
   - [Environment & DB](#environment--db)
@@ -34,6 +35,14 @@ It solves the high-friction problem of international double-taxation (US/ID) and
 2.  **Compliance:** Automatic application of **KLU 62010 (50%)** for software development (Norma Penghitungan Penghasilan Netto).
 3.  **PPh 24 Logic:** Implements the "Lesser of" rule to prevent double-taxation on US-source income: `(ForeignNet / TotalTaxable) * TotalTaxDue`.
 4.  **Audit Trail:** Every transaction is timestamped with the official **KMK (Kurs Menteri Keuangan)** rate valid for that week.
+
+## Agentic Governance
+
+This repository is optimized for AI-assisted development (_e.g._ coding agents) using a structured `.agents/` framework:
+
+- **Architecture Rules**: Enforces a "Zero-Float" policy and DB-level security.
+- **Compliance Rules**: Codifies Indonesian UU HPP tax logic into pure functional constraints.
+- **Automated Workflows**: A pre-commit audit protocol that verifies financial precision and runs full test suites before finalizing changes.
 
 ## Interactive Demo & Local Setup
 
