@@ -3,7 +3,11 @@ module Data.Ingestion exposing (IngestedRecord(..), decoder)
 import Json.Decode as D exposing (Decoder)
 import Money as M
 
-type IngestedRecord = Ready R | MissingRate R | Duplicate R
+type IngestedRecord
+    = Ready R 
+    | MissingRate R 
+    | Duplicate R 
+    | PendingRate { date : String, currency : String, rawAmount : M.Money }
 
 type alias R = { id : String, date : String, amount : M.Money, cur : String }
 
@@ -21,4 +25,5 @@ decoder =
                 "READY" -> D.succeed (Ready r)
                 "MISSING_RATE" -> D.succeed (MissingRate r)
                 "DUPLICATE" -> D.succeed (Duplicate r)
+                "PENDING_RATE" -> D.succeed (PendingRate { date = d, currency = c, rawAmount = a })
                 _ -> D.fail "Err")

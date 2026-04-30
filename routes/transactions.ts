@@ -26,7 +26,7 @@ app.use("*", async (c, next) => {
     const secret = Deno.env.get("JWT_SECRET") || Deno.env.get("SUPABASE_JWT_SECRET");
     if (secret) {
       try {
-         const decoded = await verify(auth.split(" ")[1], secret);
+         const decoded = await verify(auth.split(" ")[1], secret, "HS256");
          userId = decoded.sub as string;
       } catch (e) {}
     }

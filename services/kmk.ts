@@ -311,5 +311,17 @@ export async function listKmkRates(
     ORDER BY valid_from DESC
     LIMIT ${limit}
   `;
-  return rows as KmkRate[];
+  return rows as unknown as KmkRate[];
 }
+
+// ---------------------------------------------------------------------------
+// 7. Parsing & Circuit Breaker Logic
+// ---------------------------------------------------------------------------
+
+export const parseKmkRate = (rateStr: string): bigint => {
+  const [int = "0", frac = ""] = rateStr.replace(/[^\d,]/g, "").split(",");
+  return BigInt(int + frac.padEnd(4, "0").substring(0, 4));
+};
+
+export const isRateSanityCheckOk = (newRate: bigint, lastRate: bigint): boolean =>
+  (newRate > lastRate ? newRate - lastRate : lastRate - newRate) <= lastRate / 10n;

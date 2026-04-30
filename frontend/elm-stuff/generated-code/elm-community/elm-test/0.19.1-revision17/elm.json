@@ -3,7 +3,8 @@
     "source-directories": [
         "src",
         "../../../../../../../../.local/share/pnpm/global/5/.pnpm/elm-test@0.19.1-revision17/node_modules/elm-test/elm/src",
-        "../../../../../src"
+        "../../../../../src",
+        "../../../../../tests"
     ],
     "elm-version": "0.19.1",
     "dependencies": {
@@ -14,9 +15,11 @@
             "elm/json": "1.1.4",
             "elm/random": "1.0.0",
             "elm/svg": "1.0.1",
-            "elm/time": "1.0.0"
+            "elm/time": "1.0.0",
+            "elm-explorations/test": "2.2.0"
         },
         "indirect": {
+            "elm/bytes": "1.0.8",
             "elm/url": "1.0.0",
             "elm/virtual-dom": "1.0.5"
         }
