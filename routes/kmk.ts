@@ -5,7 +5,7 @@ import { syncKmkRates, lookupKmkRate, listKmkRates, backfillKmkRates } from "../
 
 const app = new Hono(), key = Deno.env.get("ADMIN_API_KEY");
 const check = (c: Context) => {
-  if (!key) return false;
+  if (!key) throw new Error("ADMIN_API_KEY is not set. Sync endpoints are disabled.");
   return (c.req.header("Authorization") || c.req.header("x-api-key")) === `Bearer ${key}`;
 };
 

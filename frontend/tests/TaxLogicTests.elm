@@ -6,7 +6,7 @@ import TaxLogic exposing (..)
 import Test exposing (..)
 
 b : List TaxBracket
-b = [ { threshold = Money.fromCents 6000000000, rate = 0.05 }, { threshold = Money.fromCents 25000000000, rate = 0.15 }, { threshold = Money.fromCents 50000000000, rate = 0.25 }, { threshold = Money.fromCents 500000000000, rate = 0.30 }, { threshold = Money.fromCents 999999999999999, rate = 0.35 } ]
+b = [ { threshold = Money.fromCents 6000000000, rate = 5 }, { threshold = Money.fromCents 25000000000, rate = 15 }, { threshold = Money.fromCents 50000000000, rate = 25 }, { threshold = Money.fromCents 500000000000, rate = 30 }, { threshold = Money.fromCents 999999999999999, rate = 35 } ]
 
 suite : Test
 suite =

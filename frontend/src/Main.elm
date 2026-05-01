@@ -13,9 +13,9 @@ view _ =
     let (annUsd, kmk, mid, cost, bal, act) = (Money.fromCents 5420000, 1612000, 1615000, 1595240, Money.fromCents 1240000, Money.fromCents 85475000000)
         annIdr = TaxLogic.calculateIdrValue annUsd kmk
         profit = TaxLogic.netIncomeFromBruto annIdr
-        indoTax = TaxLogic.calculatePPhTerutang [ { threshold = Money.fromCents 6000000000, rate = 0.05 }, { threshold = Money.fromCents 25000000000, rate = 0.15 }, { threshold = Money.fromCents 50000000000, rate = 0.25 }, { threshold = Money.fromCents 500000000000, rate = 0.30 }, { threshold = Money.fromCents 999999999999999, rate = 0.35 } ] profit
+        indoTax = TaxLogic.calculatePPhTerutang [ { threshold = Money.fromCents 6000000000, rate = 5 }, { threshold = Money.fromCents 25000000000, rate = 15 }, { threshold = Money.fromCents 50000000000, rate = 25 }, { threshold = Money.fromCents 500000000000, rate = 30 }, { threshold = Money.fromCents 999999999999999, rate = 35 } ] profit
         usTax = TaxLogic.calculateUsWithholding annIdr
-        credit = Result.withDefault Money.zero (TaxLogic.calculatePPh24Credit { foreignNet = profit, totalTaxable = profit, totalTaxDue = indoTax, foreignTaxPaid = usTax })
+        credit = TaxLogic.calculatePPh24Credit { foreignNetIncome = profit, totalTaxableIncome = profit, totalIndoTaxDue = indoTax, actualForeignTaxPaid = usTax }
         payable = TaxLogic.calculateFinalPayable indoTax credit
         leak = TaxLogic.calculateFXLeakage annUsd mid act
         gain = TaxLogic.calculateUnrealizedGain bal mid cost
