@@ -1,4 +1,4 @@
-module Money exposing (Money, add, fromCents, fromStr, multiply, subtract, toCents, zero)
+module Money exposing (Money, add, divide, fromCents, fromStr, multiply, proportion, subtract, toCents, zero)
 
 {-| Opaque Money type. Int = cents. Never Float. -}
 
@@ -24,6 +24,13 @@ subtract (Money a) (Money b) = Money (a - b)
 
 multiply : Money -> Int -> Money
 multiply (Money a) n = Money (a * n)
+
+divide : Money -> Int -> Money
+divide (Money a) n = if n == 0 then zero else Money (floor (toFloat a / toFloat n))
+
+proportion : Money -> Money -> Money -> Money
+proportion (Money base) (Money num) (Money den) =
+    if den == 0 then zero else Money (floor (toFloat base * toFloat num / toFloat den))
 
 fromStr : String -> Result String Money
 fromStr raw =
