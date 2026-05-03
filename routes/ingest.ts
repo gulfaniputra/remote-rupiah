@@ -1,7 +1,10 @@
 import { Hono } from "hono";
 import { parseCsvFromStream } from "../services/csv_parser.ts";
+import { authMiddleware } from "../services/auth_middleware.ts";
 
 const app = new Hono();
+
+app.use("*", authMiddleware);
 
 app.post("/preview", async (c) => {
   try {
