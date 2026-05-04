@@ -2,6 +2,10 @@ module Money exposing (IDR, Money, USD, add, divide, fromCents, fromStr, multipl
 
 {-| Opaque Money type. Int = cents. Never Float.
 Phantom type 'c' ensures we don't mix USD and IDR.
+
+SECURITY NOTE: While internal representation is Int, we use toFloat/floor for
+intermediate division/proportion to avoid Elm's 32-bit integer truncation (//).
+This allows safe handling of values up to 2^53 - 1 cents (approx Rp 90 Trillion).
 -}
 
 
