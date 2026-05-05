@@ -1,133 +1,25 @@
-module Money exposing (IDR, Money, USD, add, divide, fromCents, fromStr, multiply, proportion, subtract, toCents, zero)
+module Money exposing (IDR, Money, USD, add, compare, divide, fromBigInt, fromCents, fromStr, fromCentsStr, multiply, proportion, subtract, toBigInt, toCents, toString, zero)
+import BigInt exposing (BigInt)
 
-{-| Opaque Money type. Int = cents. Never Float.
-Phantom type 'c' ensures we don't mix USD and IDR.
+type Money c = Money BigInt
+type IDR = IDR
+type USD = USD
 
-SECURITY NOTE: While internal representation is Int, we use toFloat/floor for
-intermediate division/proportion to avoid Elm's 32-bit integer truncation (//).
-This allows safe handling of values up to 2^53 - 1 cents (approx Rp 90 Trillion).
--}
-
-
-type Money c
-    = Money Int
-
-
-type IDR
-    = IDR
-
-
-type USD
-    = USD
-
-
-fromCents : Int -> Money c
-fromCents =
-    Money
-
-
-toCents : Money c -> Int
-toCents (Money c) =
-    c
-
-
-zero : Money c
-zero =
-    Money 0
-
-
-add : Money c -> Money c -> Money c
-add (Money a) (Money b) =
-    Money (a + b)
-
-
-subtract : Money c -> Money c -> Money c
-subtract (Money a) (Money b) =
-    Money (a - b)
-
-
-multiply : Money c -> Int -> Money c
-multiply (Money a) n =
-    Money (a * n)
-
-
-divide : Money c -> Int -> Money c
-divide (Money a) n =
-    if n == 0 then
-        zero
-
-    else
-        Money (floor (toFloat a / toFloat n))
-
-
-proportion : Money c -> Money c -> Money c -> Money c
-proportion (Money base) (Money num) (Money den) =
-    if den == 0 then
-        zero
-
-    else
-        Money (floor (toFloat base * toFloat num / toFloat den))
-
-
-fromStr : String -> Result String (Money c)
-fromStr raw =
-    let
-        s =
-            String.trim raw
-    in
-    if String.isEmpty s then
-        Err "Empty string"
-
-    else if String.startsWith "-" s then
-        Err "Negative values not allowed"
-
-    else if String.contains " " s then
-        Err "Unexpected space in amount"
-
-    else
-        case String.split "." (String.replace "," "" s) of
-            [ i, f ] ->
-                toCentsResult (if String.isEmpty i then "0" else i) f
-
-            [ i ] ->
-                toCentsResult i ""
-
-            _ ->
-                Err "Multiple decimal points"
-
-
-toCentsResult : String -> String -> Result String (Money c)
-toCentsResult i f =
-    let
-        pad =
-            if String.isEmpty f then
-                "00"
-
-            else if String.length f == 1 then
-                f ++ "0"
-
-            else if String.length f == 2 then
-                f
-
-            else
-                ""
-
-        ok s =
-            not (String.isEmpty s) && String.all Char.isDigit s
-    in
-    if String.isEmpty pad then
-        Err "More than 2 decimal digits"
-
-    else if not (ok i) then
-        Err ("Invalid integer part: \"" ++ i ++ "\"")
-
-    else if not (ok pad) then
-        Err ("Invalid fractional part: \"" ++ pad ++ "\"")
-
-    else
-        case ( String.toInt i, String.toInt pad ) of
-            ( Just d, Just c ) ->
-                Ok (Money (d * 100 + c))
-
-            _ ->
-                Err "Parse error"
+pInt s = if s == "" then Nothing else s |> String.toList |> List.foldl (\c acc -> acc |> Maybe.andThen (\v -> let d = Char.toCode c - 48 in if d >= 0 && d <= 9 then Just (BigInt.add (BigInt.mul v (BigInt.fromInt 10)) (BigInt.fromInt d)) else Nothing)) (Just (BigInt.fromInt 0))
+fromCents i = Money (BigInt.fromInt i)
+fromCentsStr s = pInt s |> Maybe.withDefault (BigInt.fromInt 0) |> Money
+fromBigInt = Money
+toBigInt (Money b) = b
+toCents (Money b) = BigInt.toString b |> String.toInt |> Maybe.withDefault 0
+toString (Money b) = let s = BigInt.toString b in if String.length s <= 2 then "0." ++ String.padLeft 2 '0' s else String.dropRight 2 s ++ "." ++ String.right 2 s
+zero = Money (BigInt.fromInt 0)
+add (Money a) (Money b) = Money (BigInt.add a b)
+subtract (Money a) (Money b) = Money (BigInt.sub a b)
+multiply (Money a) n = Money (BigInt.mul a (BigInt.fromInt n))
+divide (Money a) n = if n == 0 then zero else Money (BigInt.div a (BigInt.fromInt n))
+proportion (Money b) (Money n) (Money d) = if d == BigInt.fromInt 0 then zero else Money (BigInt.div (BigInt.mul b n) d)
+compare (Money a) (Money b) = BigInt.compare a b
+fromStr raw = let s = String.replace "," "" (String.trim raw) in if s == "" || String.startsWith "-" s then Err "Err" else case String.split "." s of
+    [i, f] -> if String.length f > 2 then Err "Err" else pInt ((if i == "" then "0" else i) ++ String.padRight 2 '0' f) |> Maybe.map Money |> Result.fromMaybe "Err"
+    [i] -> pInt (i ++ "00") |> Maybe.map Money |> Result.fromMaybe "Err"
+    _ -> Err "Err"
