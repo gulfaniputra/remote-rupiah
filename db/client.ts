@@ -1,6 +1,7 @@
 import postgres from "postgres";
 
 // Connect to PostgreSQL using environment variable or a default fallback
+// deno-lint-ignore no-explicit-any
 let sql: any;
 try {
   const dbUrl = Deno.env.get("DATABASE_URL") ?? "postgres://postgres:postgres@localhost:5432/remote_rupiah";

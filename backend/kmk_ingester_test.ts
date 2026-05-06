@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert@1";
+import { assertEquals } from "@std/assert";
 
 const parse = (s: string) => BigInt(Math.round(parseFloat(s.replace(/\./g, "").replace(",", ".")) * 100));
 

@@ -1,4 +1,4 @@
-module Money exposing (IDR, Money, USD, add, compare, divide, fromBigInt, fromCents, fromStr, fromCentsStr, multiply, proportion, subtract, toBigInt, toCents, toString, zero)
+module Money exposing (IDR, Money, USD, add, compare, divide, fromBigInt, fromCents, fromStr, fromCentsStr, multiply, proportion, subtract, toBigInt, toCents, toString, toDjpString, zero)
 import BigInt exposing (BigInt)
 
 type Money c = Money BigInt
@@ -23,3 +23,11 @@ fromStr raw = let s = String.replace "," "" (String.trim raw) in if s == "" || S
     [i, f] -> if String.length f > 2 then Err "Err" else pInt ((if i == "" then "0" else i) ++ String.padRight 2 '0' f) |> Maybe.map Money |> Result.fromMaybe "Err"
     [i] -> pInt (i ++ "00") |> Maybe.map Money |> Result.fromMaybe "Err"
     _ -> Err "Err"
+toDjpString (Money b) =
+    let
+        s = BigInt.toString b
+    in
+    if String.length s <= 2 then
+        "0," ++ String.padLeft 2 '0' s
+    else
+        String.dropRight 2 s ++ "," ++ String.right 2 s

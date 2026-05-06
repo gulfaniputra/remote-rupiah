@@ -1,4 +1,4 @@
-import { CsvParseStream } from "jsr:@std/csv";
+import { CsvParseStream } from "@std/csv";
 
 export type Result<T, E = Error> = { ok: true; value: T } | { ok: false; error: E };
 export interface WiseTransaction { date: string; amountCents: bigint; currency: string; description: string; type: "Income" | "Expense" | "ForeignTaxCredit" }

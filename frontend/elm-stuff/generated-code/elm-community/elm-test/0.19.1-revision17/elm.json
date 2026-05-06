@@ -2,14 +2,14 @@
     "type": "application",
     "source-directories": [
         "src",
-        "../../../../../../../../.local/share/pnpm/global/5/.pnpm/elm-test@0.19.1-revision17/node_modules/elm-test/elm/src",
+        "../../../../../../../../.nvm/versions/node/v24.12.0/lib/node_modules/elm-test/elm/src",
         "../../../../../src",
         "../../../../../tests"
     ],
     "elm-version": "0.19.1",
     "dependencies": {
         "direct": {
-            "cmditch/elm-bigint": "2.0.0",
+            "cmditch/elm-bigint": "2.1.2",
             "elm/browser": "1.0.2",
             "elm/core": "1.0.5",
             "elm/html": "1.0.1",
@@ -17,11 +17,10 @@
             "elm/random": "1.0.0",
             "elm/svg": "1.0.1",
             "elm/time": "1.0.0",
-            "elm-explorations/test": "2.2.0"
+            "elm-explorations/test": "2.2.1"
         },
         "indirect": {
             "elm/bytes": "1.0.8",
-            "elm/regex": "1.0.0",
             "elm/url": "1.0.0",
             "elm/virtual-dom": "1.0.5",
             "elm-community/list-extra": "8.7.0",

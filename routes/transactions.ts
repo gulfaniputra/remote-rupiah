@@ -21,8 +21,9 @@ const schema = z.object({
 
 app.use("*", authMiddleware);
 
+// deno-lint-ignore no-explicit-any
 const withAuth = (id: string | undefined, fn: (tx: any) => Promise<any>) => 
-  sql.begin(async tx => { await tx`SET LOCAL request.jwt.claim.sub = ${id || safeId}`; return fn(tx); });
+  sql.begin(async tx => { await tx`SET LOCAL app.current_user_id = ${id || safeId}`; return fn(tx); });
 
 const toSnake = (obj: Record<string, unknown>) => Object.fromEntries(Object.entries(obj).map(([k, v]) => [k.replace(/[A-Z]/g, m => `_${m.toLowerCase()}`), v]));
 
@@ -31,6 +32,7 @@ app.get("/", async c => c.json({ success: true, transactions: await withAuth(c.g
 app.post("/", zValidator("json", schema), async c => {
   const d = c.req.valid("json");
   const rate = d.kmkRate ?? (await lookupKmkRate(d.date, d.currency))?.midRate;
+  // deno-lint-ignore no-explicit-any
   const data = toSnake({...d, kmkRate: rate, userId: c.get("userId") || (safeId as any)}) as any;
   const res = await withAuth(c.get("userId"), tx => tx`INSERT INTO transactions ${tx(data)} RETURNING *`);
   return c.json({ success: true, data: res[0] }, 201);

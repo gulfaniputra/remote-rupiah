@@ -1,4 +1,4 @@
-import { assertEquals } from "jsr:@std/assert@1";
+import { assertEquals } from "@std/assert";
 import { parseAmount, parseWiseRow } from "../services/wise_parser.ts";
 
 Deno.test("wise_parser", () => {

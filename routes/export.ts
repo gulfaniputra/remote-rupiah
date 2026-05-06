@@ -7,12 +7,14 @@ import { authMiddleware } from "../services/auth_middleware.ts";
 const app = new Hono<{ Variables: { userId: string | undefined } }>();
 app.use("*", authMiddleware);
 
-const withAuth = (id: string | undefined, fn: (tx: any) => Promise<any>) => sql.begin(async (tx: any) => { await tx`SET LOCAL request.jwt.claim.sub = ${id || "00000000-0000-0000-0000-000000000000"}`; return fn(tx); });
+// deno-lint-ignore no-explicit-any
+const withAuth = (id: string | undefined, fn: (tx: any) => Promise<any>) => sql.begin(async (tx: any) => { await tx`SET LOCAL app.current_user_id = ${id || "00000000-0000-0000-0000-000000000000"}`; return fn(tx); });
 
 app.post("/spt1770", zValidator("json", z.object({ year: z.string().regex(/^\d{4}$/).transform(v => parseInt(v, 10)) })), async (c) => {
   const { year } = c.req.valid("json");
   const userId = c.get("userId");
   if (!userId) return c.json({ error: "Auth required" }, 401);
+  // deno-lint-ignore no-explicit-any
   const txs = await withAuth(userId, (tx: any) => tx`SELECT date, amount_cents, kmk_rate, withholding_cents FROM transactions WHERE EXTRACT(YEAR FROM date) = ${year}`);
   if (!txs.length) return c.json({ error: "Empty" }, 404);
 

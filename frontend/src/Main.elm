@@ -9,10 +9,10 @@ import TaxLogic
 
 main = Browser.sandbox { init = {}, update = \_ m -> m, view = \_ -> 
     let (annUsd, kmkRate) = (Money.fromCents 5420000, 16120)
-        annIdr = annUsd |> Money.multiply kmkRate
+        annIdr = Money.multiply annUsd kmkRate
         profit = TaxLogic.calculateNppn annIdr
         indoTax = TaxLogic.calculateIndoTax profit
-        usTax = annIdr |> Money.multiply 10 |> Money.divide 100
+        usTax = Money.divide (Money.multiply annIdr 10) 100
         credit = TaxLogic.calculatePPh24Credit { foreignNetIncome = profit, totalTaxableIncome = profit, totalIndoTaxDue = indoTax, actualForeignTaxPaid = usTax }
         payable = Money.subtract indoTax credit
         fmtIDR m = "Rp " ++ Money.toString m
