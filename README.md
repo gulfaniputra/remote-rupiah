@@ -1,50 +1,58 @@
 # remote-rupiah
 
-Remote Rupiah is an automated financial compliance engine tailored for the Indonesian Digital Nomad and Remote Professional markets.
+**remote-rupiah** is a high-precision, edge-native financial compliance engine designed for Indonesian remote professionals and digital nomads working with U.S. clients.
 
-It solves the high-friction problem of international double-taxation (US/ID) and FX leakage for high-income Indonesian remote workers.
+remote-rupiah automates the complexities of **UU HPP compliance**, **PPh 24 foreign tax credits**, and **KMK (Kurs Menteri Keuangan)** rate management while ensuring mathematical integrity through a strict **Zero-Float architecture**.
 
 ## Table of Contents
 
 - [Strategic Value Proposition](#strategic-value-proposition)
-- [Industrial-Grade Tech Stack](#industrial-grade-tech-stack)
-- [Financial Protocols](#financial-protocols)
+- [Production-Grade Tech Stack](#production-grade-tech-stack)
+- [Financial Integrity Protocols](#financial-integrity-protocols)
+- [Security & Multi-Tenancy](#security--multi-tenancy)
 - [Agentic Governance](#agentic-governance)
-- [Interactive Demo & Local Setup](#interactive-demo--local-setup)
-  - [Prerequisites](#prerequisites)
-  - [Environment & DB](#environment--db)
+- [Local Setup & Development](#local-setup--development)
+- [Testing Suite](#testing-suite)
 
 ## Strategic Value Proposition
 
-- **The Compliance Engine:** Deep implementation of Indonesian Tax Law (UU HPP), including KLU 62010 (Norma) and PPh 24 credit caps.
-- **Architectural Safety:** Built with **Elm** and **PostgreSQL RLS** to ensure that financial calculations are mathematically perfect and data is cryptographically isolated by design.
-- **Market Niche:** Directly targets the growing segment of Indonesian talent working for US entities. A high-LTV user base with specific legal reporting requirements.
+- **The Compliance Engine:** Deep implementation of Indonesian Tax Law, specifically optimized for **KLU 62010 (Software Development)** with automated NPPN (Norma) calculations.
+- **Architectural Integrity:** Leverages **Elm's** type system and **PostgreSQL 17 RLS** to provide mathematical certainty and cryptographic data isolation.
+- **Leak Detection:** Identifies hidden **monetary leaks** from FX spreads across platforms like Wise, Revolut, and PayPal.
+- **DJP Coretax Ready:** Generates compliant export formats for the Indonesian tax portal.
 
-## Industrial-Grade Tech Stack
+## Production-Grade Tech Stack
 
-| Layer        | Technology    | Rationale                                                |
-| :----------- | :------------ | :------------------------------------------------------- |
-| **Frontend** | Elm 0.19.1    | Opaque types ensure 100% precision in financial logic    |
-| **Backend**  | Deno 2.2+     | Native JSR support and secure-by-default sandbox         |
-| **DB**       | PostgreSQL 17 | Enterprise-tier RLS for multi-tenant data isolation      |
-| **API**      | Hono 4.x      | Lightweight middleware for Deno Deploy/Edge environments |
+| Layer        | Technology        | Rationale                                                               |
+| :----------- | :---------------- | :---------------------------------------------------------------------- |
+| **Frontend** | **Elm 0.19.1**    | Opaque types eliminate floating-point errors in financial logic         |
+| **Backend**  | **Deno 2.2+**     | Native JSR support and secure-by-default sandbox for edge deployment    |
+| **Database** | **PostgreSQL 17** | Enterprise-tier Row-Level Security (RLS) for immutable tenant isolation |
+| **API**      | **Hono 4.x**      | Ultra-lightweight middleware for Deno Deploy/Edge environments          |
 
-## Financial Protocols
+## Financial Integrity Protocols
 
-1.  **Precision:** `Float` is banned for currency calculations. All values are stored and manipulated as `Int` (cents).
-2.  **Compliance:** Automatic application of **KLU 62010 (50%)** for software development (Norma Penghitungan Penghasilan Netto).
-3.  **PPh 24 Logic:** Implements the "Lesser of" rule to prevent double-taxation on US-source income: `(ForeignNet / TotalTaxable) * TotalTaxDue`.
-4.  **Audit Trail:** Every transaction is timestamped with the official **KMK (Kurs Menteri Keuangan)** rate valid for that week.
+We adhere to the **Zero-Float Protocol**:
+
+1.  **Strict Integer Math:** `Float` is banned for currency. All values are `BIGINT` (cents) in the DB and opaque `Money` types in Elm.
+2.  **UU HPP Compliance:** Automatic **50% NPPN** application for software development services.
+3.  **PPh 24 "Lesser of" Rule:** Prevents double-taxation on US-source income by calculating the specific credit cap: `(ForeignNet / TotalTaxable) * TotalTaxDue`.
+4.  **KMK Automation:** Automated weekly fetch of official **Kurs Menteri Keuangan** rates via Deno Cron, ensuring audit-compliant IDR conversion.
+
+## Security & Multi-Tenancy
+
+- **Database-Level Isolation:** Tenant security is enforced via **PostgreSQL RLS**. App-level `WHERE user_id = ?` filters are redundant. The database itself prevents cross-tenant data leakage.
+- **Logic Isolation:** All tax formulas reside in `frontend/src/TaxLogic.elm` as pure, side-effect-free functions.Making them 100% testable and auditable.
 
 ## Agentic Governance
 
-This repository is optimized for AI-assisted development (_e.g._ coding agents) using a structured `.agents/` framework:
+This codebase is optimized for AI-assisted development using the `.agents/` framework:
 
-- **Architecture Rules**: Enforces a "Zero-Float" policy and DB-level security.
-- **Compliance Rules**: Codifies Indonesian UU HPP tax logic into pure functional constraints.
-- **Automated Workflows**: A pre-commit audit protocol that verifies financial precision and runs full test suites before finalizing changes.
+- **Architecture Guards:** Linter-level enforcement of the Zero-Float policy.
+- **Compliance Guards:** Codified Indonesian tax logic that prevents non-compliant code from being committed.
+- **Automated Workflows:** Pre-commit protocols verifying financial precision and test coverage.
 
-## Interactive Demo & Local Setup
+## Local Setup & Development
 
 ### Prerequisites
 
@@ -52,15 +60,34 @@ This repository is optimized for AI-assisted development (_e.g._ coding agents) 
 - **Elm 0.19.1**
 - **PostgreSQL 17**
 
-### Environment & DB
+### Environment Setup
 
 ```bash
 # Setup environment variables
 cp .env.example .env
 
-# Initialize schema and RLS policies
+# Create database
+createdb remote_rupiah
+
+# Initialize database (Schema & RLS)
 psql -d remote_rupiah -f db/schema.sql
 
-# Populate with mock US 1042-S transaction data for testing
+# Seed with mock US 1042-S transaction data
 psql -d remote_rupiah -f db/seed.sql
 ```
+
+### Running the App
+
+```bash
+# Start Deno Backend (Hono)
+deno task dev
+
+# In another terminal, start Elm Frontend
+cd frontend
+elm reactor
+```
+
+## Testing Suite
+
+- **Frontend:** `elm-test` for all `TaxLogic` and `Money` modules.
+- **Backend:** Deno `std/assert` for KMK ingestion and API routes.
