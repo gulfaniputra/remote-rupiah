@@ -37,7 +37,7 @@ app.post("/", async (c) => {
     if (!uid) return c.json({ success: false, error: "Unauthorized" }, 401);
     if (!Array.isArray(rows) || rows.length > 5000) return c.json({ success: false, error: "Invalid or too many rows" }, 400);
     await sql.begin(async (t) => {
-      await t`SELECT set_config('request.jwt.claim.sub', ${uid}, true)`;
+      await t`SET LOCAL app.current_user_id = ${uid}`;
       for (const r of rows) if (r.amountStr && r.date && r.source_tx_id)
         await t`INSERT INTO transactions (user_id, date, currency, amount_cents, source_tx_id, metadata) VALUES (${uid}, ${r.date}, ${r.currency || 'USD'}, ${parseAmount(r.amountStr)}, ${r.source_tx_id}, ${r}) ON CONFLICT DO NOTHING`;
     });

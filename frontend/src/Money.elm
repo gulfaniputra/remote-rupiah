@@ -1,4 +1,4 @@
-module Money exposing (IDR, Money, USD, add, compare, divide, fromBigInt, fromCents, fromStr, fromCentsStr, multiply, proportion, subtract, toBigInt, toCents, toString, toDjpString, zero)
+module Money exposing (IDR, Money, USD, add, compare, divide, divideRoundUp, fromBigInt, fromCents, fromStr, fromCentsStr, multiply, proportion, subtract, toBigInt, toCents, toString, toDjpString, zero)
 import BigInt exposing (BigInt)
 
 type Money c = Money BigInt
@@ -17,6 +17,7 @@ add (Money a) (Money b) = Money (BigInt.add a b)
 subtract (Money a) (Money b) = Money (BigInt.sub a b)
 multiply (Money a) n = Money (BigInt.mul a (BigInt.fromInt n))
 divide (Money a) n = if n == 0 then zero else Money (BigInt.div a (BigInt.fromInt n))
+divideRoundUp (Money a) n = if n == 0 then zero else Money (BigInt.div (BigInt.add a (BigInt.fromInt (n - 1))) (BigInt.fromInt n))
 proportion (Money b) (Money n) (Money d) = if d == BigInt.fromInt 0 then zero else Money (BigInt.div (BigInt.mul b n) d)
 compare (Money a) (Money b) = BigInt.compare a b
 fromStr raw = let s = String.replace "," "" (String.trim raw) in if s == "" || String.startsWith "-" s then Err "Err" else case String.split "." s of
