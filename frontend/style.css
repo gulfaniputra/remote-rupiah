@@ -66,6 +66,21 @@ h3 { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spa
     border-bottom: 1px solid var(--border-color);
 }
 
+.banner {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.banner-urgent {
+    background-color: var(--accent-red);
+    color: white;
+}
+
 .nav-links { display: flex; gap: 2rem; height: 100%; }
 .nav-link {
     color: var(--text-secondary);

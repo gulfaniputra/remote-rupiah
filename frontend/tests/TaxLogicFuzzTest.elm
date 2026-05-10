@@ -29,4 +29,10 @@ suite =
         , fuzz (Fuzz.intRange 1 1000000) "zero leak when actual=expected" <| \c ->
             let e = TaxLogic.calculateIdrValue (Money.fromCents c) 1612000 in
             TaxLogic.calculateFXLeakage (Money.fromCents c) 1612000 e |> Money.toCents |> Expect.equal 0
+        , fuzz (Fuzz.intRange 0 6000000000) "projected tax at 60M boundary handles overflow" <| \ytd ->
+            let 
+                projected = TaxLogic.projectYearEndLiability (Money.fromCents ytd) 12
+                actual = TaxLogic.calculateIndoTax (Money.fromCents ytd)
+            in
+            Money.toCents projected |> Expect.equal (Money.toCents actual)
         ]

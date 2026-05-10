@@ -1,7 +1,8 @@
 {
   "tasks": {
-    "dev": "deno run --watch main.ts"
+    "dev": "deno run --unstable-kv --watch main.ts"
   },
+  "unstable": ["kv"],
   "lint": {
     "exclude": ["frontend/elm.js", "frontend/elm-stuff/"]
   },

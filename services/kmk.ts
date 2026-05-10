@@ -262,29 +262,14 @@ export interface KmkRate {
  *
  * Per tax_compliance rule: "Use the weekly KMK rate for the date of receipt."
  */
-export async function lookupKmkRate(
-  transactionDate: string,
-  currency = "USD",
-): Promise<KmkRate | null> {
-  const rows = await sql`
-    SELECT
-      id,
-      currency,
-      kmk_number AS "kmkNumber",
-      valid_from AS "validFrom",
-      valid_until AS "validUntil",
-      buy_rate AS "buyRate",
-      sell_rate AS "sellRate",
-      mid_rate AS "midRate",
-      fetched_at AS "fetchedAt"
-    FROM kmk_rates
-    WHERE currency = ${currency}
-      AND ${transactionDate}::DATE BETWEEN valid_from AND valid_until
-    ORDER BY valid_from DESC
-    LIMIT 1
-  `;
+const kv = typeof Deno.openKv === "function" ? await Deno.openKv() : null;
 
+export async function lookupKmkRate(transactionDate: string, currency = "USD"): Promise<KmkRate | null> {
+  const k = ["kmk_rates", currency, transactionDate], v = kv ? (await kv.get<KmkRate>(k)).value : null;
+  if (v) return v;
+  const rows = await sql`SELECT id, currency, kmk_number AS "kmkNumber", valid_from AS "validFrom", valid_until AS "validUntil", buy_rate AS "buyRate", sell_rate AS "sellRate", mid_rate AS "midRate", fetched_at AS "fetchedAt" FROM kmk_rates WHERE currency = ${currency} AND ${transactionDate}::DATE BETWEEN valid_from AND valid_until ORDER BY valid_from DESC LIMIT 1`;
   if (rows.length === 0) return null;
+  if (kv) await kv.set(k, rows[0], { expireIn: 86_400_000 });
   return rows[0] as KmkRate;
 }
 

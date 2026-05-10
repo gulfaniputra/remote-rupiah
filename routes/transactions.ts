@@ -44,5 +44,10 @@ app.get("/:id", zValidator("param", z.object({ id: z.string().uuid() })), async 
   return res[0] ? c.json({ success: true, data: res[0] }) : c.json({ error: "Not found" }, 404);
 });
 
+app.patch("/:id/verify", zValidator("param", z.object({ id: z.string().uuid() })), zValidator("json", z.object({ is_1042s_verified: z.boolean() })), async c => {
+  const res = await withAuth(c.get("userId"), tx => tx`UPDATE transactions SET is_1042s_verified = ${c.req.valid("json").is_1042s_verified}, verified_at = NOW() WHERE id = ${c.req.valid("param").id} AND is_1042s_verified = FALSE RETURNING *`);
+  return res[0] ? c.json({ success: true, data: res[0] }) : c.json({ error: "Not found or already verified" }, 404);
+});
+
 export default app;
 
