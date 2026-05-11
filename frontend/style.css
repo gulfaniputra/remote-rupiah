@@ -45,6 +45,8 @@ h3 { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spa
 .text-secondary { color: var(--text-secondary); }
 .font-semibold { font-weight: 600; }
 .font-bold { font-weight: 700; }
+.font-mono { font-family: 'JetBrains Mono', monospace; }
+
 
 /* Layout Utilities */
 .flex { display: flex; }
@@ -294,6 +296,14 @@ td {
 tr:hover td {
     background-color: var(--bg-card-hover);
 }
+.row-locked {
+    opacity: 0.7;
+    background-color: rgba(0,0,0,0.1);
+}
+.row-locked:hover td {
+    background-color: transparent;
+}
+
 .status-icon {
     width: 20px;
     height: 20px;

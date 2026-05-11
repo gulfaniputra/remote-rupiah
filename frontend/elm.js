@@ -80,271 +80,6 @@ function A9(fun, a, b, c, d, e, f, g, h, i) {
 console.warn('Compiled in DEV mode. Follow the advice at https://elm-lang.org/0.19.1/optimize for better performance and smaller assets.');
 
 
-// EQUALITY
-
-function _Utils_eq(x, y)
-{
-	for (
-		var pair, stack = [], isEqual = _Utils_eqHelp(x, y, 0, stack);
-		isEqual && (pair = stack.pop());
-		isEqual = _Utils_eqHelp(pair.a, pair.b, 0, stack)
-		)
-	{}
-
-	return isEqual;
-}
-
-function _Utils_eqHelp(x, y, depth, stack)
-{
-	if (x === y)
-	{
-		return true;
-	}
-
-	if (typeof x !== 'object' || x === null || y === null)
-	{
-		typeof x === 'function' && _Debug_crash(5);
-		return false;
-	}
-
-	if (depth > 100)
-	{
-		stack.push(_Utils_Tuple2(x,y));
-		return true;
-	}
-
-	/**/
-	if (x.$ === 'Set_elm_builtin')
-	{
-		x = $elm$core$Set$toList(x);
-		y = $elm$core$Set$toList(y);
-	}
-	if (x.$ === 'RBNode_elm_builtin' || x.$ === 'RBEmpty_elm_builtin')
-	{
-		x = $elm$core$Dict$toList(x);
-		y = $elm$core$Dict$toList(y);
-	}
-	//*/
-
-	/**_UNUSED/
-	if (x.$ < 0)
-	{
-		x = $elm$core$Dict$toList(x);
-		y = $elm$core$Dict$toList(y);
-	}
-	//*/
-
-	for (var key in x)
-	{
-		if (!_Utils_eqHelp(x[key], y[key], depth + 1, stack))
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
-var _Utils_equal = F2(_Utils_eq);
-var _Utils_notEqual = F2(function(a, b) { return !_Utils_eq(a,b); });
-
-
-
-// COMPARISONS
-
-// Code in Generate/JavaScript.hs, Basics.js, and List.js depends on
-// the particular integer values assigned to LT, EQ, and GT.
-
-function _Utils_cmp(x, y, ord)
-{
-	if (typeof x !== 'object')
-	{
-		return x === y ? /*EQ*/ 0 : x < y ? /*LT*/ -1 : /*GT*/ 1;
-	}
-
-	/**/
-	if (x instanceof String)
-	{
-		var a = x.valueOf();
-		var b = y.valueOf();
-		return a === b ? 0 : a < b ? -1 : 1;
-	}
-	//*/
-
-	/**_UNUSED/
-	if (typeof x.$ === 'undefined')
-	//*/
-	/**/
-	if (x.$[0] === '#')
-	//*/
-	{
-		return (ord = _Utils_cmp(x.a, y.a))
-			? ord
-			: (ord = _Utils_cmp(x.b, y.b))
-				? ord
-				: _Utils_cmp(x.c, y.c);
-	}
-
-	// traverse conses until end of a list or a mismatch
-	for (; x.b && y.b && !(ord = _Utils_cmp(x.a, y.a)); x = x.b, y = y.b) {} // WHILE_CONSES
-	return ord || (x.b ? /*GT*/ 1 : y.b ? /*LT*/ -1 : /*EQ*/ 0);
-}
-
-var _Utils_lt = F2(function(a, b) { return _Utils_cmp(a, b) < 0; });
-var _Utils_le = F2(function(a, b) { return _Utils_cmp(a, b) < 1; });
-var _Utils_gt = F2(function(a, b) { return _Utils_cmp(a, b) > 0; });
-var _Utils_ge = F2(function(a, b) { return _Utils_cmp(a, b) >= 0; });
-
-var _Utils_compare = F2(function(x, y)
-{
-	var n = _Utils_cmp(x, y);
-	return n < 0 ? $elm$core$Basics$LT : n ? $elm$core$Basics$GT : $elm$core$Basics$EQ;
-});
-
-
-// COMMON VALUES
-
-var _Utils_Tuple0_UNUSED = 0;
-var _Utils_Tuple0 = { $: '#0' };
-
-function _Utils_Tuple2_UNUSED(a, b) { return { a: a, b: b }; }
-function _Utils_Tuple2(a, b) { return { $: '#2', a: a, b: b }; }
-
-function _Utils_Tuple3_UNUSED(a, b, c) { return { a: a, b: b, c: c }; }
-function _Utils_Tuple3(a, b, c) { return { $: '#3', a: a, b: b, c: c }; }
-
-function _Utils_chr_UNUSED(c) { return c; }
-function _Utils_chr(c) { return new String(c); }
-
-
-// RECORDS
-
-function _Utils_update(oldRecord, updatedFields)
-{
-	var newRecord = {};
-
-	for (var key in oldRecord)
-	{
-		newRecord[key] = oldRecord[key];
-	}
-
-	for (var key in updatedFields)
-	{
-		newRecord[key] = updatedFields[key];
-	}
-
-	return newRecord;
-}
-
-
-// APPEND
-
-var _Utils_append = F2(_Utils_ap);
-
-function _Utils_ap(xs, ys)
-{
-	// append Strings
-	if (typeof xs === 'string')
-	{
-		return xs + ys;
-	}
-
-	// append Lists
-	if (!xs.b)
-	{
-		return ys;
-	}
-	var root = _List_Cons(xs.a, ys);
-	xs = xs.b
-	for (var curr = root; xs.b; xs = xs.b) // WHILE_CONS
-	{
-		curr = curr.b = _List_Cons(xs.a, ys);
-	}
-	return root;
-}
-
-
-
-var _List_Nil_UNUSED = { $: 0 };
-var _List_Nil = { $: '[]' };
-
-function _List_Cons_UNUSED(hd, tl) { return { $: 1, a: hd, b: tl }; }
-function _List_Cons(hd, tl) { return { $: '::', a: hd, b: tl }; }
-
-
-var _List_cons = F2(_List_Cons);
-
-function _List_fromArray(arr)
-{
-	var out = _List_Nil;
-	for (var i = arr.length; i--; )
-	{
-		out = _List_Cons(arr[i], out);
-	}
-	return out;
-}
-
-function _List_toArray(xs)
-{
-	for (var out = []; xs.b; xs = xs.b) // WHILE_CONS
-	{
-		out.push(xs.a);
-	}
-	return out;
-}
-
-var _List_map2 = F3(function(f, xs, ys)
-{
-	for (var arr = []; xs.b && ys.b; xs = xs.b, ys = ys.b) // WHILE_CONSES
-	{
-		arr.push(A2(f, xs.a, ys.a));
-	}
-	return _List_fromArray(arr);
-});
-
-var _List_map3 = F4(function(f, xs, ys, zs)
-{
-	for (var arr = []; xs.b && ys.b && zs.b; xs = xs.b, ys = ys.b, zs = zs.b) // WHILE_CONSES
-	{
-		arr.push(A3(f, xs.a, ys.a, zs.a));
-	}
-	return _List_fromArray(arr);
-});
-
-var _List_map4 = F5(function(f, ws, xs, ys, zs)
-{
-	for (var arr = []; ws.b && xs.b && ys.b && zs.b; ws = ws.b, xs = xs.b, ys = ys.b, zs = zs.b) // WHILE_CONSES
-	{
-		arr.push(A4(f, ws.a, xs.a, ys.a, zs.a));
-	}
-	return _List_fromArray(arr);
-});
-
-var _List_map5 = F6(function(f, vs, ws, xs, ys, zs)
-{
-	for (var arr = []; vs.b && ws.b && xs.b && ys.b && zs.b; vs = vs.b, ws = ws.b, xs = xs.b, ys = ys.b, zs = zs.b) // WHILE_CONSES
-	{
-		arr.push(A5(f, vs.a, ws.a, xs.a, ys.a, zs.a));
-	}
-	return _List_fromArray(arr);
-});
-
-var _List_sortBy = F2(function(f, xs)
-{
-	return _List_fromArray(_List_toArray(xs).sort(function(a, b) {
-		return _Utils_cmp(f(a), f(b));
-	}));
-});
-
-var _List_sortWith = F2(function(f, xs)
-{
-	return _List_fromArray(_List_toArray(xs).sort(function(a, b) {
-		var ord = A2(f, a, b);
-		return ord === $elm$core$Basics$EQ ? 0 : ord === $elm$core$Basics$LT ? -1 : 1;
-	}));
-});
-
-
-
 var _JsArray_empty = [];
 
 function _JsArray_singleton(value)
@@ -790,6 +525,271 @@ function _Debug_regionToString(region)
 	}
 	return 'on lines ' + region.start.line + ' through ' + region.end.line;
 }
+
+
+
+// EQUALITY
+
+function _Utils_eq(x, y)
+{
+	for (
+		var pair, stack = [], isEqual = _Utils_eqHelp(x, y, 0, stack);
+		isEqual && (pair = stack.pop());
+		isEqual = _Utils_eqHelp(pair.a, pair.b, 0, stack)
+		)
+	{}
+
+	return isEqual;
+}
+
+function _Utils_eqHelp(x, y, depth, stack)
+{
+	if (x === y)
+	{
+		return true;
+	}
+
+	if (typeof x !== 'object' || x === null || y === null)
+	{
+		typeof x === 'function' && _Debug_crash(5);
+		return false;
+	}
+
+	if (depth > 100)
+	{
+		stack.push(_Utils_Tuple2(x,y));
+		return true;
+	}
+
+	/**/
+	if (x.$ === 'Set_elm_builtin')
+	{
+		x = $elm$core$Set$toList(x);
+		y = $elm$core$Set$toList(y);
+	}
+	if (x.$ === 'RBNode_elm_builtin' || x.$ === 'RBEmpty_elm_builtin')
+	{
+		x = $elm$core$Dict$toList(x);
+		y = $elm$core$Dict$toList(y);
+	}
+	//*/
+
+	/**_UNUSED/
+	if (x.$ < 0)
+	{
+		x = $elm$core$Dict$toList(x);
+		y = $elm$core$Dict$toList(y);
+	}
+	//*/
+
+	for (var key in x)
+	{
+		if (!_Utils_eqHelp(x[key], y[key], depth + 1, stack))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+var _Utils_equal = F2(_Utils_eq);
+var _Utils_notEqual = F2(function(a, b) { return !_Utils_eq(a,b); });
+
+
+
+// COMPARISONS
+
+// Code in Generate/JavaScript.hs, Basics.js, and List.js depends on
+// the particular integer values assigned to LT, EQ, and GT.
+
+function _Utils_cmp(x, y, ord)
+{
+	if (typeof x !== 'object')
+	{
+		return x === y ? /*EQ*/ 0 : x < y ? /*LT*/ -1 : /*GT*/ 1;
+	}
+
+	/**/
+	if (x instanceof String)
+	{
+		var a = x.valueOf();
+		var b = y.valueOf();
+		return a === b ? 0 : a < b ? -1 : 1;
+	}
+	//*/
+
+	/**_UNUSED/
+	if (typeof x.$ === 'undefined')
+	//*/
+	/**/
+	if (x.$[0] === '#')
+	//*/
+	{
+		return (ord = _Utils_cmp(x.a, y.a))
+			? ord
+			: (ord = _Utils_cmp(x.b, y.b))
+				? ord
+				: _Utils_cmp(x.c, y.c);
+	}
+
+	// traverse conses until end of a list or a mismatch
+	for (; x.b && y.b && !(ord = _Utils_cmp(x.a, y.a)); x = x.b, y = y.b) {} // WHILE_CONSES
+	return ord || (x.b ? /*GT*/ 1 : y.b ? /*LT*/ -1 : /*EQ*/ 0);
+}
+
+var _Utils_lt = F2(function(a, b) { return _Utils_cmp(a, b) < 0; });
+var _Utils_le = F2(function(a, b) { return _Utils_cmp(a, b) < 1; });
+var _Utils_gt = F2(function(a, b) { return _Utils_cmp(a, b) > 0; });
+var _Utils_ge = F2(function(a, b) { return _Utils_cmp(a, b) >= 0; });
+
+var _Utils_compare = F2(function(x, y)
+{
+	var n = _Utils_cmp(x, y);
+	return n < 0 ? $elm$core$Basics$LT : n ? $elm$core$Basics$GT : $elm$core$Basics$EQ;
+});
+
+
+// COMMON VALUES
+
+var _Utils_Tuple0_UNUSED = 0;
+var _Utils_Tuple0 = { $: '#0' };
+
+function _Utils_Tuple2_UNUSED(a, b) { return { a: a, b: b }; }
+function _Utils_Tuple2(a, b) { return { $: '#2', a: a, b: b }; }
+
+function _Utils_Tuple3_UNUSED(a, b, c) { return { a: a, b: b, c: c }; }
+function _Utils_Tuple3(a, b, c) { return { $: '#3', a: a, b: b, c: c }; }
+
+function _Utils_chr_UNUSED(c) { return c; }
+function _Utils_chr(c) { return new String(c); }
+
+
+// RECORDS
+
+function _Utils_update(oldRecord, updatedFields)
+{
+	var newRecord = {};
+
+	for (var key in oldRecord)
+	{
+		newRecord[key] = oldRecord[key];
+	}
+
+	for (var key in updatedFields)
+	{
+		newRecord[key] = updatedFields[key];
+	}
+
+	return newRecord;
+}
+
+
+// APPEND
+
+var _Utils_append = F2(_Utils_ap);
+
+function _Utils_ap(xs, ys)
+{
+	// append Strings
+	if (typeof xs === 'string')
+	{
+		return xs + ys;
+	}
+
+	// append Lists
+	if (!xs.b)
+	{
+		return ys;
+	}
+	var root = _List_Cons(xs.a, ys);
+	xs = xs.b
+	for (var curr = root; xs.b; xs = xs.b) // WHILE_CONS
+	{
+		curr = curr.b = _List_Cons(xs.a, ys);
+	}
+	return root;
+}
+
+
+
+var _List_Nil_UNUSED = { $: 0 };
+var _List_Nil = { $: '[]' };
+
+function _List_Cons_UNUSED(hd, tl) { return { $: 1, a: hd, b: tl }; }
+function _List_Cons(hd, tl) { return { $: '::', a: hd, b: tl }; }
+
+
+var _List_cons = F2(_List_Cons);
+
+function _List_fromArray(arr)
+{
+	var out = _List_Nil;
+	for (var i = arr.length; i--; )
+	{
+		out = _List_Cons(arr[i], out);
+	}
+	return out;
+}
+
+function _List_toArray(xs)
+{
+	for (var out = []; xs.b; xs = xs.b) // WHILE_CONS
+	{
+		out.push(xs.a);
+	}
+	return out;
+}
+
+var _List_map2 = F3(function(f, xs, ys)
+{
+	for (var arr = []; xs.b && ys.b; xs = xs.b, ys = ys.b) // WHILE_CONSES
+	{
+		arr.push(A2(f, xs.a, ys.a));
+	}
+	return _List_fromArray(arr);
+});
+
+var _List_map3 = F4(function(f, xs, ys, zs)
+{
+	for (var arr = []; xs.b && ys.b && zs.b; xs = xs.b, ys = ys.b, zs = zs.b) // WHILE_CONSES
+	{
+		arr.push(A3(f, xs.a, ys.a, zs.a));
+	}
+	return _List_fromArray(arr);
+});
+
+var _List_map4 = F5(function(f, ws, xs, ys, zs)
+{
+	for (var arr = []; ws.b && xs.b && ys.b && zs.b; ws = ws.b, xs = xs.b, ys = ys.b, zs = zs.b) // WHILE_CONSES
+	{
+		arr.push(A4(f, ws.a, xs.a, ys.a, zs.a));
+	}
+	return _List_fromArray(arr);
+});
+
+var _List_map5 = F6(function(f, vs, ws, xs, ys, zs)
+{
+	for (var arr = []; vs.b && ws.b && xs.b && ys.b && zs.b; vs = vs.b, ws = ws.b, xs = xs.b, ys = ys.b, zs = zs.b) // WHILE_CONSES
+	{
+		arr.push(A5(f, vs.a, ws.a, xs.a, ys.a, zs.a));
+	}
+	return _List_fromArray(arr);
+});
+
+var _List_sortBy = F2(function(f, xs)
+{
+	return _List_fromArray(_List_toArray(xs).sort(function(a, b) {
+		return _Utils_cmp(f(a), f(b));
+	}));
+});
+
+var _List_sortWith = F2(function(f, xs)
+{
+	return _List_fromArray(_List_toArray(xs).sort(function(a, b) {
+		var ord = A2(f, a, b);
+		return ord === $elm$core$Basics$EQ ? 0 : ord === $elm$core$Basics$LT ? -1 : 1;
+	}));
+});
 
 
 
@@ -4378,10 +4378,114 @@ function _Browser_load(url)
 		}
 	}));
 }
-var $elm$core$Basics$EQ = {$: 'EQ'};
-var $elm$core$Basics$GT = {$: 'GT'};
-var $elm$core$Basics$LT = {$: 'LT'};
+
+
+
+function _Time_now(millisToPosix)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(millisToPosix(Date.now())));
+	});
+}
+
+var _Time_setInterval = F2(function(interval, task)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var id = setInterval(function() { _Scheduler_rawSpawn(task); }, interval);
+		return function() { clearInterval(id); };
+	});
+});
+
+function _Time_here()
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(
+			A2($elm$time$Time$customZone, -(new Date().getTimezoneOffset()), _List_Nil)
+		));
+	});
+}
+
+
+function _Time_getZoneName()
+{
+	return _Scheduler_binding(function(callback)
+	{
+		try
+		{
+			var name = $elm$time$Time$Name(Intl.DateTimeFormat().resolvedOptions().timeZone);
+		}
+		catch (e)
+		{
+			var name = $elm$time$Time$Offset(new Date().getTimezoneOffset());
+		}
+		callback(_Scheduler_succeed(name));
+	});
+}
+
+
+
+var _Bitwise_and = F2(function(a, b)
+{
+	return a & b;
+});
+
+var _Bitwise_or = F2(function(a, b)
+{
+	return a | b;
+});
+
+var _Bitwise_xor = F2(function(a, b)
+{
+	return a ^ b;
+});
+
+function _Bitwise_complement(a)
+{
+	return ~a;
+};
+
+var _Bitwise_shiftLeftBy = F2(function(offset, a)
+{
+	return a << offset;
+});
+
+var _Bitwise_shiftRightBy = F2(function(offset, a)
+{
+	return a >> offset;
+});
+
+var _Bitwise_shiftRightZfBy = F2(function(offset, a)
+{
+	return a >>> offset;
+});
 var $elm$core$List$cons = _List_cons;
+var $elm$core$Elm$JsArray$foldr = _JsArray_foldr;
+var $elm$core$Array$foldr = F3(
+	function (func, baseCase, _v0) {
+		var tree = _v0.c;
+		var tail = _v0.d;
+		var helper = F2(
+			function (node, acc) {
+				if (node.$ === 'SubTree') {
+					var subTree = node.a;
+					return A3($elm$core$Elm$JsArray$foldr, helper, acc, subTree);
+				} else {
+					var values = node.a;
+					return A3($elm$core$Elm$JsArray$foldr, func, acc, values);
+				}
+			});
+		return A3(
+			$elm$core$Elm$JsArray$foldr,
+			helper,
+			A3($elm$core$Elm$JsArray$foldr, func, baseCase, tail),
+			tree);
+	});
+var $elm$core$Array$toList = function (array) {
+	return A3($elm$core$Array$foldr, $elm$core$List$cons, _List_Nil, array);
+};
 var $elm$core$Dict$foldr = F3(
 	function (func, acc, t) {
 		foldr:
@@ -4434,30 +4538,20 @@ var $elm$core$Set$toList = function (_v0) {
 	var dict = _v0.a;
 	return $elm$core$Dict$keys(dict);
 };
-var $elm$core$Elm$JsArray$foldr = _JsArray_foldr;
-var $elm$core$Array$foldr = F3(
-	function (func, baseCase, _v0) {
-		var tree = _v0.c;
-		var tail = _v0.d;
-		var helper = F2(
-			function (node, acc) {
-				if (node.$ === 'SubTree') {
-					var subTree = node.a;
-					return A3($elm$core$Elm$JsArray$foldr, helper, acc, subTree);
-				} else {
-					var values = node.a;
-					return A3($elm$core$Elm$JsArray$foldr, func, acc, values);
-				}
-			});
-		return A3(
-			$elm$core$Elm$JsArray$foldr,
-			helper,
-			A3($elm$core$Elm$JsArray$foldr, func, baseCase, tail),
-			tree);
-	});
-var $elm$core$Array$toList = function (array) {
-	return A3($elm$core$Array$foldr, $elm$core$List$cons, _List_Nil, array);
+var $elm$core$Basics$EQ = {$: 'EQ'};
+var $elm$core$Basics$GT = {$: 'GT'};
+var $elm$core$Basics$LT = {$: 'LT'};
+var $elm$core$Basics$False = {$: 'False'};
+var $author$project$Data$Compliance$StandardRate = {$: 'StandardRate'};
+var $author$project$Main$Tick = function (a) {
+	return {$: 'Tick', a: a};
 };
+var $elm$core$Basics$True = {$: 'True'};
+var $author$project$Data$Compliance$Urgent = {$: 'Urgent'};
+var $author$project$Main$Verify = function (a) {
+	return {$: 'Verify', a: a};
+};
+var $elm$core$Basics$append = _Utils_append;
 var $elm$core$Result$Err = function (a) {
 	return {$: 'Err', a: a};
 };
@@ -4479,7 +4573,6 @@ var $elm$core$Result$Ok = function (a) {
 var $elm$json$Json$Decode$OneOf = function (a) {
 	return {$: 'OneOf', a: a};
 };
-var $elm$core$Basics$False = {$: 'False'};
 var $elm$core$Basics$add = _Basics_add;
 var $elm$core$Maybe$Just = function (a) {
 	return {$: 'Just', a: a};
@@ -4487,7 +4580,6 @@ var $elm$core$Maybe$Just = function (a) {
 var $elm$core$Maybe$Nothing = {$: 'Nothing'};
 var $elm$core$String$all = _String_all;
 var $elm$core$Basics$and = _Basics_and;
-var $elm$core$Basics$append = _Utils_append;
 var $elm$json$Json$Encode$encode = _Json_encode;
 var $elm$core$String$fromInt = _String_fromNumber;
 var $elm$core$String$join = F2(
@@ -4845,7 +4937,6 @@ var $elm$core$Array$initialize = F2(
 			return A5($elm$core$Array$initializeHelp, fn, initialFromIndex, len, _List_Nil, tail);
 		}
 	});
-var $elm$core$Basics$True = {$: 'True'};
 var $elm$core$Result$isOk = function (result) {
 	if (result.$ === 'Ok') {
 		return true;
@@ -4868,14 +4959,992 @@ var $elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
 			return 3;
 	}
 };
+var $elm$html$Html$b = _VirtualDom_node('b');
+var $elm$html$Html$button = _VirtualDom_node('button');
+var $elm$core$Basics$identity = function (x) {
+	return x;
+};
+var $author$project$Money$Money = function (a) {
+	return {$: 'Money', a: a};
+};
+var $cmditch$elm_bigint$BigInt$BigIntNotNormalised = F2(
+	function (a, b) {
+		return {$: 'BigIntNotNormalised', a: a, b: b};
+	});
+var $cmditch$elm_bigint$BigInt$MagnitudeNotNormalised = function (a) {
+	return {$: 'MagnitudeNotNormalised', a: a};
+};
+var $cmditch$elm_bigint$BigInt$Positive = {$: 'Positive'};
+var $elm$core$List$foldrHelper = F4(
+	function (fn, acc, ctr, ls) {
+		if (!ls.b) {
+			return acc;
+		} else {
+			var a = ls.a;
+			var r1 = ls.b;
+			if (!r1.b) {
+				return A2(fn, a, acc);
+			} else {
+				var b = r1.a;
+				var r2 = r1.b;
+				if (!r2.b) {
+					return A2(
+						fn,
+						a,
+						A2(fn, b, acc));
+				} else {
+					var c = r2.a;
+					var r3 = r2.b;
+					if (!r3.b) {
+						return A2(
+							fn,
+							a,
+							A2(
+								fn,
+								b,
+								A2(fn, c, acc)));
+					} else {
+						var d = r3.a;
+						var r4 = r3.b;
+						var res = (ctr > 500) ? A3(
+							$elm$core$List$foldl,
+							fn,
+							acc,
+							$elm$core$List$reverse(r4)) : A4($elm$core$List$foldrHelper, fn, acc, ctr + 1, r4);
+						return A2(
+							fn,
+							a,
+							A2(
+								fn,
+								b,
+								A2(
+									fn,
+									c,
+									A2(fn, d, res))));
+					}
+				}
+			}
+		}
+	});
+var $elm$core$List$foldr = F3(
+	function (fn, acc, ls) {
+		return A4($elm$core$List$foldrHelper, fn, acc, 0, ls);
+	});
+var $elm$core$List$map = F2(
+	function (f, xs) {
+		return A3(
+			$elm$core$List$foldr,
+			F2(
+				function (x, acc) {
+					return A2(
+						$elm$core$List$cons,
+						f(x),
+						acc);
+				}),
+			_List_Nil,
+			xs);
+	});
+var $elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var $cmditch$elm_bigint$BigInt$Magnitude = function (a) {
+	return {$: 'Magnitude', a: a};
+};
+var $elm_community$list_extra$List$Extra$last = function (items) {
+	last:
+	while (true) {
+		if (!items.b) {
+			return $elm$core$Maybe$Nothing;
+		} else {
+			if (!items.b.b) {
+				var x = items.a;
+				return $elm$core$Maybe$Just(x);
+			} else {
+				var rest = items.b;
+				var $temp$items = rest;
+				items = $temp$items;
+				continue last;
+			}
+		}
+	}
+};
+var $cmditch$elm_bigint$BigInt$isNegativeMagnitude = function (digits) {
+	var _v0 = $elm_community$list_extra$List$Extra$last(digits);
+	if (_v0.$ === 'Nothing') {
+		return false;
+	} else {
+		var x = _v0.a;
+		return x < 0;
+	}
+};
+var $cmditch$elm_bigint$BigInt$Neg = function (a) {
+	return {$: 'Neg', a: a};
+};
+var $cmditch$elm_bigint$BigInt$Pos = function (a) {
+	return {$: 'Pos', a: a};
+};
+var $cmditch$elm_bigint$BigInt$Zer = {$: 'Zer'};
+var $elm$core$List$isEmpty = function (xs) {
+	if (!xs.b) {
+		return true;
+	} else {
+		return false;
+	}
+};
+var $cmditch$elm_bigint$BigInt$mkBigInt = F2(
+	function (s, mag) {
+		var digits = mag.a;
+		if ($elm$core$List$isEmpty(digits)) {
+			return $cmditch$elm_bigint$BigInt$Zer;
+		} else {
+			switch (s.$) {
+				case 'Zero':
+					return $cmditch$elm_bigint$BigInt$Zer;
+				case 'Positive':
+					return $cmditch$elm_bigint$BigInt$Pos(mag);
+				default:
+					return $cmditch$elm_bigint$BigInt$Neg(mag);
+			}
+		}
+	});
+var $elm_community$list_extra$List$Extra$dropWhileRight = function (p) {
+	return A2(
+		$elm$core$List$foldr,
+		F2(
+			function (x, xs) {
+				return (p(x) && $elm$core$List$isEmpty(xs)) ? _List_Nil : A2($elm$core$List$cons, x, xs);
+			}),
+		_List_Nil);
+};
+var $cmditch$elm_bigint$BigInt$dropZeroes = function (ls) {
+	return A2(
+		$elm_community$list_extra$List$Extra$dropWhileRight,
+		$elm$core$Basics$eq(0),
+		ls);
+};
+var $cmditch$elm_bigint$Constants$maxDigitMagnitude = 7;
+var $elm$core$Basics$pow = _Basics_pow;
+var $cmditch$elm_bigint$Constants$maxDigitValue = (-1) + A2($elm$core$Basics$pow, 10, $cmditch$elm_bigint$Constants$maxDigitMagnitude);
+var $cmditch$elm_bigint$BigInt$baseDigit = $cmditch$elm_bigint$Constants$maxDigitValue + 1;
+var $elm$core$Tuple$mapFirst = F2(
+	function (func, _v0) {
+		var x = _v0.a;
+		var y = _v0.b;
+		return _Utils_Tuple2(
+			func(x),
+			y);
+	});
+var $cmditch$elm_bigint$BigInt$normaliseDigit = function (x) {
+	return (x < 0) ? A2(
+		$elm$core$Tuple$mapFirst,
+		$elm$core$Basics$add(-1),
+		$cmditch$elm_bigint$BigInt$normaliseDigit(x + $cmditch$elm_bigint$BigInt$baseDigit)) : _Utils_Tuple2((x / $cmditch$elm_bigint$BigInt$baseDigit) | 0, x % $cmditch$elm_bigint$BigInt$baseDigit);
+};
+var $cmditch$elm_bigint$BigInt$normaliseDigitList = F2(
+	function (carry, xs) {
+		normaliseDigitList:
+		while (true) {
+			if (!xs.b) {
+				if (_Utils_cmp(carry, $cmditch$elm_bigint$BigInt$baseDigit) > 0) {
+					var $temp$carry = 0,
+						$temp$xs = _List_fromArray(
+						[carry]);
+					carry = $temp$carry;
+					xs = $temp$xs;
+					continue normaliseDigitList;
+				} else {
+					return _List_fromArray(
+						[carry]);
+				}
+			} else {
+				var x = xs.a;
+				var xs_ = xs.b;
+				var _v1 = $cmditch$elm_bigint$BigInt$normaliseDigit(x + carry);
+				var newCarry = _v1.a;
+				var x_ = _v1.b;
+				return A2(
+					$elm$core$List$cons,
+					x_,
+					A2($cmditch$elm_bigint$BigInt$normaliseDigitList, newCarry, xs_));
+			}
+		}
+	});
+var $cmditch$elm_bigint$BigInt$normaliseMagnitude = function (_v0) {
+	var xs = _v0.a;
+	return $cmditch$elm_bigint$BigInt$Magnitude(
+		$cmditch$elm_bigint$BigInt$dropZeroes(
+			A2($cmditch$elm_bigint$BigInt$normaliseDigitList, 0, xs)));
+};
+var $cmditch$elm_bigint$BigInt$Negative = {$: 'Negative'};
+var $cmditch$elm_bigint$BigInt$Zero = {$: 'Zero'};
+var $cmditch$elm_bigint$BigInt$signNegate = function (sign_) {
+	switch (sign_.$) {
+		case 'Positive':
+			return $cmditch$elm_bigint$BigInt$Negative;
+		case 'Negative':
+			return $cmditch$elm_bigint$BigInt$Positive;
+		default:
+			return $cmditch$elm_bigint$BigInt$Zero;
+	}
+};
+var $cmditch$elm_bigint$BigInt$normalise = function (_v0) {
+	var s = _v0.a;
+	var digits = _v0.b;
+	var _v1 = $cmditch$elm_bigint$BigInt$normaliseMagnitude(digits);
+	var normalisedMag = _v1.a;
+	if ($cmditch$elm_bigint$BigInt$isNegativeMagnitude(normalisedMag)) {
+		var _v2 = $cmditch$elm_bigint$BigInt$normaliseMagnitude(
+			$cmditch$elm_bigint$BigInt$MagnitudeNotNormalised(
+				A2($elm$core$List$map, $elm$core$Basics$negate, normalisedMag)));
+		var normalisedMag2 = _v2.a;
+		return A2(
+			$cmditch$elm_bigint$BigInt$mkBigInt,
+			$cmditch$elm_bigint$BigInt$signNegate(s),
+			$cmditch$elm_bigint$BigInt$Magnitude(normalisedMag2));
+	} else {
+		return A2(
+			$cmditch$elm_bigint$BigInt$mkBigInt,
+			s,
+			$cmditch$elm_bigint$BigInt$Magnitude(normalisedMag));
+	}
+};
+var $cmditch$elm_bigint$BigInt$sumLonger = F2(
+	function (xs, ys) {
+		var _v0 = _Utils_Tuple2(xs, ys);
+		if (!_v0.a.b) {
+			if (!_v0.b.b) {
+				return _List_Nil;
+			} else {
+				return ys;
+			}
+		} else {
+			if (!_v0.b.b) {
+				return xs;
+			} else {
+				var _v1 = _v0.a;
+				var x = _v1.a;
+				var xs_ = _v1.b;
+				var _v2 = _v0.b;
+				var y = _v2.a;
+				var ys_ = _v2.b;
+				return A2(
+					$elm$core$List$cons,
+					x + y,
+					A2($cmditch$elm_bigint$BigInt$sumLonger, xs_, ys_));
+			}
+		}
+	});
+var $cmditch$elm_bigint$BigInt$add = F2(
+	function (a, b) {
+		var magnitudeMaybeNegated = function (bigInt) {
+			switch (bigInt.$) {
+				case 'Zer':
+					return _List_Nil;
+				case 'Neg':
+					var digits = bigInt.a.a;
+					return A2($elm$core$List$map, $elm$core$Basics$negate, digits);
+				default:
+					var digits = bigInt.a.a;
+					return digits;
+			}
+		};
+		var mb = magnitudeMaybeNegated(b);
+		var ma = magnitudeMaybeNegated(a);
+		var added = A2($cmditch$elm_bigint$BigInt$sumLonger, ma, mb);
+		return $cmditch$elm_bigint$BigInt$normalise(
+			A2(
+				$cmditch$elm_bigint$BigInt$BigIntNotNormalised,
+				$cmditch$elm_bigint$BigInt$Positive,
+				$cmditch$elm_bigint$BigInt$MagnitudeNotNormalised(added)));
+	});
+var $author$project$Money$add = F2(
+	function (_v0, _v1) {
+		var a = _v0.a;
+		var b = _v1.a;
+		return $author$project$Money$Money(
+			A2($cmditch$elm_bigint$BigInt$add, a, b));
+	});
+var $elm$core$Basics$compare = _Utils_compare;
+var $cmditch$elm_bigint$BigInt$compareMagnitude = F4(
+	function (x, y, xs, ys) {
+		compareMagnitude:
+		while (true) {
+			var _v0 = _Utils_Tuple2(xs, ys);
+			if (!_v0.a.b) {
+				if (!_v0.b.b) {
+					return A2($elm$core$Basics$compare, x, y);
+				} else {
+					return $elm$core$Basics$LT;
+				}
+			} else {
+				if (!_v0.b.b) {
+					return $elm$core$Basics$GT;
+				} else {
+					var _v1 = _v0.a;
+					var x_ = _v1.a;
+					var xss = _v1.b;
+					var _v2 = _v0.b;
+					var y_ = _v2.a;
+					var yss = _v2.b;
+					if (_Utils_eq(x_, y_)) {
+						var $temp$x = x,
+							$temp$y = y,
+							$temp$xs = xss,
+							$temp$ys = yss;
+						x = $temp$x;
+						y = $temp$y;
+						xs = $temp$xs;
+						ys = $temp$ys;
+						continue compareMagnitude;
+					} else {
+						var $temp$x = x_,
+							$temp$y = y_,
+							$temp$xs = xss,
+							$temp$ys = yss;
+						x = $temp$x;
+						y = $temp$y;
+						xs = $temp$xs;
+						ys = $temp$ys;
+						continue compareMagnitude;
+					}
+				}
+			}
+		}
+	});
+var $cmditch$elm_bigint$BigInt$compare = F2(
+	function (int1, int2) {
+		var _v0 = _Utils_Tuple2(int1, int2);
+		switch (_v0.a.$) {
+			case 'Pos':
+				if (_v0.b.$ === 'Pos') {
+					var mag1 = _v0.a.a.a;
+					var mag2 = _v0.b.a.a;
+					return A4($cmditch$elm_bigint$BigInt$compareMagnitude, 0, 0, mag1, mag2);
+				} else {
+					return $elm$core$Basics$GT;
+				}
+			case 'Neg':
+				if (_v0.b.$ === 'Neg') {
+					var mag1 = _v0.a.a.a;
+					var mag2 = _v0.b.a.a;
+					return A4($cmditch$elm_bigint$BigInt$compareMagnitude, 0, 0, mag2, mag1);
+				} else {
+					return $elm$core$Basics$LT;
+				}
+			default:
+				switch (_v0.b.$) {
+					case 'Pos':
+						var _v1 = _v0.a;
+						return $elm$core$Basics$LT;
+					case 'Zer':
+						var _v2 = _v0.a;
+						var _v3 = _v0.b;
+						return $elm$core$Basics$EQ;
+					default:
+						var _v4 = _v0.a;
+						return $elm$core$Basics$GT;
+				}
+		}
+	});
+var $author$project$Money$compare = F2(
+	function (_v0, _v1) {
+		var a = _v0.a;
+		var b = _v1.a;
+		return A2($cmditch$elm_bigint$BigInt$compare, a, b);
+	});
+var $cmditch$elm_bigint$BigInt$abs = function (bigInt) {
+	switch (bigInt.$) {
+		case 'Zer':
+			return $cmditch$elm_bigint$BigInt$Zer;
+		case 'Neg':
+			var mag = bigInt.a;
+			return $cmditch$elm_bigint$BigInt$Pos(mag);
+		default:
+			var i = bigInt;
+			return i;
+	}
+};
+var $elm$core$Basics$abs = function (n) {
+	return (n < 0) ? (-n) : n;
+};
+var $cmditch$elm_bigint$BigInt$signFromInt = function (x) {
+	var _v0 = A2($elm$core$Basics$compare, x, 0);
+	switch (_v0.$) {
+		case 'LT':
+			return $cmditch$elm_bigint$BigInt$Negative;
+		case 'GT':
+			return $cmditch$elm_bigint$BigInt$Positive;
+		default:
+			return $cmditch$elm_bigint$BigInt$Zero;
+	}
+};
+var $cmditch$elm_bigint$BigInt$fromInt = function (x) {
+	return $cmditch$elm_bigint$BigInt$normalise(
+		A2(
+			$cmditch$elm_bigint$BigInt$BigIntNotNormalised,
+			$cmditch$elm_bigint$BigInt$signFromInt(x),
+			$cmditch$elm_bigint$BigInt$MagnitudeNotNormalised(
+				_List_fromArray(
+					[
+						$elm$core$Basics$abs(x)
+					]))));
+};
+var $cmditch$elm_bigint$BigInt$gt = F2(
+	function (x, y) {
+		return _Utils_eq(
+			A2($cmditch$elm_bigint$BigInt$compare, x, y),
+			$elm$core$Basics$GT);
+	});
+var $elm$core$Basics$not = _Basics_not;
+var $cmditch$elm_bigint$BigInt$lte = F2(
+	function (x, y) {
+		return !A2($cmditch$elm_bigint$BigInt$gt, x, y);
+	});
+var $cmditch$elm_bigint$BigInt$magnitude = function (bigInt) {
+	switch (bigInt.$) {
+		case 'Zer':
+			return $cmditch$elm_bigint$BigInt$Magnitude(_List_Nil);
+		case 'Pos':
+			var mag = bigInt.a;
+			return mag;
+		default:
+			var mag = bigInt.a;
+			return mag;
+	}
+};
+var $cmditch$elm_bigint$BigInt$mulSingleDigit = F2(
+	function (_v0, d) {
+		var xs = _v0.a;
+		return $cmditch$elm_bigint$BigInt$normaliseMagnitude(
+			$cmditch$elm_bigint$BigInt$MagnitudeNotNormalised(
+				A2(
+					$elm$core$List$map,
+					$elm$core$Basics$mul(d),
+					xs)));
+	});
+var $cmditch$elm_bigint$BigInt$mulMagnitudes = F2(
+	function (_v0, _v1) {
+		var mag1 = _v0.a;
+		var mag2 = _v1.a;
+		if (!mag1.b) {
+			return $cmditch$elm_bigint$BigInt$Magnitude(_List_Nil);
+		} else {
+			if (!mag1.b.b) {
+				var m = mag1.a;
+				return A2(
+					$cmditch$elm_bigint$BigInt$mulSingleDigit,
+					$cmditch$elm_bigint$BigInt$Magnitude(mag2),
+					m);
+			} else {
+				var m = mag1.a;
+				var mx = mag1.b;
+				var accum = A2(
+					$elm$core$List$map,
+					function (d) {
+						return d * m;
+					},
+					mag2);
+				var _v3 = A2(
+					$cmditch$elm_bigint$BigInt$mulMagnitudes,
+					$cmditch$elm_bigint$BigInt$Magnitude(mx),
+					$cmditch$elm_bigint$BigInt$Magnitude(mag2));
+				var rest = _v3.a;
+				var added = A2(
+					$cmditch$elm_bigint$BigInt$sumLonger,
+					accum,
+					A2($elm$core$List$cons, 0, rest));
+				return $cmditch$elm_bigint$BigInt$normaliseMagnitude(
+					$cmditch$elm_bigint$BigInt$MagnitudeNotNormalised(added));
+			}
+		}
+	});
+var $cmditch$elm_bigint$BigInt$sign = function (bigInt) {
+	switch (bigInt.$) {
+		case 'Zer':
+			return $cmditch$elm_bigint$BigInt$Zero;
+		case 'Pos':
+			return $cmditch$elm_bigint$BigInt$Positive;
+		default:
+			return $cmditch$elm_bigint$BigInt$Negative;
+	}
+};
+var $cmditch$elm_bigint$BigInt$signProduct = F2(
+	function (x, y) {
+		return (_Utils_eq(x, $cmditch$elm_bigint$BigInt$Zero) || _Utils_eq(y, $cmditch$elm_bigint$BigInt$Zero)) ? $cmditch$elm_bigint$BigInt$Zero : (_Utils_eq(x, y) ? $cmditch$elm_bigint$BigInt$Positive : $cmditch$elm_bigint$BigInt$Negative);
+	});
+var $cmditch$elm_bigint$BigInt$mul = F2(
+	function (int1, int2) {
+		return A2(
+			$cmditch$elm_bigint$BigInt$mkBigInt,
+			A2(
+				$cmditch$elm_bigint$BigInt$signProduct,
+				$cmditch$elm_bigint$BigInt$sign(int1),
+				$cmditch$elm_bigint$BigInt$sign(int2)),
+			A2(
+				$cmditch$elm_bigint$BigInt$mulMagnitudes,
+				$cmditch$elm_bigint$BigInt$magnitude(int1),
+				$cmditch$elm_bigint$BigInt$magnitude(int2)));
+	});
+var $cmditch$elm_bigint$BigInt$negate = function (bigInt) {
+	switch (bigInt.$) {
+		case 'Zer':
+			return $cmditch$elm_bigint$BigInt$Zer;
+		case 'Pos':
+			var mag = bigInt.a;
+			return $cmditch$elm_bigint$BigInt$Neg(mag);
+		default:
+			var mag = bigInt.a;
+			return $cmditch$elm_bigint$BigInt$Pos(mag);
+	}
+};
+var $cmditch$elm_bigint$BigInt$sub = F2(
+	function (a, b) {
+		return A2(
+			$cmditch$elm_bigint$BigInt$add,
+			a,
+			$cmditch$elm_bigint$BigInt$negate(b));
+	});
+var $cmditch$elm_bigint$BigInt$zero = $cmditch$elm_bigint$BigInt$fromInt(0);
+var $cmditch$elm_bigint$BigInt$divDigit_ = F4(
+	function (to_test, padding, num, den) {
+		if (!to_test) {
+			return $cmditch$elm_bigint$BigInt$zero;
+		} else {
+			var x = $cmditch$elm_bigint$BigInt$fromInt(to_test);
+			var candidate = A2(
+				$cmditch$elm_bigint$BigInt$mul,
+				A2($cmditch$elm_bigint$BigInt$mul, x, den),
+				padding);
+			var _v0 = A2($cmditch$elm_bigint$BigInt$lte, candidate, num) ? _Utils_Tuple2(
+				A2($cmditch$elm_bigint$BigInt$mul, x, padding),
+				A2($cmditch$elm_bigint$BigInt$sub, num, candidate)) : _Utils_Tuple2($cmditch$elm_bigint$BigInt$zero, num);
+			var newdiv = _v0.a;
+			var newmod = _v0.b;
+			var restdiv = A4($cmditch$elm_bigint$BigInt$divDigit_, (to_test / 2) | 0, padding, newmod, den);
+			return A2($cmditch$elm_bigint$BigInt$add, newdiv, restdiv);
+		}
+	});
+var $cmditch$elm_bigint$BigInt$maxDigitBits = $elm$core$Basics$ceiling(
+	A2($elm$core$Basics$logBase, 2, $cmditch$elm_bigint$Constants$maxDigitValue));
+var $cmditch$elm_bigint$BigInt$divDigit = F3(
+	function (padding, x, y) {
+		return A4(
+			$cmditch$elm_bigint$BigInt$divDigit_,
+			A2($elm$core$Basics$pow, 2, $cmditch$elm_bigint$BigInt$maxDigitBits),
+			padding,
+			x,
+			y);
+	});
+var $cmditch$elm_bigint$BigInt$divmodDigit_ = F4(
+	function (to_test, padding, num, den) {
+		if (!to_test) {
+			return _Utils_Tuple2($cmditch$elm_bigint$BigInt$zero, num);
+		} else {
+			var x = $cmditch$elm_bigint$BigInt$fromInt(to_test);
+			var candidate = A2(
+				$cmditch$elm_bigint$BigInt$mul,
+				A2($cmditch$elm_bigint$BigInt$mul, x, den),
+				padding);
+			var _v0 = A2($cmditch$elm_bigint$BigInt$lte, candidate, num) ? _Utils_Tuple2(
+				A2($cmditch$elm_bigint$BigInt$mul, x, padding),
+				A2($cmditch$elm_bigint$BigInt$sub, num, candidate)) : _Utils_Tuple2($cmditch$elm_bigint$BigInt$zero, num);
+			var newdiv = _v0.a;
+			var newmod = _v0.b;
+			var _v1 = A4($cmditch$elm_bigint$BigInt$divmodDigit_, (to_test / 2) | 0, padding, newmod, den);
+			var restdiv = _v1.a;
+			var restmod = _v1.b;
+			return _Utils_Tuple2(
+				A2($cmditch$elm_bigint$BigInt$add, newdiv, restdiv),
+				restmod);
+		}
+	});
+var $cmditch$elm_bigint$BigInt$divmodDigit = F3(
+	function (padding, x, y) {
+		return A4(
+			$cmditch$elm_bigint$BigInt$divmodDigit_,
+			A2($elm$core$Basics$pow, 2, $cmditch$elm_bigint$BigInt$maxDigitBits),
+			padding,
+			x,
+			y);
+	});
+var $cmditch$elm_bigint$BigInt$one = $cmditch$elm_bigint$BigInt$fromInt(1);
+var $elm$core$Basics$always = F2(
+	function (a, _v0) {
+		return a;
+	});
+var $cmditch$elm_bigint$BigInt$repeatedly = F3(
+	function (f, x, n) {
+		return A3(
+			$elm$core$List$foldl,
+			$elm$core$Basics$always(f),
+			x,
+			A2($elm$core$List$range, 1, n));
+	});
+var $cmditch$elm_bigint$BigInt$padDigits = function (n) {
+	return A3(
+		$cmditch$elm_bigint$BigInt$repeatedly,
+		$cmditch$elm_bigint$BigInt$mul(
+			$cmditch$elm_bigint$BigInt$fromInt($cmditch$elm_bigint$BigInt$baseDigit)),
+		$cmditch$elm_bigint$BigInt$one,
+		n);
+};
+var $cmditch$elm_bigint$BigInt$div_ = F3(
+	function (n, num, den) {
+		if (!n) {
+			return A3(
+				$cmditch$elm_bigint$BigInt$divDigit,
+				$cmditch$elm_bigint$BigInt$padDigits(n),
+				num,
+				den);
+		} else {
+			var _v0 = A3(
+				$cmditch$elm_bigint$BigInt$divmodDigit,
+				$cmditch$elm_bigint$BigInt$padDigits(n),
+				num,
+				den);
+			var cdiv = _v0.a;
+			var cmod = _v0.b;
+			var rdiv = A3($cmditch$elm_bigint$BigInt$div_, n - 1, cmod, den);
+			return A2($cmditch$elm_bigint$BigInt$add, cdiv, rdiv);
+		}
+	});
+var $cmditch$elm_bigint$BigInt$toDigits = function (bigInt) {
+	switch (bigInt.$) {
+		case 'Zer':
+			return _List_Nil;
+		case 'Pos':
+			var ds = bigInt.a.a;
+			return ds;
+		default:
+			var ds = bigInt.a.a;
+			return ds;
+	}
+};
+var $cmditch$elm_bigint$BigInt$div = F2(
+	function (num, den) {
+		if (_Utils_eq(den, $cmditch$elm_bigint$BigInt$zero)) {
+			return $cmditch$elm_bigint$BigInt$zero;
+		} else {
+			var cand_l = ($elm$core$List$length(
+				$cmditch$elm_bigint$BigInt$toDigits(num)) - $elm$core$List$length(
+				$cmditch$elm_bigint$BigInt$toDigits(den))) + 1;
+			var d = A3(
+				$cmditch$elm_bigint$BigInt$div_,
+				A2($elm$core$Basics$max, 0, cand_l),
+				$cmditch$elm_bigint$BigInt$abs(num),
+				$cmditch$elm_bigint$BigInt$abs(den));
+			return A2(
+				$cmditch$elm_bigint$BigInt$mkBigInt,
+				A2(
+					$cmditch$elm_bigint$BigInt$signProduct,
+					$cmditch$elm_bigint$BigInt$sign(num),
+					$cmditch$elm_bigint$BigInt$sign(den)),
+				$cmditch$elm_bigint$BigInt$magnitude(d));
+		}
+	});
+var $author$project$Money$zero = $author$project$Money$Money(
+	$cmditch$elm_bigint$BigInt$fromInt(0));
+var $author$project$Money$divide = F2(
+	function (_v0, n) {
+		var a = _v0.a;
+		return (!n) ? $author$project$Money$zero : $author$project$Money$Money(
+			A2(
+				$cmditch$elm_bigint$BigInt$div,
+				a,
+				$cmditch$elm_bigint$BigInt$fromInt(n)));
+	});
+var $elm$core$Maybe$andThen = F2(
+	function (callback, maybeValue) {
+		if (maybeValue.$ === 'Just') {
+			var value = maybeValue.a;
+			return callback(value);
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $elm$core$Basics$ge = _Utils_ge;
+var $elm$core$String$foldr = _String_foldr;
+var $elm$core$String$toList = function (string) {
+	return A3($elm$core$String$foldr, $elm$core$List$cons, _List_Nil, string);
+};
+var $author$project$Money$pInt = function (s) {
+	return (s === '') ? $elm$core$Maybe$Nothing : A3(
+		$elm$core$List$foldl,
+		F2(
+			function (c, acc) {
+				return A2(
+					$elm$core$Maybe$andThen,
+					function (v) {
+						var d = $elm$core$Char$toCode(c) - 48;
+						return ((d >= 0) && (d <= 9)) ? $elm$core$Maybe$Just(
+							A2(
+								$cmditch$elm_bigint$BigInt$add,
+								A2(
+									$cmditch$elm_bigint$BigInt$mul,
+									v,
+									$cmditch$elm_bigint$BigInt$fromInt(10)),
+								$cmditch$elm_bigint$BigInt$fromInt(d))) : $elm$core$Maybe$Nothing;
+					},
+					acc);
+			}),
+		$elm$core$Maybe$Just(
+			$cmditch$elm_bigint$BigInt$fromInt(0)),
+		$elm$core$String$toList(s));
+};
+var $elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var $author$project$Money$fromCentsStr = function (s) {
+	return $author$project$Money$Money(
+		A2(
+			$elm$core$Maybe$withDefault,
+			$cmditch$elm_bigint$BigInt$fromInt(0),
+			$author$project$Money$pInt(s)));
+};
+var $author$project$Money$multiply = F2(
+	function (_v0, n) {
+		var a = _v0.a;
+		return $author$project$Money$Money(
+			A2(
+				$cmditch$elm_bigint$BigInt$mul,
+				a,
+				$cmditch$elm_bigint$BigInt$fromInt(n)));
+	});
+var $elm$core$Tuple$second = function (_v0) {
+	var y = _v0.b;
+	return y;
+};
+var $author$project$Money$subtract = F2(
+	function (_v0, _v1) {
+		var a = _v0.a;
+		var b = _v1.a;
+		return $author$project$Money$Money(
+			A2($cmditch$elm_bigint$BigInt$sub, a, b));
+	});
+var $author$project$TaxLogic$calculateIndoTax = function (income) {
+	return A3(
+		$elm$core$List$foldl,
+		F2(
+			function (b, _v0) {
+				var p = _v0.a;
+				var t = _v0.b;
+				return _Utils_Tuple2(
+					b.threshold,
+					A2(
+						$author$project$Money$add,
+						t,
+						_Utils_eq(
+							A2($author$project$Money$compare, income, p),
+							$elm$core$Basics$GT) ? A2(
+							$author$project$Money$divide,
+							A2(
+								$author$project$Money$multiply,
+								A2(
+									$author$project$Money$subtract,
+									_Utils_eq(
+										A2($author$project$Money$compare, income, b.threshold),
+										$elm$core$Basics$GT) ? b.threshold : income,
+									p),
+								b.rate),
+							100) : $author$project$Money$zero));
+			}),
+		_Utils_Tuple2($author$project$Money$zero, $author$project$Money$zero),
+		_List_fromArray(
+			[
+				{
+				rate: 5,
+				threshold: $author$project$Money$fromCentsStr('6000000000')
+			},
+				{
+				rate: 15,
+				threshold: $author$project$Money$fromCentsStr('25000000000')
+			},
+				{
+				rate: 25,
+				threshold: $author$project$Money$fromCentsStr('50000000000')
+			},
+				{
+				rate: 30,
+				threshold: $author$project$Money$fromCentsStr('500000000000')
+			},
+				{
+				rate: 35,
+				threshold: $author$project$Money$fromCentsStr('999999999999999')
+			}
+			])).b;
+};
+var $author$project$TaxLogic$calculateNppn = function (m) {
+	return A2(
+		$author$project$Money$divide,
+		A2($author$project$Money$multiply, m, 50),
+		100);
+};
+var $author$project$Money$proportion = F3(
+	function (_v0, _v1, _v2) {
+		var b = _v0.a;
+		var n = _v1.a;
+		var d = _v2.a;
+		return _Utils_eq(
+			d,
+			$cmditch$elm_bigint$BigInt$fromInt(0)) ? $author$project$Money$zero : $author$project$Money$Money(
+			A2(
+				$cmditch$elm_bigint$BigInt$div,
+				A2($cmditch$elm_bigint$BigInt$mul, b, n),
+				d));
+	});
+var $author$project$TaxLogic$calculatePPh24Credit = function (p) {
+	var cap = A3($author$project$Money$proportion, p.totalIndoTaxDue, p.foreignNetIncome, p.totalTaxableIncome);
+	return _Utils_eq(
+		A2($author$project$Money$compare, p.actualForeignTaxPaid, cap),
+		$elm$core$Basics$LT) ? p.actualForeignTaxPaid : cap;
+};
+var $author$project$Data$Compliance$ActionRequired = function (a) {
+	return {$: 'ActionRequired', a: a};
+};
+var $elm$time$Time$Mar = {$: 'Mar'};
+var $elm$time$Time$flooredDiv = F2(
+	function (numerator, denominator) {
+		return $elm$core$Basics$floor(numerator / denominator);
+	});
+var $elm$time$Time$posixToMillis = function (_v0) {
+	var millis = _v0.a;
+	return millis;
+};
+var $elm$time$Time$toAdjustedMinutesHelp = F3(
+	function (defaultOffset, posixMinutes, eras) {
+		toAdjustedMinutesHelp:
+		while (true) {
+			if (!eras.b) {
+				return posixMinutes + defaultOffset;
+			} else {
+				var era = eras.a;
+				var olderEras = eras.b;
+				if (_Utils_cmp(era.start, posixMinutes) < 0) {
+					return posixMinutes + era.offset;
+				} else {
+					var $temp$defaultOffset = defaultOffset,
+						$temp$posixMinutes = posixMinutes,
+						$temp$eras = olderEras;
+					defaultOffset = $temp$defaultOffset;
+					posixMinutes = $temp$posixMinutes;
+					eras = $temp$eras;
+					continue toAdjustedMinutesHelp;
+				}
+			}
+		}
+	});
+var $elm$time$Time$toAdjustedMinutes = F2(
+	function (_v0, time) {
+		var defaultOffset = _v0.a;
+		var eras = _v0.b;
+		return A3(
+			$elm$time$Time$toAdjustedMinutesHelp,
+			defaultOffset,
+			A2(
+				$elm$time$Time$flooredDiv,
+				$elm$time$Time$posixToMillis(time),
+				60000),
+			eras);
+	});
+var $elm$time$Time$toCivil = function (minutes) {
+	var rawDay = A2($elm$time$Time$flooredDiv, minutes, 60 * 24) + 719468;
+	var era = (((rawDay >= 0) ? rawDay : (rawDay - 146096)) / 146097) | 0;
+	var dayOfEra = rawDay - (era * 146097);
+	var yearOfEra = ((((dayOfEra - ((dayOfEra / 1460) | 0)) + ((dayOfEra / 36524) | 0)) - ((dayOfEra / 146096) | 0)) / 365) | 0;
+	var dayOfYear = dayOfEra - (((365 * yearOfEra) + ((yearOfEra / 4) | 0)) - ((yearOfEra / 100) | 0));
+	var mp = (((5 * dayOfYear) + 2) / 153) | 0;
+	var month = mp + ((mp < 10) ? 3 : (-9));
+	var year = yearOfEra + (era * 400);
+	return {
+		day: (dayOfYear - ((((153 * mp) + 2) / 5) | 0)) + 1,
+		month: month,
+		year: year + ((month <= 2) ? 1 : 0)
+	};
+};
+var $elm$time$Time$toDay = F2(
+	function (zone, time) {
+		return $elm$time$Time$toCivil(
+			A2($elm$time$Time$toAdjustedMinutes, zone, time)).day;
+	});
+var $elm$time$Time$Apr = {$: 'Apr'};
+var $elm$time$Time$Aug = {$: 'Aug'};
+var $elm$time$Time$Dec = {$: 'Dec'};
+var $elm$time$Time$Feb = {$: 'Feb'};
+var $elm$time$Time$Jan = {$: 'Jan'};
+var $elm$time$Time$Jul = {$: 'Jul'};
+var $elm$time$Time$Jun = {$: 'Jun'};
+var $elm$time$Time$May = {$: 'May'};
+var $elm$time$Time$Nov = {$: 'Nov'};
+var $elm$time$Time$Oct = {$: 'Oct'};
+var $elm$time$Time$Sep = {$: 'Sep'};
+var $elm$time$Time$toMonth = F2(
+	function (zone, time) {
+		var _v0 = $elm$time$Time$toCivil(
+			A2($elm$time$Time$toAdjustedMinutes, zone, time)).month;
+		switch (_v0) {
+			case 1:
+				return $elm$time$Time$Jan;
+			case 2:
+				return $elm$time$Time$Feb;
+			case 3:
+				return $elm$time$Time$Mar;
+			case 4:
+				return $elm$time$Time$Apr;
+			case 5:
+				return $elm$time$Time$May;
+			case 6:
+				return $elm$time$Time$Jun;
+			case 7:
+				return $elm$time$Time$Jul;
+			case 8:
+				return $elm$time$Time$Aug;
+			case 9:
+				return $elm$time$Time$Sep;
+			case 10:
+				return $elm$time$Time$Oct;
+			case 11:
+				return $elm$time$Time$Nov;
+			default:
+				return $elm$time$Time$Dec;
+		}
+	});
+var $elm$time$Time$toYear = F2(
+	function (zone, time) {
+		return $elm$time$Time$toCivil(
+			A2($elm$time$Time$toAdjustedMinutes, zone, time)).year;
+	});
+var $author$project$Data$Compliance$calculateStatus = F2(
+	function (t, z) {
+		return ((A2($elm$time$Time$toYear, z, t) === 2026) && _Utils_eq(
+			A2($elm$time$Time$toMonth, z, t),
+			$elm$time$Time$Mar)) ? $author$project$Data$Compliance$ActionRequired(
+			{
+				daysRemaining: 31 - A2($elm$time$Time$toDay, z, t),
+				urgency: $author$project$Data$Compliance$Urgent
+			}) : $author$project$Data$Compliance$StandardRate;
+	});
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $elm$html$Html$Attributes$stringProperty = F2(
+	function (key, string) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			$elm$json$Json$Encode$string(string));
+	});
+var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
+var $elm$svg$Svg$Attributes$d = _VirtualDom_attribute('d');
+var $elm$html$Html$div = _VirtualDom_node('div');
 var $elm$browser$Browser$External = function (a) {
 	return {$: 'External', a: a};
 };
 var $elm$browser$Browser$Internal = function (a) {
 	return {$: 'Internal', a: a};
-};
-var $elm$core$Basics$identity = function (x) {
-	return x;
 };
 var $elm$browser$Browser$Dom$NotFound = function (a) {
 	return {$: 'NotFound', a: a};
@@ -5023,75 +6092,6 @@ var $elm$core$Task$Perform = function (a) {
 };
 var $elm$core$Task$succeed = _Scheduler_succeed;
 var $elm$core$Task$init = $elm$core$Task$succeed(_Utils_Tuple0);
-var $elm$core$List$foldrHelper = F4(
-	function (fn, acc, ctr, ls) {
-		if (!ls.b) {
-			return acc;
-		} else {
-			var a = ls.a;
-			var r1 = ls.b;
-			if (!r1.b) {
-				return A2(fn, a, acc);
-			} else {
-				var b = r1.a;
-				var r2 = r1.b;
-				if (!r2.b) {
-					return A2(
-						fn,
-						a,
-						A2(fn, b, acc));
-				} else {
-					var c = r2.a;
-					var r3 = r2.b;
-					if (!r3.b) {
-						return A2(
-							fn,
-							a,
-							A2(
-								fn,
-								b,
-								A2(fn, c, acc)));
-					} else {
-						var d = r3.a;
-						var r4 = r3.b;
-						var res = (ctr > 500) ? A3(
-							$elm$core$List$foldl,
-							fn,
-							acc,
-							$elm$core$List$reverse(r4)) : A4($elm$core$List$foldrHelper, fn, acc, ctr + 1, r4);
-						return A2(
-							fn,
-							a,
-							A2(
-								fn,
-								b,
-								A2(
-									fn,
-									c,
-									A2(fn, d, res))));
-					}
-				}
-			}
-		}
-	});
-var $elm$core$List$foldr = F3(
-	function (fn, acc, ls) {
-		return A4($elm$core$List$foldrHelper, fn, acc, 0, ls);
-	});
-var $elm$core$List$map = F2(
-	function (f, xs) {
-		return A3(
-			$elm$core$List$foldr,
-			F2(
-				function (x, acc) {
-					return A2(
-						$elm$core$List$cons,
-						f(x),
-						acc);
-				}),
-			_List_Nil,
-			xs);
-	});
 var $elm$core$Task$andThen = _Scheduler_andThen;
 var $elm$core$Task$map = F2(
 	function (func, taskA) {
@@ -5166,1512 +6166,996 @@ var $elm$core$Task$perform = F2(
 			$elm$core$Task$Perform(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
+var $elm$browser$Browser$element = _Browser_element;
+var $elm$time$Time$Every = F2(
+	function (a, b) {
+		return {$: 'Every', a: a, b: b};
+	});
+var $elm$time$Time$State = F2(
+	function (taggers, processes) {
+		return {processes: processes, taggers: taggers};
+	});
+var $elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
+var $elm$core$Dict$empty = $elm$core$Dict$RBEmpty_elm_builtin;
+var $elm$time$Time$init = $elm$core$Task$succeed(
+	A2($elm$time$Time$State, $elm$core$Dict$empty, $elm$core$Dict$empty));
+var $elm$core$Dict$get = F2(
+	function (targetKey, dict) {
+		get:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var _v1 = A2($elm$core$Basics$compare, targetKey, key);
+				switch (_v1.$) {
+					case 'LT':
+						var $temp$targetKey = targetKey,
+							$temp$dict = left;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+					case 'EQ':
+						return $elm$core$Maybe$Just(value);
+					default:
+						var $temp$targetKey = targetKey,
+							$temp$dict = right;
+						targetKey = $temp$targetKey;
+						dict = $temp$dict;
+						continue get;
+				}
+			}
+		}
+	});
+var $elm$core$Dict$Black = {$: 'Black'};
+var $elm$core$Dict$RBNode_elm_builtin = F5(
+	function (a, b, c, d, e) {
+		return {$: 'RBNode_elm_builtin', a: a, b: b, c: c, d: d, e: e};
+	});
+var $elm$core$Dict$Red = {$: 'Red'};
+var $elm$core$Dict$balance = F5(
+	function (color, key, value, left, right) {
+		if ((right.$ === 'RBNode_elm_builtin') && (right.a.$ === 'Red')) {
+			var _v1 = right.a;
+			var rK = right.b;
+			var rV = right.c;
+			var rLeft = right.d;
+			var rRight = right.e;
+			if ((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) {
+				var _v3 = left.a;
+				var lK = left.b;
+				var lV = left.c;
+				var lLeft = left.d;
+				var lRight = left.e;
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					$elm$core$Dict$Red,
+					key,
+					value,
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, lK, lV, lLeft, lRight),
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, rK, rV, rLeft, rRight));
+			} else {
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					color,
+					rK,
+					rV,
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, key, value, left, rLeft),
+					rRight);
+			}
+		} else {
+			if ((((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) && (left.d.$ === 'RBNode_elm_builtin')) && (left.d.a.$ === 'Red')) {
+				var _v5 = left.a;
+				var lK = left.b;
+				var lV = left.c;
+				var _v6 = left.d;
+				var _v7 = _v6.a;
+				var llK = _v6.b;
+				var llV = _v6.c;
+				var llLeft = _v6.d;
+				var llRight = _v6.e;
+				var lRight = left.e;
+				return A5(
+					$elm$core$Dict$RBNode_elm_builtin,
+					$elm$core$Dict$Red,
+					lK,
+					lV,
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, llK, llV, llLeft, llRight),
+					A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, key, value, lRight, right));
+			} else {
+				return A5($elm$core$Dict$RBNode_elm_builtin, color, key, value, left, right);
+			}
+		}
+	});
+var $elm$core$Dict$insertHelp = F3(
+	function (key, value, dict) {
+		if (dict.$ === 'RBEmpty_elm_builtin') {
+			return A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Red, key, value, $elm$core$Dict$RBEmpty_elm_builtin, $elm$core$Dict$RBEmpty_elm_builtin);
+		} else {
+			var nColor = dict.a;
+			var nKey = dict.b;
+			var nValue = dict.c;
+			var nLeft = dict.d;
+			var nRight = dict.e;
+			var _v1 = A2($elm$core$Basics$compare, key, nKey);
+			switch (_v1.$) {
+				case 'LT':
+					return A5(
+						$elm$core$Dict$balance,
+						nColor,
+						nKey,
+						nValue,
+						A3($elm$core$Dict$insertHelp, key, value, nLeft),
+						nRight);
+				case 'EQ':
+					return A5($elm$core$Dict$RBNode_elm_builtin, nColor, nKey, value, nLeft, nRight);
+				default:
+					return A5(
+						$elm$core$Dict$balance,
+						nColor,
+						nKey,
+						nValue,
+						nLeft,
+						A3($elm$core$Dict$insertHelp, key, value, nRight));
+			}
+		}
+	});
+var $elm$core$Dict$insert = F3(
+	function (key, value, dict) {
+		var _v0 = A3($elm$core$Dict$insertHelp, key, value, dict);
+		if ((_v0.$ === 'RBNode_elm_builtin') && (_v0.a.$ === 'Red')) {
+			var _v1 = _v0.a;
+			var k = _v0.b;
+			var v = _v0.c;
+			var l = _v0.d;
+			var r = _v0.e;
+			return A5($elm$core$Dict$RBNode_elm_builtin, $elm$core$Dict$Black, k, v, l, r);
+		} else {
+			var x = _v0;
+			return x;
+		}
+	});
+var $elm$time$Time$addMySub = F2(
+	function (_v0, state) {
+		var interval = _v0.a;
+		var tagger = _v0.b;
+		var _v1 = A2($elm$core$Dict$get, interval, state);
+		if (_v1.$ === 'Nothing') {
+			return A3(
+				$elm$core$Dict$insert,
+				interval,
+				_List_fromArray(
+					[tagger]),
+				state);
+		} else {
+			var taggers = _v1.a;
+			return A3(
+				$elm$core$Dict$insert,
+				interval,
+				A2($elm$core$List$cons, tagger, taggers),
+				state);
+		}
+	});
+var $elm$core$Process$kill = _Scheduler_kill;
+var $elm$core$Dict$foldl = F3(
+	function (func, acc, dict) {
+		foldl:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return acc;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var $temp$func = func,
+					$temp$acc = A3(
+					func,
+					key,
+					value,
+					A3($elm$core$Dict$foldl, func, acc, left)),
+					$temp$dict = right;
+				func = $temp$func;
+				acc = $temp$acc;
+				dict = $temp$dict;
+				continue foldl;
+			}
+		}
+	});
+var $elm$core$Dict$merge = F6(
+	function (leftStep, bothStep, rightStep, leftDict, rightDict, initialResult) {
+		var stepState = F3(
+			function (rKey, rValue, _v0) {
+				stepState:
+				while (true) {
+					var list = _v0.a;
+					var result = _v0.b;
+					if (!list.b) {
+						return _Utils_Tuple2(
+							list,
+							A3(rightStep, rKey, rValue, result));
+					} else {
+						var _v2 = list.a;
+						var lKey = _v2.a;
+						var lValue = _v2.b;
+						var rest = list.b;
+						if (_Utils_cmp(lKey, rKey) < 0) {
+							var $temp$rKey = rKey,
+								$temp$rValue = rValue,
+								$temp$_v0 = _Utils_Tuple2(
+								rest,
+								A3(leftStep, lKey, lValue, result));
+							rKey = $temp$rKey;
+							rValue = $temp$rValue;
+							_v0 = $temp$_v0;
+							continue stepState;
+						} else {
+							if (_Utils_cmp(lKey, rKey) > 0) {
+								return _Utils_Tuple2(
+									list,
+									A3(rightStep, rKey, rValue, result));
+							} else {
+								return _Utils_Tuple2(
+									rest,
+									A4(bothStep, lKey, lValue, rValue, result));
+							}
+						}
+					}
+				}
+			});
+		var _v3 = A3(
+			$elm$core$Dict$foldl,
+			stepState,
+			_Utils_Tuple2(
+				$elm$core$Dict$toList(leftDict),
+				initialResult),
+			rightDict);
+		var leftovers = _v3.a;
+		var intermediateResult = _v3.b;
+		return A3(
+			$elm$core$List$foldl,
+			F2(
+				function (_v4, result) {
+					var k = _v4.a;
+					var v = _v4.b;
+					return A3(leftStep, k, v, result);
+				}),
+			intermediateResult,
+			leftovers);
+	});
+var $elm$core$Platform$sendToSelf = _Platform_sendToSelf;
+var $elm$time$Time$Name = function (a) {
+	return {$: 'Name', a: a};
+};
+var $elm$time$Time$Offset = function (a) {
+	return {$: 'Offset', a: a};
+};
+var $elm$time$Time$Zone = F2(
+	function (a, b) {
+		return {$: 'Zone', a: a, b: b};
+	});
+var $elm$time$Time$customZone = $elm$time$Time$Zone;
+var $elm$time$Time$setInterval = _Time_setInterval;
+var $elm$core$Process$spawn = _Scheduler_spawn;
+var $elm$time$Time$spawnHelp = F3(
+	function (router, intervals, processes) {
+		if (!intervals.b) {
+			return $elm$core$Task$succeed(processes);
+		} else {
+			var interval = intervals.a;
+			var rest = intervals.b;
+			var spawnTimer = $elm$core$Process$spawn(
+				A2(
+					$elm$time$Time$setInterval,
+					interval,
+					A2($elm$core$Platform$sendToSelf, router, interval)));
+			var spawnRest = function (id) {
+				return A3(
+					$elm$time$Time$spawnHelp,
+					router,
+					rest,
+					A3($elm$core$Dict$insert, interval, id, processes));
+			};
+			return A2($elm$core$Task$andThen, spawnRest, spawnTimer);
+		}
+	});
+var $elm$time$Time$onEffects = F3(
+	function (router, subs, _v0) {
+		var processes = _v0.processes;
+		var rightStep = F3(
+			function (_v6, id, _v7) {
+				var spawns = _v7.a;
+				var existing = _v7.b;
+				var kills = _v7.c;
+				return _Utils_Tuple3(
+					spawns,
+					existing,
+					A2(
+						$elm$core$Task$andThen,
+						function (_v5) {
+							return kills;
+						},
+						$elm$core$Process$kill(id)));
+			});
+		var newTaggers = A3($elm$core$List$foldl, $elm$time$Time$addMySub, $elm$core$Dict$empty, subs);
+		var leftStep = F3(
+			function (interval, taggers, _v4) {
+				var spawns = _v4.a;
+				var existing = _v4.b;
+				var kills = _v4.c;
+				return _Utils_Tuple3(
+					A2($elm$core$List$cons, interval, spawns),
+					existing,
+					kills);
+			});
+		var bothStep = F4(
+			function (interval, taggers, id, _v3) {
+				var spawns = _v3.a;
+				var existing = _v3.b;
+				var kills = _v3.c;
+				return _Utils_Tuple3(
+					spawns,
+					A3($elm$core$Dict$insert, interval, id, existing),
+					kills);
+			});
+		var _v1 = A6(
+			$elm$core$Dict$merge,
+			leftStep,
+			bothStep,
+			rightStep,
+			newTaggers,
+			processes,
+			_Utils_Tuple3(
+				_List_Nil,
+				$elm$core$Dict$empty,
+				$elm$core$Task$succeed(_Utils_Tuple0)));
+		var spawnList = _v1.a;
+		var existingDict = _v1.b;
+		var killTask = _v1.c;
+		return A2(
+			$elm$core$Task$andThen,
+			function (newProcesses) {
+				return $elm$core$Task$succeed(
+					A2($elm$time$Time$State, newTaggers, newProcesses));
+			},
+			A2(
+				$elm$core$Task$andThen,
+				function (_v2) {
+					return A3($elm$time$Time$spawnHelp, router, spawnList, existingDict);
+				},
+				killTask));
+	});
+var $elm$time$Time$Posix = function (a) {
+	return {$: 'Posix', a: a};
+};
+var $elm$time$Time$millisToPosix = $elm$time$Time$Posix;
+var $elm$time$Time$now = _Time_now($elm$time$Time$millisToPosix);
+var $elm$time$Time$onSelfMsg = F3(
+	function (router, interval, state) {
+		var _v0 = A2($elm$core$Dict$get, interval, state.taggers);
+		if (_v0.$ === 'Nothing') {
+			return $elm$core$Task$succeed(state);
+		} else {
+			var taggers = _v0.a;
+			var tellTaggers = function (time) {
+				return $elm$core$Task$sequence(
+					A2(
+						$elm$core$List$map,
+						function (tagger) {
+							return A2(
+								$elm$core$Platform$sendToApp,
+								router,
+								tagger(time));
+						},
+						taggers));
+			};
+			return A2(
+				$elm$core$Task$andThen,
+				function (_v1) {
+					return $elm$core$Task$succeed(state);
+				},
+				A2($elm$core$Task$andThen, tellTaggers, $elm$time$Time$now));
+		}
+	});
+var $elm$core$Basics$composeL = F3(
+	function (g, f, x) {
+		return g(
+			f(x));
+	});
+var $elm$time$Time$subMap = F2(
+	function (f, _v0) {
+		var interval = _v0.a;
+		var tagger = _v0.b;
+		return A2(
+			$elm$time$Time$Every,
+			interval,
+			A2($elm$core$Basics$composeL, f, tagger));
+	});
+_Platform_effectManagers['Time'] = _Platform_createManager($elm$time$Time$init, $elm$time$Time$onEffects, $elm$time$Time$onSelfMsg, 0, $elm$time$Time$subMap);
+var $elm$time$Time$subscription = _Platform_leaf('Time');
+var $elm$time$Time$every = F2(
+	function (interval, tagger) {
+		return $elm$time$Time$subscription(
+			A2($elm$time$Time$Every, interval, tagger));
+	});
+var $elm$svg$Svg$Attributes$fill = _VirtualDom_attribute('fill');
+var $author$project$Money$fromCents = function (i) {
+	return $author$project$Money$Money(
+		$cmditch$elm_bigint$BigInt$fromInt(i));
+};
+var $elm$html$Html$h1 = _VirtualDom_node('h1');
+var $elm$html$Html$h2 = _VirtualDom_node('h2');
+var $elm$svg$Svg$Attributes$height = _VirtualDom_attribute('height');
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
-var $elm$core$Platform$Sub$batch = _Platform_batch;
-var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
-var $elm$browser$Browser$sandbox = function (impl) {
-	return _Browser_element(
-		{
-			init: function (_v0) {
-				return _Utils_Tuple2(impl.init, $elm$core$Platform$Cmd$none);
-			},
-			subscriptions: function (_v1) {
-				return $elm$core$Platform$Sub$none;
-			},
-			update: F2(
-				function (msg, model) {
-					return _Utils_Tuple2(
-						A2(impl.update, msg, model),
-						$elm$core$Platform$Cmd$none);
-				}),
-			view: impl.view
-		});
+var $elm$virtual_dom$VirtualDom$Normal = function (a) {
+	return {$: 'Normal', a: a};
 };
-var $elm$json$Json$Encode$string = _Json_wrap;
-var $elm$html$Html$Attributes$stringProperty = F2(
-	function (key, string) {
+var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
+var $elm$html$Html$Events$on = F2(
+	function (event, decoder) {
 		return A2(
-			_VirtualDom_property,
-			key,
-			$elm$json$Json$Encode$string(string));
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$Normal(decoder));
 	});
-var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
-var $elm$html$Html$div = _VirtualDom_node('div');
-var $elm$html$Html$h3 = _VirtualDom_node('h3');
-var $elm$html$Html$span = _VirtualDom_node('span');
-var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
-var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
+var $elm$html$Html$Events$onClick = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'click',
+		$elm$json$Json$Decode$succeed(msg));
+};
 var $elm$svg$Svg$trustedNode = _VirtualDom_nodeNS('http://www.w3.org/2000/svg');
-var $elm$svg$Svg$circle = $elm$svg$Svg$trustedNode('circle');
-var $elm$svg$Svg$Attributes$cx = _VirtualDom_attribute('cx');
-var $elm$svg$Svg$Attributes$cy = _VirtualDom_attribute('cy');
-var $elm$svg$Svg$Attributes$d = _VirtualDom_attribute('d');
-var $elm$svg$Svg$Attributes$fill = _VirtualDom_attribute('fill');
-var $elm$svg$Svg$Attributes$height = _VirtualDom_attribute('height');
 var $elm$svg$Svg$path = $elm$svg$Svg$trustedNode('path');
-var $elm$svg$Svg$Attributes$r = _VirtualDom_attribute('r');
+var $author$project$TaxLogic$projectYearEndLiability = F2(
+	function (g, m) {
+		return (m <= 0) ? $author$project$Money$zero : $author$project$TaxLogic$calculateIndoTax(
+			A2(
+				$author$project$Money$divide,
+				A2($author$project$Money$multiply, g, 12),
+				m));
+	});
+var $elm$html$Html$span = _VirtualDom_node('span');
 var $elm$svg$Svg$Attributes$stroke = _VirtualDom_attribute('stroke');
-var $elm$svg$Svg$Attributes$strokeLinejoin = _VirtualDom_attribute('stroke-linejoin');
 var $elm$svg$Svg$Attributes$strokeWidth = _VirtualDom_attribute('stroke-width');
 var $elm$svg$Svg$svg = $elm$svg$Svg$trustedNode('svg');
+var $elm$html$Html$table = _VirtualDom_node('table');
+var $elm$html$Html$tbody = _VirtualDom_node('tbody');
+var $elm$html$Html$td = _VirtualDom_node('td');
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
-var $elm$svg$Svg$Attributes$viewBox = _VirtualDom_attribute('viewBox');
-var $elm$svg$Svg$Attributes$width = _VirtualDom_attribute('width');
-var $author$project$Main$svgIcon = function (name) {
-	switch (name) {
-		case 'brand':
-			return A2(
-				$elm$svg$Svg$svg,
-				_List_fromArray(
-					[
-						$elm$svg$Svg$Attributes$width('24'),
-						$elm$svg$Svg$Attributes$height('24'),
-						$elm$svg$Svg$Attributes$viewBox('0 0 24 24'),
-						$elm$svg$Svg$Attributes$fill('none')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$svg$Svg$path,
-						_List_fromArray(
-							[
-								$elm$svg$Svg$Attributes$d('M2 12L12 2L22 12L12 22L2 12Z'),
-								$elm$svg$Svg$Attributes$fill('#2dd4bf')
-							]),
-						_List_Nil),
-						A2(
-						$elm$svg$Svg$path,
-						_List_fromArray(
-							[
-								$elm$svg$Svg$Attributes$d('M12 2v20l10-10L12 2z'),
-								$elm$svg$Svg$Attributes$fill('#115e59')
-							]),
-						_List_Nil)
-					]));
-		case 'user':
-			return A2(
-				$elm$svg$Svg$svg,
-				_List_fromArray(
-					[
-						$elm$svg$Svg$Attributes$width('18'),
-						$elm$svg$Svg$Attributes$height('18'),
-						$elm$svg$Svg$Attributes$viewBox('0 0 24 24'),
-						$elm$svg$Svg$Attributes$fill('none'),
-						$elm$svg$Svg$Attributes$stroke('currentColor'),
-						$elm$svg$Svg$Attributes$strokeWidth('2')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$svg$Svg$path,
-						_List_fromArray(
-							[
-								$elm$svg$Svg$Attributes$d('M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2')
-							]),
-						_List_Nil),
-						A2(
-						$elm$svg$Svg$circle,
-						_List_fromArray(
-							[
-								$elm$svg$Svg$Attributes$cx('12'),
-								$elm$svg$Svg$Attributes$cy('7'),
-								$elm$svg$Svg$Attributes$r('4')
-							]),
-						_List_Nil)
-					]));
-		case 'alert':
-			return A2(
-				$elm$svg$Svg$svg,
-				_List_fromArray(
-					[
-						$elm$svg$Svg$Attributes$width('24'),
-						$elm$svg$Svg$Attributes$height('24'),
-						$elm$svg$Svg$Attributes$viewBox('0 0 24 24'),
-						$elm$svg$Svg$Attributes$fill('none'),
-						$elm$svg$Svg$Attributes$stroke('currentColor'),
-						$elm$svg$Svg$Attributes$strokeWidth('2'),
-						$elm$svg$Svg$Attributes$strokeLinejoin('round')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$svg$Svg$path,
-						_List_fromArray(
-							[
-								$elm$svg$Svg$Attributes$d('M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z')
-							]),
-						_List_Nil),
-						A2(
-						$elm$svg$Svg$path,
-						_List_fromArray(
-							[
-								$elm$svg$Svg$Attributes$d('M12 9v4')
-							]),
-						_List_Nil),
-						A2(
-						$elm$svg$Svg$path,
-						_List_fromArray(
-							[
-								$elm$svg$Svg$Attributes$d('M12 17h.01')
-							]),
-						_List_Nil)
-					]));
-		case 'success-circle':
-			return A2(
-				$elm$svg$Svg$svg,
-				_List_fromArray(
-					[
-						$elm$svg$Svg$Attributes$width('24'),
-						$elm$svg$Svg$Attributes$height('24'),
-						$elm$svg$Svg$Attributes$viewBox('0 0 24 24'),
-						$elm$svg$Svg$Attributes$fill('none'),
-						$elm$svg$Svg$Attributes$stroke('var(--accent-green)'),
-						$elm$svg$Svg$Attributes$strokeWidth('2')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$svg$Svg$circle,
-						_List_fromArray(
-							[
-								$elm$svg$Svg$Attributes$cx('12'),
-								$elm$svg$Svg$Attributes$cy('12'),
-								$elm$svg$Svg$Attributes$r('10')
-							]),
-						_List_Nil),
-						A2(
-						$elm$svg$Svg$path,
-						_List_fromArray(
-							[
-								$elm$svg$Svg$Attributes$d('M8 12l3 3 5-5')
-							]),
-						_List_Nil)
-					]));
-		case 'check-mini':
-			return A2(
-				$elm$svg$Svg$svg,
-				_List_fromArray(
-					[
-						$elm$svg$Svg$Attributes$width('12'),
-						$elm$svg$Svg$Attributes$height('12'),
-						$elm$svg$Svg$Attributes$viewBox('0 0 24 24'),
-						$elm$svg$Svg$Attributes$fill('currentcolor')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$svg$Svg$path,
-						_List_fromArray(
-							[
-								$elm$svg$Svg$Attributes$d('M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z')
-							]),
-						_List_Nil)
-					]));
-		case 'alert-mini':
-			return A2(
-				$elm$svg$Svg$svg,
-				_List_fromArray(
-					[
-						$elm$svg$Svg$Attributes$width('12'),
-						$elm$svg$Svg$Attributes$height('12'),
-						$elm$svg$Svg$Attributes$viewBox('0 0 24 24'),
-						$elm$svg$Svg$Attributes$fill('currentcolor')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$svg$Svg$path,
-						_List_fromArray(
-							[
-								$elm$svg$Svg$Attributes$d('M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z')
-							]),
-						_List_Nil)
-					]));
-		case 'eye':
-			return A2(
-				$elm$svg$Svg$svg,
-				_List_fromArray(
-					[
-						$elm$svg$Svg$Attributes$width('24'),
-						$elm$svg$Svg$Attributes$height('24'),
-						$elm$svg$Svg$Attributes$viewBox('0 0 24 24'),
-						$elm$svg$Svg$Attributes$fill('none'),
-						$elm$svg$Svg$Attributes$stroke('currentColor'),
-						$elm$svg$Svg$Attributes$strokeWidth('2')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$svg$Svg$path,
-						_List_fromArray(
-							[
-								$elm$svg$Svg$Attributes$d('M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z')
-							]),
-						_List_Nil),
-						A2(
-						$elm$svg$Svg$circle,
-						_List_fromArray(
-							[
-								$elm$svg$Svg$Attributes$cx('12'),
-								$elm$svg$Svg$Attributes$cy('12'),
-								$elm$svg$Svg$Attributes$r('3')
-							]),
-						_List_Nil)
-					]));
-		case 'edit':
-			return A2(
-				$elm$svg$Svg$svg,
-				_List_fromArray(
-					[
-						$elm$svg$Svg$Attributes$width('24'),
-						$elm$svg$Svg$Attributes$height('24'),
-						$elm$svg$Svg$Attributes$viewBox('0 0 24 24'),
-						$elm$svg$Svg$Attributes$fill('none'),
-						$elm$svg$Svg$Attributes$stroke('currentColor'),
-						$elm$svg$Svg$Attributes$strokeWidth('2')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$svg$Svg$path,
-						_List_fromArray(
-							[
-								$elm$svg$Svg$Attributes$d('M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7')
-							]),
-						_List_Nil),
-						A2(
-						$elm$svg$Svg$path,
-						_List_fromArray(
-							[
-								$elm$svg$Svg$Attributes$d('M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z')
-							]),
-						_List_Nil)
-					]));
-		case 'upload':
-			return A2(
-				$elm$svg$Svg$svg,
-				_List_fromArray(
-					[
-						$elm$svg$Svg$Attributes$width('24'),
-						$elm$svg$Svg$Attributes$height('24'),
-						$elm$svg$Svg$Attributes$viewBox('0 0 24 24'),
-						$elm$svg$Svg$Attributes$fill('none'),
-						$elm$svg$Svg$Attributes$stroke('currentColor'),
-						$elm$svg$Svg$Attributes$strokeWidth('2')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$svg$Svg$path,
-						_List_fromArray(
-							[
-								$elm$svg$Svg$Attributes$d('M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4')
-							]),
-						_List_Nil),
-						A2(
-						$elm$svg$Svg$path,
-						_List_fromArray(
-							[
-								$elm$svg$Svg$Attributes$d('M17 8l-5-5-5 5')
-							]),
-						_List_Nil),
-						A2(
-						$elm$svg$Svg$path,
-						_List_fromArray(
-							[
-								$elm$svg$Svg$Attributes$d('M12 3v12')
-							]),
-						_List_Nil)
-					]));
-		default:
-			return $elm$html$Html$text('');
-	}
-};
-var $author$project$Main$cardsGrid = A2(
-	$elm$html$Html$div,
-	_List_fromArray(
-		[
-			$elm$html$Html$Attributes$class('cards-grid')
-		]),
-	_List_fromArray(
-		[
-			A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('card card-teal')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$h3,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text('TOTAL ANNUAL GROSS (YTD)')
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('big-value')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('$54,200.00')
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('sub-value')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Rp 867.200.000')
-						]))
-				])),
-			A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('card card-default')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$h3,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text('EST. TAX LIABILITY (PPh 21)')
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('big-value')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Rp 77.400.000')
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('sub-value')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('NPPN Applied (KLU 62010)')
-						]))
-				])),
-			A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('card card-red')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$h3,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text('FX LEAKAGE (LOSS)')
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('big-value')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Rp 12.450.000')
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('sub-value')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Average Spread: 2.1%')
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('alert-icon')
-						]),
-					_List_fromArray(
-						[
-							$author$project$Main$svgIcon('alert')
-						]))
-				])),
-			A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('card card-default')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$h3,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text('COMPLIANCE STATUS')
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('flex items-center gap-2'),
-							A2($elm$html$Html$Attributes$style, 'margin-bottom', '0.5rem')
-						]),
-					_List_fromArray(
-						[
-							$author$project$Main$svgIcon('success-circle'),
-							A2(
-							$elm$html$Html$div,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('font-semibold text-green')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('NPPN Active')
-								]))
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('text-secondary font-semibold text-sm'),
-							A2($elm$html$Html$Attributes$style, 'margin-left', '1.75rem')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('1042-S Missing: '),
-							A2(
-							$elm$html$Html$span,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('text-red')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('2')
-								]))
-						]))
-				]))
-		]));
-var $elm$html$Html$h1 = _VirtualDom_node('h1');
-var $author$project$Main$dashboardHeader = A2(
-	$elm$html$Html$div,
-	_List_fromArray(
-		[
-			$elm$html$Html$Attributes$class('dashboard-header')
-		]),
-	_List_fromArray(
-		[
-			A2(
-			$elm$html$Html$h1,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text('Dashboard')
-				])),
-			A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('kmk-rate')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('date')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Current KMK Week Rate (17 Apr - 23 Apr)')
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('rate')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('1 USD = 16,120.00 IDR')
-						]))
-				]))
-		]));
-var $elm$html$Html$h2 = _VirtualDom_node('h2');
-var $elm$html$Html$li = _VirtualDom_node('li');
-var $elm$svg$Svg$defs = $elm$svg$Svg$trustedNode('defs');
-var $elm$svg$Svg$g = $elm$svg$Svg$trustedNode('g');
-var $elm$svg$Svg$Attributes$id = _VirtualDom_attribute('id');
-var $elm$svg$Svg$linearGradient = $elm$svg$Svg$trustedNode('linearGradient');
-var $elm$svg$Svg$Attributes$offset = _VirtualDom_attribute('offset');
-var $elm$svg$Svg$Attributes$opacity = _VirtualDom_attribute('opacity');
-var $elm$svg$Svg$Attributes$preserveAspectRatio = _VirtualDom_attribute('preserveAspectRatio');
-var $elm$svg$Svg$stop = $elm$svg$Svg$trustedNode('stop');
-var $elm$svg$Svg$Attributes$stopColor = _VirtualDom_attribute('stop-color');
-var $elm$svg$Svg$Attributes$strokeLinecap = _VirtualDom_attribute('stroke-linecap');
-var $elm$svg$Svg$Attributes$x1 = _VirtualDom_attribute('x1');
-var $elm$svg$Svg$Attributes$x2 = _VirtualDom_attribute('x2');
-var $elm$svg$Svg$Attributes$y1 = _VirtualDom_attribute('y1');
-var $elm$svg$Svg$Attributes$y2 = _VirtualDom_attribute('y2');
-var $author$project$Main$svgChartPlaceholder = A2(
-	$elm$svg$Svg$svg,
-	_List_fromArray(
-		[
-			$elm$svg$Svg$Attributes$width('100%'),
-			$elm$svg$Svg$Attributes$height('200'),
-			$elm$svg$Svg$Attributes$viewBox('0 0 800 200'),
-			$elm$svg$Svg$Attributes$preserveAspectRatio('none'),
-			A2($elm$html$Html$Attributes$style, 'display', 'block')
-		]),
-	_List_fromArray(
-		[
-			A2(
-			$elm$svg$Svg$g,
-			_List_Nil,
-			_List_fromArray(
-				[
-					A2(
-					$elm$svg$Svg$path,
-					_List_fromArray(
-						[
-							$elm$svg$Svg$Attributes$d('M0 120 Q50 90, 100 130 T200 110 T300 130 T400 80 T500 120 T600 90 T700 110 T800 70'),
-							$elm$svg$Svg$Attributes$fill('none'),
-							$elm$svg$Svg$Attributes$stroke('#38bdf8'),
-							$elm$svg$Svg$Attributes$strokeWidth('2'),
-							$elm$svg$Svg$Attributes$strokeLinecap('round')
-						]),
-					_List_Nil),
-					A2(
-					$elm$svg$Svg$path,
-					_List_fromArray(
-						[
-							$elm$svg$Svg$Attributes$d('M0 140 Q50 110, 100 150 T200 130 T300 150 T400 110 T500 140 T600 110 T700 130 T800 90'),
-							$elm$svg$Svg$Attributes$fill('none'),
-							$elm$svg$Svg$Attributes$stroke('#2dd4bf'),
-							$elm$svg$Svg$Attributes$strokeWidth('2'),
-							$elm$svg$Svg$Attributes$strokeLinecap('round')
-						]),
-					_List_Nil),
-					A2(
-					$elm$svg$Svg$path,
-					_List_fromArray(
-						[
-							$elm$svg$Svg$Attributes$d('M0 140 Q50 110, 100 150 T200 130 T300 150 T400 110 T500 140 T600 110 T700 130 T800 90 L800 200 L0 200 Z'),
-							$elm$svg$Svg$Attributes$fill('url(#chartGrad)'),
-							$elm$svg$Svg$Attributes$opacity('0.2')
-						]),
-					_List_Nil),
-					A2(
-					$elm$svg$Svg$defs,
-					_List_Nil,
-					_List_fromArray(
-						[
-							A2(
-							$elm$svg$Svg$linearGradient,
-							_List_fromArray(
-								[
-									$elm$svg$Svg$Attributes$id('chartGrad'),
-									$elm$svg$Svg$Attributes$x1('0'),
-									$elm$svg$Svg$Attributes$y1('0'),
-									$elm$svg$Svg$Attributes$x2('0'),
-									$elm$svg$Svg$Attributes$y2('1')
-								]),
-							_List_fromArray(
-								[
-									A2(
-									$elm$svg$Svg$stop,
-									_List_fromArray(
-										[
-											$elm$svg$Svg$Attributes$offset('0%'),
-											$elm$svg$Svg$Attributes$stopColor('#2dd4bf')
-										]),
-									_List_Nil),
-									A2(
-									$elm$svg$Svg$stop,
-									_List_fromArray(
-										[
-											$elm$svg$Svg$Attributes$offset('100%'),
-											$elm$svg$Svg$Attributes$stopColor('rgba(45,212,191,0)')
-										]),
-									_List_Nil)
-								]))
-						]))
-				]))
-		]));
-var $elm$html$Html$ul = _VirtualDom_node('ul');
-var $author$project$Main$fxTrackerCard = A2(
-	$elm$html$Html$div,
-	_List_fromArray(
-		[
-			$elm$html$Html$Attributes$class('chart-card')
-		]),
-	_List_fromArray(
-		[
-			A2(
-			$elm$html$Html$h2,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text('FX PERFORMANCE TRACKER')
-				])),
-			A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('flex justify-center items-center gap-6 text-xs text-secondary font-semibold')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('flex items-center gap-2')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$span,
-							_List_fromArray(
-								[
-									A2($elm$html$Html$Attributes$style, 'width', '16px'),
-									A2($elm$html$Html$Attributes$style, 'height', '2px'),
-									A2($elm$html$Html$Attributes$style, 'background', '#38bdf8'),
-									A2($elm$html$Html$Attributes$style, 'display', 'inline-block')
-								]),
-							_List_Nil),
-							$elm$html$Html$text('Mid-Market Rate')
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('flex items-center gap-2')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$span,
-							_List_fromArray(
-								[
-									A2($elm$html$Html$Attributes$style, 'width', '16px'),
-									A2($elm$html$Html$Attributes$style, 'height', '2px'),
-									A2($elm$html$Html$Attributes$style, 'background', '#2dd4bf'),
-									A2($elm$html$Html$Attributes$style, 'display', 'inline-block')
-								]),
-							_List_Nil),
-							$elm$html$Html$text('Realized IDR Rate (BCA)')
-						]))
-				])),
-			A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('chart-container')
-				]),
-			_List_fromArray(
-				[$author$project$Main$svgChartPlaceholder])),
-			A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('flex justify-between text-xs text-secondary mt-2')
-				]),
-			_List_fromArray(
-				[
-					$elm$html$Html$text('6 months'),
-					$elm$html$Html$text('February'),
-					$elm$html$Html$text('March'),
-					$elm$html$Html$text('April'),
-					$elm$html$Html$text('6 months')
-				])),
-			A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('chart-footer')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$div,
-					_List_Nil,
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$h3,
-							_List_Nil,
-							_List_fromArray(
-								[
-									$elm$html$Html$text('FX PERFORMANCE TRACKER')
-								])),
-							A2(
-							$elm$html$Html$ul,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('text-sm text-secondary'),
-									A2($elm$html$Html$Attributes$style, 'list-style-type', 'disc'),
-									A2($elm$html$Html$Attributes$style, 'padding-left', '1rem')
-								]),
-							_List_fromArray(
-								[
-									A2(
-									$elm$html$Html$li,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Primary Provider: Wise (0.4% spread)')
-										])),
-									A2(
-									$elm$html$Html$li,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Switch Recommended: PayPal (4.2% spread)')
-										]))
-								]))
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_Nil,
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$h3,
-							_List_Nil,
-							_List_fromArray(
-								[
-									$elm$html$Html$text('UNREALIZED GAIN/LOSS')
-								])),
-							A2(
-							$elm$html$Html$div,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('text-sm text-secondary'),
-									A2($elm$html$Html$Attributes$style, 'line-height', '1.6')
-								]),
-							_List_fromArray(
-								[
-									A2(
-									$elm$html$Html$div,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Current USD Balance: $12,400')
-										])),
-									A2(
-									$elm$html$Html$div,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Unrealized Gain: '),
-											A2(
-											$elm$html$Html$span,
-											_List_fromArray(
-												[
-													$elm$html$Html$Attributes$class('text-green')
-												]),
-											_List_fromArray(
-												[
-													$elm$html$Html$text('+Rp 2.450.000')
-												])),
-											$elm$html$Html$text(' (Market Rate: 16,150)')
-										]))
-								]))
-						]))
-				]))
-		]));
-var $author$project$Main$taxLogicEngine = A2(
-	$elm$html$Html$div,
-	_List_fromArray(
-		[
-			$elm$html$Html$Attributes$class('logic-engine')
-		]),
-	_List_fromArray(
-		[
-			A2(
-			$elm$html$Html$h2,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text('TAX LOGIC ENGINE')
-				])),
-			A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('calc-row')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('text-secondary')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Calculated Profit (Norma 50%):')
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('font-semibold')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Rp 433.600.000')
-						]))
-				])),
-			A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('calc-row')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('text-secondary')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Indonesian Tax Due (Progressive 2026):')
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('font-bold')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Rp 77.400.000')
-						]))
-				])),
-			A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('calc-row')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('text-secondary')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('US Withholding (W-8BEN 10%):')
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('font-semibold')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('$5,420 (Rp 87.370.400)')
-						]))
-				])),
-			A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('calc-block')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('calc-block-header')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('ALLOWABLE PPh 24 CREDIT:')
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('bracket-container')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$div,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('bracket-left')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Lesser of')
-								])),
-							A2(
-							$elm$html$Html$div,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('brace')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('{')
-								])),
-							A2(
-							$elm$html$Html$div,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('bracket-content')
-								]),
-							_List_fromArray(
-								[
-									A2(
-									$elm$html$Html$div,
-									_List_Nil,
-									_List_fromArray(
-										[
-											A2(
-											$elm$html$Html$span,
-											_List_fromArray(
-												[
-													$elm$html$Html$Attributes$class('font-semibold')
-												]),
-											_List_fromArray(
-												[
-													$elm$html$Html$text('min(')
-												])),
-											$elm$html$Html$text('Actual US Tax: 87.3M')
-										])),
-									A2(
-									$elm$html$Html$div,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Indo Cap: 77.4M')
-										])),
-									A2(
-									$elm$html$Html$div,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Total Indo Tax: 77.4M'),
-											A2(
-											$elm$html$Html$span,
-											_List_fromArray(
-												[
-													$elm$html$Html$Attributes$class('font-semibold')
-												]),
-											_List_fromArray(
-												[
-													$elm$html$Html$text(')')
-												]))
-										]))
-								])),
-							A2(
-							$elm$html$Html$div,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('bracket-right')
-								]),
-							_List_fromArray(
-								[
-									A2(
-									$elm$html$Html$div,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('val')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Rp 77.400.000')
-										])),
-									A2(
-									$elm$html$Html$div,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('lbl')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('(Capped by Indo liability)')
-										]))
-								]))
-						]))
-				])),
-			A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('final-payable')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$div,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Final DJP Payable:')
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Rp 0')
-						]))
-				]))
-		]));
-var $author$project$Main$middleSection = A2(
-	$elm$html$Html$div,
-	_List_fromArray(
-		[
-			$elm$html$Html$Attributes$class('middle-grid')
-		]),
-	_List_fromArray(
-		[$author$project$Main$fxTrackerCard, $author$project$Main$taxLogicEngine]));
-var $elm$html$Html$button = _VirtualDom_node('button');
-var $elm$html$Html$table = _VirtualDom_node('table');
-var $elm$html$Html$td = _VirtualDom_node('td');
-var $elm$html$Html$tr = _VirtualDom_node('tr');
-var $author$project$Main$tableRow = F6(
-	function (date, client, gross, kmk, idr, isSuccess) {
-		return A2(
-			$elm$html$Html$tr,
-			_List_Nil,
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$td,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text(date)
-						])),
-					A2(
-					$elm$html$Html$td,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text(client)
-						])),
-					A2(
-					$elm$html$Html$td,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text(gross)
-						])),
-					A2(
-					$elm$html$Html$td,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text(kmk)
-						])),
-					A2(
-					$elm$html$Html$td,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text(idr)
-						])),
-					A2(
-					$elm$html$Html$td,
-					_List_fromArray(
-						[
-							A2($elm$html$Html$Attributes$style, 'text-align', 'center')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$span,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class(
-									isSuccess ? 'status-icon icon-success' : 'status-icon icon-warning')
-								]),
-							_List_fromArray(
-								[
-									$author$project$Main$svgIcon(
-									isSuccess ? 'check-mini' : 'alert-mini')
-								]))
-						])),
-					A2(
-					$elm$html$Html$td,
-					_List_fromArray(
-						[
-							A2($elm$html$Html$Attributes$style, 'text-align', 'center')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$div,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('action-icons justify-center')
-								]),
-							_List_fromArray(
-								[
-									$author$project$Main$svgIcon('eye'),
-									$author$project$Main$svgIcon('edit'),
-									$author$project$Main$svgIcon('upload')
-								]))
-						]))
-				]));
-	});
-var $elm$html$Html$tbody = _VirtualDom_node('tbody');
 var $elm$html$Html$th = _VirtualDom_node('th');
 var $elm$html$Html$thead = _VirtualDom_node('thead');
-var $author$project$Main$tableSection = A2(
-	$elm$html$Html$div,
-	_List_fromArray(
-		[
-			$elm$html$Html$Attributes$class('table-card')
-		]),
-	_List_fromArray(
-		[
+var $elm$core$String$dropRight = F2(
+	function (n, string) {
+		return (n < 1) ? string : A3($elm$core$String$slice, 0, -n, string);
+	});
+var $elm$core$String$cons = _String_cons;
+var $elm$core$String$fromChar = function (_char) {
+	return A2($elm$core$String$cons, _char, '');
+};
+var $elm$core$Bitwise$and = _Bitwise_and;
+var $elm$core$Bitwise$shiftRightBy = _Bitwise_shiftRightBy;
+var $elm$core$String$repeatHelp = F3(
+	function (n, chunk, result) {
+		return (n <= 0) ? result : A3(
+			$elm$core$String$repeatHelp,
+			n >> 1,
+			_Utils_ap(chunk, chunk),
+			(!(n & 1)) ? result : _Utils_ap(result, chunk));
+	});
+var $elm$core$String$repeat = F2(
+	function (n, chunk) {
+		return A3($elm$core$String$repeatHelp, n, chunk, '');
+	});
+var $elm$core$String$padLeft = F3(
+	function (n, _char, string) {
+		return _Utils_ap(
 			A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('table-header-row')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$h2,
-					_List_fromArray(
-						[
-							A2($elm$html$Html$Attributes$style, 'margin-bottom', '0')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('TRANSACTION LEDGER & COMPLIANCE')
-						])),
-					A2(
+				$elm$core$String$repeat,
+				n - $elm$core$String$length(string),
+				$elm$core$String$fromChar(_char)),
+			string);
+	});
+var $elm$core$String$right = F2(
+	function (n, string) {
+		return (n < 1) ? '' : A3(
+			$elm$core$String$slice,
+			-n,
+			$elm$core$String$length(string),
+			string);
+	});
+var $elm$core$String$concat = function (strings) {
+	return A2($elm$core$String$join, '', strings);
+};
+var $cmditch$elm_bigint$BigInt$fillZeroes = function (x) {
+	return A3(
+		$elm$core$String$padLeft,
+		$cmditch$elm_bigint$Constants$maxDigitMagnitude,
+		_Utils_chr('0'),
+		$elm$core$String$fromInt(x));
+};
+var $cmditch$elm_bigint$BigInt$revMagnitudeToString = function (_v0) {
+	var digits = _v0.a;
+	var _v1 = $elm$core$List$reverse(digits);
+	if (!_v1.b) {
+		return '0';
+	} else {
+		var x = _v1.a;
+		var xs = _v1.b;
+		return $elm$core$String$concat(
+			A2(
+				$elm$core$List$cons,
+				$elm$core$String$fromInt(x),
+				A2($elm$core$List$map, $cmditch$elm_bigint$BigInt$fillZeroes, xs)));
+	}
+};
+var $cmditch$elm_bigint$BigInt$toString = function (bigInt) {
+	switch (bigInt.$) {
+		case 'Zer':
+			return '0';
+		case 'Pos':
+			var mag = bigInt.a;
+			return $cmditch$elm_bigint$BigInt$revMagnitudeToString(mag);
+		default:
+			var mag = bigInt.a;
+			return '-' + $cmditch$elm_bigint$BigInt$revMagnitudeToString(mag);
+	}
+};
+var $author$project$Money$toString = function (_v0) {
+	var b = _v0.a;
+	var s = $cmditch$elm_bigint$BigInt$toString(b);
+	var n = A2($elm$core$String$startsWith, '-', s);
+	var a = n ? A2($elm$core$String$dropLeft, 1, s) : s;
+	var l = $elm$core$String$length(a);
+	return _Utils_ap(
+		n ? '-' : '',
+		(l <= 2) ? ('0.' + A3(
+			$elm$core$String$padLeft,
+			2,
+			_Utils_chr('0'),
+			a)) : (A2($elm$core$String$dropRight, 2, a) + ('.' + A2($elm$core$String$right, 2, a))));
+};
+var $elm$html$Html$tr = _VirtualDom_node('tr');
+var $elm$time$Time$utc = A2($elm$time$Time$Zone, 0, _List_Nil);
+var $elm$html$Html$h3 = _VirtualDom_node('h3');
+var $author$project$View$Dashboard$view = function (d) {
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('cards-grid')
+			]),
+		A2(
+			$elm$core$List$map,
+			function (_v0) {
+				var l = _v0.a;
+				var v = _v0.b;
+				var c = _v0.c;
+				return A2(
 					$elm$html$Html$div,
 					_List_fromArray(
 						[
-							$elm$html$Html$Attributes$class('table-actions')
+							$elm$html$Html$Attributes$class('card ' + c)
 						]),
 					_List_fromArray(
 						[
 							A2(
-							$elm$html$Html$button,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('btn btn-primary')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Import CSV')
-								])),
-							A2(
-							$elm$html$Html$div,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('link-btn')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Fuzzy Field Mapper')
-								]))
-						]))
-				])),
-			A2(
-			$elm$html$Html$table,
-			_List_Nil,
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$thead,
-					_List_Nil,
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$tr,
+							$elm$html$Html$h3,
 							_List_Nil,
 							_List_fromArray(
 								[
-									A2(
-									$elm$html$Html$th,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Date')
-										])),
-									A2(
-									$elm$html$Html$th,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Client')
-										])),
-									A2(
-									$elm$html$Html$th,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Gross (USD)')
-										])),
-									A2(
-									$elm$html$Html$th,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text('KMK Rate')
-										])),
-									A2(
-									$elm$html$Html$th,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text('IDR Value')
-										])),
-									A2(
-									$elm$html$Html$th,
-									_List_fromArray(
-										[
-											A2($elm$html$Html$Attributes$style, 'text-align', 'center')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('1042-S')
-										])),
-									A2(
-									$elm$html$Html$th,
-									_List_fromArray(
-										[
-											A2($elm$html$Html$Attributes$style, 'text-align', 'center')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Actions')
-										]))
-								]))
-						])),
-					A2(
-					$elm$html$Html$tbody,
-					_List_Nil,
-					_List_fromArray(
-						[
-							A6($author$project$Main$tableRow, '27/04/2026', 'Acme Corp', '$24,200.00', '16,120.00', 'Rp 390.104.000', true),
-							A6($author$project$Main$tableRow, '15/03/2026', 'Globex Inc.', '$15,000.00', '15,900.00', 'Rp 238.500.000', true),
-							A6($author$project$Main$tableRow, '02/02/2026', 'Globex Inc.', '$5,000.00', '15,900.00', 'Rp 79.500.000', false),
-							A6($author$project$Main$tableRow, '10/01/2026', 'Carger Corp.', '$10,000.00', '15,909.60', 'Rp 159.096.000', false)
-						]))
-				]))
-		]));
-var $elm$html$Html$a = _VirtualDom_node('a');
-var $elm$html$Html$Attributes$href = function (url) {
-	return A2(
-		$elm$html$Html$Attributes$stringProperty,
-		'href',
-		_VirtualDom_noJavaScriptUri(url));
-};
-var $author$project$Main$topbar = A2(
-	$elm$html$Html$div,
-	_List_fromArray(
-		[
-			$elm$html$Html$Attributes$class('topbar')
-		]),
-	_List_fromArray(
-		[
-			A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('flex items-center gap-4')
-				]),
-			_List_fromArray(
-				[
-					$author$project$Main$svgIcon('brand'),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('font-bold'),
-							A2($elm$html$Html$Attributes$style, 'letter-spacing', '0.05em')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('REMOTE-RUPIAH (APRIL 2026)')
-						]))
-				])),
-			A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('nav-links')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$a,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('nav-link active'),
-							$elm$html$Html$Attributes$href('#')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Dashboard')
-						])),
-					A2(
-					$elm$html$Html$a,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('nav-link'),
-							$elm$html$Html$Attributes$href('#')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Transactions')
-						])),
-					A2(
-					$elm$html$Html$a,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('nav-link'),
-							$elm$html$Html$Attributes$href('#')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Taxes')
-						])),
-					A2(
-					$elm$html$Html$a,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('nav-link'),
-							$elm$html$Html$Attributes$href('#')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Compliance Locker')
-						])),
-					A2(
-					$elm$html$Html$a,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('nav-link'),
-							$elm$html$Html$Attributes$href('#')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Settings')
-						]))
-				])),
-			A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('profile-section')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('avatar')
-						]),
-					_List_fromArray(
-						[
-							$author$project$Main$svgIcon('user')
-						])),
-					A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('flex-col')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$div,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('text-sm font-semibold')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Developer')
+									$elm$html$Html$text(l)
 								])),
 							A2(
 							$elm$html$Html$div,
 							_List_fromArray(
 								[
-									$elm$html$Html$Attributes$class('text-xs text-secondary')
+									$elm$html$Html$Attributes$class('big-value font-mono')
 								]),
 							_List_fromArray(
 								[
-									$elm$html$Html$text('NPWP: 12.345.678.9-012.000')
+									$elm$html$Html$text(
+									'Rp ' + $author$project$Money$toString(v))
 								]))
-						]))
-				]))
-		]));
-var $author$project$Main$view = function (_v0) {
-	return A2(
-		$elm$html$Html$div,
-		_List_Nil,
-		_List_fromArray(
-			[
-				$author$project$Main$topbar,
-				A2(
+						]));
+			},
+			_List_fromArray(
+				[
+					_Utils_Tuple3('YTD GROSS', d.ytdGross, 'card-teal'),
+					_Utils_Tuple3('FX LEAKAGE', d.fxLeakage, 'card-default'),
+					_Utils_Tuple3('PROJECTED TAX', d.projectedTax, 'card-default')
+				])));
+};
+var $elm$svg$Svg$Attributes$viewBox = _VirtualDom_attribute('viewBox');
+var $elm$svg$Svg$Attributes$width = _VirtualDom_attribute('width');
+var $author$project$Main$main = $elm$browser$Browser$element(
+	{
+		init: function (_v0) {
+			return _Utils_Tuple2(
+				{
+					s: $author$project$Data$Compliance$StandardRate,
+					t: $elm$time$Time$millisToPosix(0),
+					txs: _List_fromArray(
+						[
+							{date: '2026-05-01', id: '1', isVerified: true},
+							{date: '2026-05-05', id: '2', isVerified: false}
+						])
+				},
+				$elm$core$Platform$Cmd$none);
+		},
+		subscriptions: function (_v1) {
+			return A2($elm$time$Time$every, 1000, $author$project$Main$Tick);
+		},
+		update: F2(
+			function (msg, m) {
+				if (msg.$ === 'Verify') {
+					var id = msg.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							m,
+							{
+								txs: A2(
+									$elm$core$List$map,
+									function (tx) {
+										return _Utils_eq(tx.id, id) ? _Utils_update(
+											tx,
+											{isVerified: true}) : tx;
+									},
+									m.txs)
+							}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					var t = msg.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							m,
+							{
+								s: A2($author$project$Data$Compliance$calculateStatus, t, $elm$time$Time$utc),
+								t: t
+							}),
+						$elm$core$Platform$Cmd$none);
+				}
+			}),
+		view: function (m) {
+			var fmt = function (m_) {
+				return 'Rp ' + $author$project$Money$toString(m_);
+			};
+			var banner = function () {
+				var _v4 = m.s;
+				if (_v4.$ === 'ActionRequired') {
+					var urgency = _v4.a.urgency;
+					return _Utils_eq(urgency, $author$project$Data$Compliance$Urgent) ? A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('banner banner-urgent sticky top-0 z-50')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('🚨 ACTION REQUIRED: NPPN Notification Deadline is March 31st!')
+							])) : $elm$html$Html$text('');
+				} else {
+					return $elm$html$Html$text('');
+				}
+			}();
+			var _v3 = _Utils_Tuple2(
+				$author$project$Money$fromCents(5420000),
+				16120);
+			var annUsd = _v3.a;
+			var kmk = _v3.b;
+			var annIdr = A2($author$project$Money$multiply, annUsd, kmk);
+			var profit = $author$project$TaxLogic$calculateNppn(annIdr);
+			var indo = $author$project$TaxLogic$calculateIndoTax(profit);
+			var credit = $author$project$TaxLogic$calculatePPh24Credit(
+				{
+					actualForeignTaxPaid: A2(
+						$author$project$Money$divide,
+						A2($author$project$Money$multiply, annIdr, 10),
+						100),
+					foreignNetIncome: profit,
+					totalIndoTaxDue: indo,
+					totalTaxableIncome: profit
+				});
+			return A2(
 				$elm$html$Html$div,
+				_List_Nil,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('container')
-					]),
-				_List_fromArray(
-					[$author$project$Main$dashboardHeader, $author$project$Main$cardsGrid, $author$project$Main$middleSection, $author$project$Main$tableSection]))
-			]));
-};
-var $author$project$Main$main = $elm$browser$Browser$sandbox(
-	{
-		init: {},
-		update: F2(
-			function (_v0, model) {
-				return model;
-			}),
-		view: $author$project$Main$view
+						banner,
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('topbar')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('flex items-center gap-4')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$svg$Svg$svg,
+										_List_fromArray(
+											[
+												$elm$svg$Svg$Attributes$width('24'),
+												$elm$svg$Svg$Attributes$height('24'),
+												$elm$svg$Svg$Attributes$viewBox('0 0 24 24'),
+												$elm$svg$Svg$Attributes$fill('none'),
+												$elm$svg$Svg$Attributes$stroke('currentColor'),
+												$elm$svg$Svg$Attributes$strokeWidth('2')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$elm$svg$Svg$path,
+												_List_fromArray(
+													[
+														$elm$svg$Svg$Attributes$d('M2 12L12 2L22 12L12 22L2 12Z')
+													]),
+												_List_Nil)
+											])),
+										A2(
+										$elm$html$Html$b,
+										_List_Nil,
+										_List_fromArray(
+											[
+												$elm$html$Html$text('REMOTE-RUPIAH')
+											]))
+									]))
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('container')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('dashboard-header')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$h1,
+										_List_Nil,
+										_List_fromArray(
+											[
+												$elm$html$Html$text('Dashboard')
+											])),
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('kmk-rate')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$class('rate')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text('1 USD = Rp 16,120.00')
+													]))
+											]))
+									])),
+								$author$project$View$Dashboard$view(
+								{
+									fxLeakage: $author$project$Money$zero,
+									projectedTax: A2($author$project$TaxLogic$projectYearEndLiability, profit, 5),
+									ytdGross: annIdr
+								}),
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('middle-grid')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('chart-card')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$h2,
+												_List_Nil,
+												_List_fromArray(
+													[
+														$elm$html$Html$text('Tax Logic')
+													])),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$class('calc-row')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text('Net Income'),
+														A2(
+														$elm$html$Html$b,
+														_List_Nil,
+														_List_fromArray(
+															[
+																$elm$html$Html$text(
+																fmt(profit))
+															]))
+													])),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$class('calc-row')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text('PPh 24 Credit'),
+														A2(
+														$elm$html$Html$b,
+														_List_Nil,
+														_List_fromArray(
+															[
+																$elm$html$Html$text(
+																fmt(credit))
+															]))
+													])),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$class('final-payable')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text('Final Payable'),
+														A2(
+														$elm$html$Html$b,
+														_List_Nil,
+														_List_fromArray(
+															[
+																$elm$html$Html$text(
+																fmt(
+																	A2($author$project$Money$subtract, indo, credit)))
+															]))
+													]))
+											])),
+										A2(
+										$elm$html$Html$div,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('logic-engine')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$h2,
+												_List_Nil,
+												_List_fromArray(
+													[
+														$elm$html$Html$text('Verification')
+													])),
+												A2(
+												$elm$html$Html$div,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$class('transaction-list')
+													]),
+												_List_fromArray(
+													[
+														A2(
+														$elm$html$Html$table,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('table w-full')
+															]),
+														_List_fromArray(
+															[
+																A2(
+																$elm$html$Html$thead,
+																_List_Nil,
+																_List_fromArray(
+																	[
+																		A2(
+																		$elm$html$Html$tr,
+																		_List_Nil,
+																		_List_fromArray(
+																			[
+																				A2(
+																				$elm$html$Html$th,
+																				_List_Nil,
+																				_List_fromArray(
+																					[
+																						$elm$html$Html$text('Date')
+																					])),
+																				A2(
+																				$elm$html$Html$th,
+																				_List_Nil,
+																				_List_fromArray(
+																					[
+																						$elm$html$Html$text('Verification')
+																					]))
+																			]))
+																	])),
+																A2(
+																$elm$html$Html$tbody,
+																_List_Nil,
+																A2(
+																	$elm$core$List$map,
+																	function (tx) {
+																		return A2(
+																			$elm$html$Html$tr,
+																			_List_fromArray(
+																				[
+																					$elm$html$Html$Attributes$class(
+																					tx.isVerified ? 'row-locked' : '')
+																				]),
+																			_List_fromArray(
+																				[
+																					A2(
+																					$elm$html$Html$td,
+																					_List_Nil,
+																					_List_fromArray(
+																						[
+																							$elm$html$Html$text(tx.date)
+																						])),
+																					A2(
+																					$elm$html$Html$td,
+																					_List_Nil,
+																					_List_fromArray(
+																						[
+																							tx.isVerified ? A2(
+																							$elm$html$Html$span,
+																							_List_fromArray(
+																								[
+																									$elm$html$Html$Attributes$class('text-green flex items-center gap-1 font-mono')
+																								]),
+																							_List_fromArray(
+																								[
+																									$elm$html$Html$text('🛡️ Verified')
+																								])) : A2(
+																							$elm$html$Html$button,
+																							_List_fromArray(
+																								[
+																									$elm$html$Html$Attributes$class('btn btn-outline text-secondary font-mono flex items-center gap-1'),
+																									$elm$html$Html$Events$onClick(
+																									$author$project$Main$Verify(tx.id))
+																								]),
+																							_List_fromArray(
+																								[
+																									$elm$html$Html$text('🛡️ Verify')
+																								]))
+																						]))
+																				]));
+																	},
+																	m.txs))
+															]))
+													]))
+											]))
+									]))
+							]))
+					]));
+		}
 	});
 _Platform_export({'Main':{'init':$author$project$Main$main(
 	$elm$json$Json$Decode$succeed(_Utils_Tuple0))(0)}});}(this));
