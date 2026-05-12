@@ -1,41 +1,186 @@
 module Money exposing (..)
+
 import BigInt exposing (BigInt)
-type Money c = Money BigInt
-type IDR = IDR
-type USD = USD
-pInt s = if s == "" then Nothing else s |> String.toList |> List.foldl (\c acc -> acc |> Maybe.andThen (\v -> let d = Char.toCode c - 48 in if d >= 0 && d <= 9 then Just (BigInt.add (BigInt.mul v (BigInt.fromInt 10)) (BigInt.fromInt d)) else Nothing)) (Just (BigInt.fromInt 0))
-fromCents i = Money (BigInt.fromInt i)
-fromCentsStr s = pInt s |> Maybe.withDefault (BigInt.fromInt 0) |> Money
-fromBigInt = Money
-toBigInt (Money b) = b
-toCents (Money b) = BigInt.toString b |> String.toInt |> Maybe.withDefault 0
+
+
+type Money c
+    = Money BigInt
+
+
+type IDR
+    = IDR
+
+
+type USD
+    = USD
+
+
+pInt s =
+    if s == "" then
+        Nothing
+
+    else
+        s
+            |> String.toList
+            |> List.foldl
+                (\c acc ->
+                    acc
+                        |> Maybe.andThen
+                            (\v ->
+                                let
+                                    d =
+                                        Char.toCode c - 48
+                                in
+                                if d >= 0 && d <= 9 then
+                                    Just (BigInt.add (BigInt.mul v (BigInt.fromInt 10)) (BigInt.fromInt d))
+
+                                else
+                                    Nothing
+                            )
+                )
+                (Just (BigInt.fromInt 0))
+
+
+fromCents i =
+    Money (BigInt.fromInt i)
+
+
+fromCentsStr s =
+    pInt s |> Maybe.withDefault (BigInt.fromInt 0) |> Money
+
+
+fromBigInt =
+    Money
+
+
+toBigInt (Money b) =
+    b
+
+
+toCents (Money b) =
+    BigInt.toString b |> String.toFloat |> Maybe.withDefault 0.0
+
+
 toString (Money b) =
     let
-        s = BigInt.toString b
-        n = String.startsWith "-" s
-        a = if n then String.dropLeft 1 s else s
-        l = String.length a
+        s =
+            BigInt.toString b
+
+        n =
+            String.startsWith "-" s
+
+        a =
+            if n then
+                String.dropLeft 1 s
+
+            else
+                s
+
+        l =
+            String.length a
     in
-    (if n then "-" else "") ++ (if l <= 2 then "0." ++ String.padLeft 2 '0' a else String.dropRight 2 a ++ "." ++ String.right 2 a)
-zero = Money (BigInt.fromInt 0)
-add (Money a) (Money b) = Money (BigInt.add a b)
-subtract (Money a) (Money b) = Money (BigInt.sub a b)
-multiply (Money a) n = Money (BigInt.mul a (BigInt.fromInt n))
-divide (Money a) n = if n == 0 then zero else Money (BigInt.div a (BigInt.fromInt n))
-divideRoundUp (Money a) n = if n == 0 then zero else Money (BigInt.div (BigInt.add a (BigInt.fromInt (n - 1))) (BigInt.fromInt n))
-proportion (Money b) (Money n) (Money d) = if d == BigInt.fromInt 0 then zero else Money (BigInt.div (BigInt.mul b n) d)
-compare (Money a) (Money b) = BigInt.compare a b
-fromStr r = 
-    let 
-        s = String.replace "," "" (String.trim r) 
-    in 
-    if s == "" || String.startsWith "-" s then Err "Err" else case String.split "." s of
-        [i, f] -> if String.length f > 2 then Err "Err" else pInt ((if i == "" then "0" else i) ++ String.padRight 2 '0' f) |> Maybe.map Money |> Result.fromMaybe "Err"
-        [i] -> pInt (i ++ "00") |> Maybe.map Money |> Result.fromMaybe "Err"
-        _ -> Err "Err"
-toDjpString (Money b) = 
-    let 
-        s = BigInt.toString b
-        l = String.length s 
-    in 
-    if l <= 2 then "0," ++ String.padLeft 2 '0' s else String.dropRight 2 s ++ "," ++ String.right 2 s
+    (if n then
+        "-"
+
+     else
+        ""
+    )
+        ++ (if l <= 2 then
+                "0." ++ String.padLeft 2 '0' a
+
+            else
+                String.dropRight 2 a ++ "." ++ String.right 2 a
+           )
+
+
+zero =
+    Money (BigInt.fromInt 0)
+
+
+add (Money a) (Money b) =
+    Money (BigInt.add a b)
+
+
+subtract (Money a) (Money b) =
+    Money (BigInt.sub a b)
+
+
+multiply (Money a) n =
+    Money (BigInt.mul a (BigInt.fromInt n))
+
+
+divide (Money a) n =
+    if n == 0 then
+        zero
+
+    else
+        Money (BigInt.div a (BigInt.fromInt n))
+
+
+divideRoundUp (Money a) n =
+    if n == 0 then
+        zero
+
+    else
+        Money (BigInt.div (BigInt.add a (BigInt.fromInt (n - 1))) (BigInt.fromInt n))
+
+
+proportion (Money b) (Money n) (Money d) =
+    if BigInt.compare d (BigInt.fromInt 0) == EQ then
+        zero
+
+    else
+        Money (BigInt.div (BigInt.mul b n) d)
+
+
+compare (Money a) (Money b) =
+    BigInt.compare a b
+
+
+fromStr r =
+    let
+        s =
+            String.replace "," "" (String.trim r)
+    in
+    if s == "" || String.startsWith "-" s then
+        Err "Err"
+
+    else
+        case String.split "." s of
+            [ i, f ] ->
+                if String.length f > 2 then
+                    Err "Err"
+
+                else
+                    pInt
+                        ((if i == "" then
+                            "0"
+
+                          else
+                            i
+                         )
+                            ++ String.padRight 2 '0' f
+                        )
+                        |> Maybe.map Money
+                        |> Result.fromMaybe "Err"
+
+            [ i ] ->
+                pInt (i ++ "00") |> Maybe.map Money |> Result.fromMaybe "Err"
+
+            _ ->
+                Err "Err"
+
+
+toDjpString (Money b) =
+    let
+        s =
+            BigInt.toString b
+
+        l =
+            String.length s
+    in
+    if l <= 2 then
+        "0," ++ String.padLeft 2 '0' s
+
+    else
+        String.dropRight 2 s ++ "," ++ String.right 2 s

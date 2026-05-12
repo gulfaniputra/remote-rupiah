@@ -5791,8 +5791,11 @@ var $author$project$Money$proportion = F3(
 		var n = _v1.a;
 		var d = _v2.a;
 		return _Utils_eq(
-			d,
-			$cmditch$elm_bigint$BigInt$fromInt(0)) ? $author$project$Money$zero : $author$project$Money$Money(
+			A2(
+				$cmditch$elm_bigint$BigInt$compare,
+				d,
+				$cmditch$elm_bigint$BigInt$fromInt(0)),
+			$elm$core$Basics$EQ) ? $author$project$Money$zero : $author$project$Money$Money(
 			A2(
 				$cmditch$elm_bigint$BigInt$div,
 				A2($cmditch$elm_bigint$BigInt$mul, b, n),

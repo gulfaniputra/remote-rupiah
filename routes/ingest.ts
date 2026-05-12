@@ -38,8 +38,19 @@ app.post("/", async (c) => {
     if (!Array.isArray(rows) || rows.length > 5000) return c.json({ success: false, error: "Invalid or too many rows" }, 400);
     await sql.begin(async (t) => {
       await t`SET LOCAL app.current_user_id = ${uid}`;
-      for (const r of rows) if (r.amountStr && r.date && r.source_tx_id)
-        await t`INSERT INTO transactions (user_id, date, currency, amount_cents, source_tx_id, metadata) VALUES (${uid}, ${r.date}, ${r.currency || 'USD'}, ${parseAmount(r.amountStr)}, ${r.source_tx_id}, ${r}) ON CONFLICT DO NOTHING`;
+      const toInsert = rows
+        .filter(r => r.amountStr && r.date && r.source_tx_id)
+        .map(r => ({
+          user_id: uid,
+          date: r.date,
+          currency: r.currency || 'USD',
+          amount_cents: parseAmount(r.amountStr),
+          source_tx_id: r.source_tx_id,
+          metadata: r
+        }));
+      if (toInsert.length > 0) {
+        await t`INSERT INTO transactions ${t(toInsert)} ON CONFLICT (user_id, source_tx_id) DO NOTHING`;
+      }
     });
     return c.json({ success: true, ingested: rows.length });
   } catch (e: any) { return c.json({ success: false, error: `Ingest error: ${e.message||e}` }, 500); }

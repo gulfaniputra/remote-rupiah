@@ -1,42 +1,46 @@
+import { parse, CsvParseStream } from "@std/csv";
+
 export interface CsvPreview { headers: string[]; rows: Record<string, string>[]; totalRowCount: number }
 
+/**
+ * Parses a CSV string and returns a preview.
+ * Note: Still kept for compatibility, but parseCsvFromStream is preferred for memory safety.
+ */
 export function parseCsvStream(csv: string, maxRows = 5): CsvPreview {
-  const t = csv.trim();
-  if (!t) return { headers: [], rows: [], totalRowCount: 0 };
-  const lines = splitLines(t), headers = parseLine(lines[0]);
-  const data = lines.slice(1).filter(l => l.trim());
-  return { headers, totalRowCount: data.length,
-    rows: data.slice(0, maxRows).map(line => { const v = parseLine(line); return Object.fromEntries(headers.map((h, j) => [h, v[j] ?? ""])); }) };
+  const records = parse(csv, { skipFirstRow: false }) as string[][];
+  if (records.length === 0) return { headers: [], rows: [], totalRowCount: 0 };
+  
+  const headers = records[0];
+  const data = records.slice(1);
+  const rows = data.slice(0, maxRows).map(v => 
+    Object.fromEntries(headers.map((h, j) => [h, v[j] ?? ""]))
+  );
+  
+  return { headers, rows, totalRowCount: data.length };
 }
 
+/**
+ * Parses a CSV stream without loading the entire file into memory.
+ */
 export async function parseCsvFromStream(stream: ReadableStream<Uint8Array>, maxRows = 5): Promise<CsvPreview> {
-  const r = stream.getReader(), d = new TextDecoder();
-  let s = "";
-  for (let chunk = await r.read(); !chunk.done; chunk = await r.read()) s += d.decode(chunk.value, { stream: true });
-  return parseCsvStream(s + d.decode(), maxRows);
-}
+  const lineStream = stream
+    .pipeThrough(new TextDecoderStream())
+    .pipeThrough(new CsvParseStream());
 
-function splitLines(text: string): string[] {
-  const lines: string[] = []; let cur = "", q = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (c === '"') { q = !q; cur += c; }
-    else if ((c === "\n" || c === "\r") && !q) { if (c === "\r" && text[i+1] === "\n") i++; lines.push(cur); cur = ""; }
-    else cur += c;
-  }
-  if (cur) lines.push(cur);
-  return lines;
-}
+  let headers: string[] = [];
+  const rows: Record<string, string>[] = [];
+  let count = 0;
 
-function parseLine(line: string): string[] {
-  const fields: string[] = []; let cur = "", q = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (q) { if (c === '"') { if (line[i+1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
-    else if (c === '"') q = true;
-    else if (c === ',') { fields.push(cur); cur = ""; }
-    else cur += c;
+  for await (const record of lineStream) {
+    if (count === 0) {
+      headers = record;
+    } else {
+      if (rows.length < maxRows) {
+        rows.push(Object.fromEntries(headers.map((h, i) => [h, record[i] ?? ""])));
+      }
+    }
+    count++;
   }
-  fields.push(cur);
-  return fields;
+
+  return { headers, rows, totalRowCount: Math.max(0, count - 1) };
 }

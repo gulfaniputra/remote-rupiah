@@ -25,6 +25,6 @@ suite =
             \c ->
                 let s = String.fromInt (c // 100) ++ "." ++ String.padLeft 2 '0' (String.fromInt (modBy 100 c)) in
                 case Money.fromStr s of
-                    Ok m -> Money.toCents m |> Expect.equal c
+                    Ok m -> Money.toCents m |> Expect.equal (toFloat c)
                     Err msg -> Expect.fail ("Failed for \"" ++ s ++ "\": " ++ msg)
         ]

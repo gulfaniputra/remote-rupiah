@@ -17,6 +17,7 @@ coverage/
 *.sql
 !migrations/
 !migrations/*.sql
+!db/*.sql
 
 # Financial Safety (Remote Rupiah Specific)
 /data/raw/

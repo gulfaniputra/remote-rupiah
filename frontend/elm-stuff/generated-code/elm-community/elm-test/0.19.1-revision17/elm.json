@@ -2,7 +2,7 @@
     "type": "application",
     "source-directories": [
         "src",
-        "../../../../../../../../.local/share/pnpm/global/5/.pnpm/elm-test@0.19.1-revision17/node_modules/elm-test/elm/src",
+        "../../../../../../../../.nvm/versions/node/v24.12.0/lib/node_modules/elm-test/elm/src",
         "../../../../../src",
         "../../../../../tests"
     ],

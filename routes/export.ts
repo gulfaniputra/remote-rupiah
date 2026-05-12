@@ -3,6 +3,7 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import sql from "../db/client.ts";
 import { authMiddleware } from "../services/auth_middleware.ts";
+import { calculateNppn } from "../services/tax_logic.ts";
 
 const app = new Hono<{ Variables: { userId: string | undefined } }>();
 app.use("*", authMiddleware);
@@ -24,7 +25,9 @@ app.post("/spt1770", zValidator("json", z.object({ year: z.string().regex(/^\d{4
       let [tg, tn, tw] = [0n, 0n, 0n];
       for (const t of txs) {
         const rate = BigInt(Math.round(Number(t.kmk_rate || 0) * 100));
-        const g = (BigInt(t.amount_cents) * rate) / 100n, n = (g * 50n) / 100n, w = (BigInt(t.withholding_cents) * rate) / 100n;
+        const g = (BigInt(t.amount_cents) * rate) / 100n;
+        const n = calculateNppn(g);
+        const w = (BigInt(t.withholding_cents) * rate) / 100n;
         tg += g; tn += n; tw += w;
         ctrl.enqueue(new TextEncoder().encode(`${t.date.toISOString().split('T')[0]},${t.amount_cents},${t.kmk_rate},${g},${n},${w}\n`));
       }
