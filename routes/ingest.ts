@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { parseCsvFromStream } from "../services/csv_parser.ts";
 import { authMiddleware } from "../services/auth_middleware.ts";
 import sql from "../db/client.ts";
-import { parseAmount } from "../backend/services/wise_parser.ts";
+import { parseAmount } from "../services/math_utils.ts";
 
 const app = new Hono();
 

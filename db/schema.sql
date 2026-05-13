@@ -14,7 +14,10 @@ CREATE TABLE transactions (
     actual_idr_received_cents BIGINT,
     kmk_rate NUMERIC(15, 2), -- Official DJP rate for that week
     is_1042s_verified BOOLEAN DEFAULT FALSE,
-    metadata JSONB -- Stores raw CSV headers for audit
+    verified_at TIMESTAMP WITH TIME ZONE,
+    metadata JSONB, -- Stores raw CSV headers for audit
+    unspent_usd_cents BIGINT NOT NULL DEFAULT 0 CHECK (unspent_usd_cents >= 0),
+    historical_kmk_rate_cents BIGINT NOT NULL DEFAULT 0
 );
 
 -- RLS Guard

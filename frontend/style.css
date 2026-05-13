@@ -40,6 +40,8 @@ h3 { font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spa
 .text-red { color: var(--accent-red); }
 .text-green { color: var(--accent-green); }
 .text-blue { color: var(--accent-blue); }
+.text-success { color: var(--accent-green); }
+.text-danger { color: var(--accent-red); }
 .text-sm { font-size: 0.875rem; }
 .text-xs { font-size: 0.75rem; }
 .text-secondary { color: var(--text-secondary); }
