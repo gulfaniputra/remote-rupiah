@@ -11,9 +11,9 @@ const safeId = "00000000-0000-0000-0000-000000000000";
 const schema = z.object({
   date: z.string().date(),
   currency: z.string().length(3).default("USD"),
-  amountCents: z.union([z.number().int(), z.bigint()]).transform(v => BigInt(v)),
-  withholdingCents: z.union([z.number().int(), z.bigint()]).default(0).transform(v => BigInt(v)),
-  actualIdrReceivedCents: z.union([z.number().int(), z.bigint()]).optional().transform(v => v ? BigInt(v) : v),
+  amountCents: z.string().regex(/^\d+$/).transform(BigInt),
+  withholdingCents: z.string().regex(/^\d+$/).default("0").transform(BigInt),
+  actualIdrReceivedCents: z.string().regex(/^\d+$/).transform(BigInt).optional(),
   kmkRate: z.number().optional(),
   is1042sVerified: z.boolean().default(false),
   metadata: z.record(z.any()).optional(),

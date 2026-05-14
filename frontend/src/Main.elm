@@ -22,7 +22,7 @@ main = Browser.element
     { init = \_ -> ({ s = C.StandardRate, txs = [{ id = "1", date = "2026-05-01", isVerified = True }, { id = "2", date = "2026-05-05", isVerified = False }], t = Time.millisToPosix 0, kmk = Nothing }, Http.get { url = "/api/kmk/latest", expect = Http.expectJson GotKmk (JD.at ["data", "midRate"] JD.string) })
     , update = \msg m -> case msg of 
         Verify id -> ({ m | txs = List.map (\tx -> if tx.id == id then { tx | isVerified = True } else tx) m.txs }, Cmd.none)
-        Tick t -> ({ m | t = t, s = C.calculateStatus t Time.utc }, Cmd.none)
+        Tick t -> ({ m | t = t, s = C.calculateStatus { deadlineYear = 2026, deadlineMonth = Time.Mar } t Time.utc }, Cmd.none)
         GotKmk res -> case res of
             Ok rate -> ({ m | kmk = Just rate }, Cmd.none)
             Err _ -> (m, Cmd.none)

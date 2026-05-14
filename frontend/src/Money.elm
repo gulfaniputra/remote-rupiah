@@ -1,6 +1,9 @@
 module Money exposing (..)
 
 import BigInt exposing (BigInt)
+import Json.Decode as Decode exposing (Decoder)
+import Json.Encode as Encode
+
 
 
 type Money c
@@ -57,8 +60,23 @@ toBigInt (Money b) =
     b
 
 
-toCents (Money b) =
-    BigInt.toString b |> String.toFloat |> Maybe.withDefault 0.0
+{-| @deprecated - Use toAuthoritativeString instead -}
+toCents : Money c -> Int
+toCents =
+    toAuthoritativeString >> String.toInt >> Maybe.withDefault 0
+
+toAuthoritativeString : Money c -> String
+toAuthoritativeString (Money b) =
+    BigInt.toString b
+
+encode : Money c -> Encode.Value
+encode =
+    toAuthoritativeString >> Encode.string
+
+decoder : Decoder (Money c)
+decoder =
+    Decode.string
+        |> Decode.andThen (pInt >> Maybe.map (Money >> Decode.succeed) >> Maybe.withDefault (Decode.fail "Invalid BigInt format"))
 
 
 toString (Money b) =

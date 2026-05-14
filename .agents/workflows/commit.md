@@ -20,6 +20,11 @@ Before generating a message, you MUST verify:
 - **The Float-Filter:** Scan the diff for the keyword `Float`. If `Float` is found in a file touching `TaxLogic`, `Transactions`, or `Money`, **REJECT** the commit.
 - **Safety Prompt:** If rejected, prompt the user: "This change introduces a Float in a financial context, violating the Zero-Float protocol. Should I refactor this to use the Money opaque type?"
 - **Integrity Check:** Run `deno lint` and `elm make`.
+- **Float Check:**
+  ```bash
+  # Reject float math literals in compliance modules
+  grep -E "(\/|\*)\s*[0-9]*\.[0-9]+" frontend/src/TaxLogic.elm && { echo "CRITICAL: Float math leak"; exit 1; }
+  ```
 - **Logic Check:** If files in `frontend/src/TaxLogic.elm` or `services/` were modified, you MUST run `deno test` and `elm-test` and ensure they pass.
 
 ## 2. Conventional Commit Schema

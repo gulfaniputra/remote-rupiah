@@ -32,19 +32,19 @@ npwnTests =
                 Money.fromCents 100000
                     |> TaxLogic.calculateNPPN
                     |> Money.toCents
-                    |> Expect.equal 50000.0
+                    |> Expect.equal 50000
         , test "zero gross produces zero taxable" <|
             \_ ->
                 Money.fromCents 0
                     |> TaxLogic.calculateNPPN
                     |> Money.toCents
-                    |> Expect.equal 0.0
+                    |> Expect.equal 0
         , test "odd amount rounds down (integer division)" <|
             \_ ->
                 Money.fromCents 99999
                     |> TaxLogic.calculateNPPN
                     |> Money.toCents
-                    |> Expect.equal 49999.0
+                    |> Expect.equal 49999
         ]
 
 
@@ -63,21 +63,21 @@ indoTaxBracketTests =
                 Money.fromCents (10000000 * 100)
                     |> TaxLogic.calculateIndoTax
                     |> Money.toCents
-                    |> Expect.equal (toFloat (500000 * 100))
+                    |> Expect.equal (500000 * 100)
         , test "exactly 60M boundary (5%)" <|
             \_ ->
                 -- 60M * 5% = 3M
                 Money.fromCents (60000000 * 100)
                     |> TaxLogic.calculateIndoTax
                     |> Money.toCents
-                    |> Expect.equal (toFloat (3000000 * 100))
+                    |> Expect.equal (3000000 * 100)
         , test "60M - 250M bracket (15%)" <|
             \_ ->
                 -- 100M profit: (60M * 5%) + (40M * 15%) = 3M + 6M = 9M
                 Money.fromCents (100000000 * 100)
                     |> TaxLogic.calculateIndoTax
                     |> Money.toCents
-                    |> Expect.equal (toFloat (9000000 * 100))
+                    |> Expect.equal (9000000 * 100)
         , test "250M - 500M bracket (25%)" <|
             \_ ->
                 -- 433.6M profit (from Main.elm case):
@@ -86,13 +86,13 @@ indoTaxBracketTests =
                 Money.fromCents (433600000 * 100)
                     |> TaxLogic.calculateIndoTax
                     |> Money.toCents
-                    |> Expect.equal (toFloat (77400000 * 100))
+                    |> Expect.equal (77400000 * 100)
         , test "zero taxable income produces zero tax" <|
             \_ ->
                 Money.fromCents 0
                     |> TaxLogic.calculateIndoTax
                     |> Money.toCents
-                    |> Expect.equal 0.0
+                    |> Expect.equal 0
         ]
 
 
@@ -123,7 +123,7 @@ pph24CreditTests =
                     in
                     TaxLogic.calculatePPh24Credit params
                         |> Money.toCents
-                        |> Expect.equal 5000.0
+                        |> Expect.equal 5000
             , test "Leg 2 binds: Formula cap is smallest" <|
                 \_ ->
                     -- Foreign net = 50% of total taxable.
@@ -139,7 +139,7 @@ pph24CreditTests =
                     in
                     TaxLogic.calculatePPh24Credit params
                         |> Money.toCents
-                        |> Expect.equal 25000.0
+                        |> Expect.equal 25000
             , test "Leg 3 binds: Total Indo tax is smallest" <|
                 \_ ->
                     -- US tax = 87M, Indo tax = 77M, formula cap = 77M (100% foreign).
@@ -154,7 +154,7 @@ pph24CreditTests =
                     in
                     TaxLogic.calculatePPh24Credit params
                         |> Money.toCents
-                        |> Expect.equal 77400000.0
+                        |> Expect.equal 77400000
             ]
 
         -- ======================================
@@ -178,7 +178,7 @@ pph24CreditTests =
                     in
                     TaxLogic.calculatePPh24Credit params
                         |> Money.toCents
-                        |> Expect.equal (toFloat (77435000 * 100))
+                        |> Expect.equal (77435000 * 100)
             , test "US withholding 3x Indo tax still caps at Indo tax" <|
                 \_ ->
                     -- Extreme: US tax = 9000, formula cap = 5000, Indo tax = 5000
@@ -193,7 +193,7 @@ pph24CreditTests =
                     in
                     TaxLogic.calculatePPh24Credit params
                         |> Money.toCents
-                        |> Expect.equal 5000.0
+                        |> Expect.equal 5000
             , test "massive US withholding on low Indo income still capped" <|
                 \_ ->
                     -- Foreign = 1M, Total = 10M, Indo tax = 100k, US tax = 500k
@@ -209,7 +209,7 @@ pph24CreditTests =
                     in
                     TaxLogic.calculatePPh24Credit params
                         |> Money.toCents
-                        |> Expect.equal 10000.0
+                        |> Expect.equal 10000
             ]
 
         -- ======================================
@@ -228,7 +228,7 @@ pph24CreditTests =
                     in
                     TaxLogic.calculatePPh24Credit params
                         |> Money.toCents
-                        |> Expect.equal 0.0
+                        |> Expect.equal 0
             , test "zero foreign net income returns zero credit" <|
                 \_ ->
                     let
@@ -241,7 +241,7 @@ pph24CreditTests =
                     in
                     TaxLogic.calculatePPh24Credit params
                         |> Money.toCents
-                        |> Expect.equal 0.0
+                        |> Expect.equal 0
             , test "zero actual US tax paid returns zero credit" <|
                 \_ ->
                     let
@@ -254,7 +254,7 @@ pph24CreditTests =
                     in
                     TaxLogic.calculatePPh24Credit params
                         |> Money.toCents
-                        |> Expect.equal 0.0
+                        |> Expect.equal 0
             , test "zero Indo tax due returns zero credit" <|
                 \_ ->
                     let
@@ -267,7 +267,7 @@ pph24CreditTests =
                     in
                     TaxLogic.calculatePPh24Credit params
                         |> Money.toCents
-                        |> Expect.equal 0.0
+                        |> Expect.equal 0
             , test "all zeros returns zero credit" <|
                 \_ ->
                     let
@@ -280,7 +280,7 @@ pph24CreditTests =
                     in
                     TaxLogic.calculatePPh24Credit params
                         |> Money.toCents
-                        |> Expect.equal 0.0
+                        |> Expect.equal 0
             ]
 
         -- ======================================
@@ -302,7 +302,7 @@ pph24CreditTests =
                     in
                     TaxLogic.calculatePPh24Credit params
                         |> Money.toCents
-                        |> Expect.equal 30000.0
+                        |> Expect.equal 30000
             , test "100% foreign: US tax exceeds Indo tax" <|
                 \_ ->
                     -- US tax = 80,000. Indo = 50,000. credit = 50,000
@@ -316,7 +316,7 @@ pph24CreditTests =
                     in
                     TaxLogic.calculatePPh24Credit params
                         |> Money.toCents
-                        |> Expect.equal 50000.0
+                        |> Expect.equal 50000
             ]
 
         -- ======================================
@@ -338,7 +338,7 @@ pph24CreditTests =
                     in
                     TaxLogic.calculatePPh24Credit params
                         |> Money.toCents
-                        |> Expect.equal 25000.0
+                        |> Expect.equal 25000
             , test "10% foreign income severely limits credit" <|
                 \_ ->
                     -- Foreign = 100k, Total = 1M, Indo tax = 100k, US tax = 15k
@@ -354,7 +354,7 @@ pph24CreditTests =
                     in
                     TaxLogic.calculatePPh24Credit params
                         |> Money.toCents
-                        |> Expect.equal 10000.0
+                        |> Expect.equal 10000
             ]
 
         -- ======================================
@@ -376,7 +376,7 @@ pph24CreditTests =
                     in
                     TaxLogic.calculatePPh24Credit params
                         |> Money.toCents
-                        |> Expect.equal 0.0
+                        |> Expect.equal 0
             , test "small amounts where cap rounds down" <|
                 \_ ->
                     -- Foreign = 3, Total = 7, Indo = 5, US = 4
@@ -392,7 +392,7 @@ pph24CreditTests =
                     in
                     TaxLogic.calculatePPh24Credit params
                         |> Money.toCents
-                        |> Expect.equal 2.0
+                        |> Expect.equal 2
             ]
 
         -- ======================================
@@ -413,7 +413,7 @@ pph24CreditTests =
                     in
                     TaxLogic.calculatePPh24Credit params
                         |> Money.toCents
-                        |> Expect.equal 50000.0
+                        |> Expect.equal 50000
             ]
 
         -- ======================================
@@ -472,7 +472,7 @@ pph24CreditTests =
                                 |> Expect.equal (Money.toCents indoTax)
                         , \_ ->
                             Money.toCents finalPayable
-                                |> Expect.equal 0.0
+                                |> Expect.equal 0
                         ]
                         ()
             , test "realistic: $30k developer where Indo tax exceeds US withholding" <|
@@ -520,7 +520,7 @@ pph24CreditTests =
                                 |> Expect.equal (Money.toCents indoTax)
                         , \_ ->
                             Money.toCents finalPayable
-                                |> Expect.equal 0.0
+                                |> Expect.equal 0
                         ]
                         ()
             ]
@@ -541,13 +541,13 @@ usWithholdingTests =
                 Money.fromCents 1000000
                     |> TaxLogic.calculateUsWithholding
                     |> Money.toCents
-                    |> Expect.equal 100000.0
+                    |> Expect.equal 100000
         , test "zero gross produces zero withholding" <|
             \_ ->
                 Money.fromCents 0
                     |> TaxLogic.calculateUsWithholding
                     |> Money.toCents
-                    |> Expect.equal 0.0
+                    |> Expect.equal 0
         ]
 
 
@@ -568,12 +568,12 @@ fxLeakageTests =
                 -- leak = 15,000,000 cents (Rp 150.000)
                 TaxLogic.calculateFXLeakage (Money.fromCents 100000) 1615000 (Money.fromCents 1600000000)
                     |> Money.toCents
-                    |> Expect.equal 15000000.0
+                    |> Expect.equal 15000000
         , test "zero leak when rates match" <|
             \_ ->
                 TaxLogic.calculateFXLeakage (Money.fromCents 100000) 1612000 (Money.fromCents 1612000000)
                     |> Money.toCents
-                    |> Expect.equal 0.0
+                    |> Expect.equal 0
         ]
 
 
@@ -590,10 +590,10 @@ finalPayableTests =
             \_ ->
                 TaxLogic.calculateFinalPayable (Money.fromCents 100000) (Money.fromCents 30000)
                     |> Money.toCents
-                    |> Expect.equal 70000.0
+                    |> Expect.equal 70000
         , test "fully offset when credit equals tax" <|
             \_ ->
                 TaxLogic.calculateFinalPayable (Money.fromCents 50000) (Money.fromCents 50000)
                     |> Money.toCents
-                    |> Expect.equal 0.0
+                    |> Expect.equal 0
         ]

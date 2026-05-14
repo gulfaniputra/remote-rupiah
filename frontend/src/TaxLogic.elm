@@ -21,4 +21,4 @@ calculateIdrValue m r = Money.divide (Money.multiply m r) 100
 calculateNppnProfit m r = calculateNppn (calculateIdrValue m r)
 calculateFXLeakage m r act = Money.subtract (calculateIdrValue m r) act
 calculateFinalPayable t c = Money.subtract t c |> (\m -> if Money.compare m Money.zero == LT then Money.zero else m)
-generateTaxReport g f = let s = aggregateAnnualSummary [{gross=g, foreignTaxPaid=f}] in { totalTaxDue = Money.toCents s.finalTaxPayable, proof = { nppnRate = 0.5, grossIdr = Money.toCents s.totalGross, taxableProfitIdr = Money.toCents s.totalNetIncome, bracketBreakdown = [], pph24Logic = "min" } }
+generateTaxReport g f = let s = aggregateAnnualSummary [{gross=g, foreignTaxPaid=f}] in { totalTaxDue = Money.toAuthoritativeString s.finalTaxPayable, proof = { nppnRate = 0.5, grossIdr = Money.toAuthoritativeString s.totalGross, taxableProfitIdr = Money.toAuthoritativeString s.totalNetIncome, bracketBreakdown = [], pph24Logic = "min" } }

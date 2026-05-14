@@ -149,15 +149,15 @@ export async function upsertKmkRates(
         const rows = await sql`
           INSERT INTO kmk_rates (
             currency, kmk_number, valid_from, valid_until,
-            buy_rate, sell_rate, mid_rate
+            buy_rate_cents, sell_rate_cents, mid_rate_cents
           ) VALUES (
             ${currency},
             ${period.no_kmk},
             ${period.tgl_berlaku}::DATE,
             ${period.tgl_akhir}::DATE,
-            ${buyRate},
-            ${sellRate},
-            ${midRate}
+            ${Math.round(parseFloat(buyRate) * 100)},
+            ${Math.round(parseFloat(sellRate) * 100)},
+            ${Math.round(parseFloat(midRate) * 100)}
           )
           ON CONFLICT ON CONSTRAINT uq_kmk_currency_period DO NOTHING
           RETURNING id
@@ -250,9 +250,9 @@ export interface KmkRate {
   kmkNumber: string;
   validFrom: string;
   validUntil: string;
-  buyRate: string;
-  sellRate: string;
-  midRate: string;
+  buyRate: bigint;
+  sellRate: bigint;
+  midRate: bigint;
   fetchedAt: string;
 }
 
@@ -267,7 +267,7 @@ const kv = typeof Deno.openKv === "function" ? await Deno.openKv() : null;
 export async function lookupKmkRate(transactionDate: string, currency = "USD"): Promise<KmkRate | null> {
   const k = ["kmk_rates", currency, transactionDate], v = kv ? (await kv.get<KmkRate>(k)).value : null;
   if (v) return v;
-  const rows = await sql`SELECT id, currency, kmk_number AS "kmkNumber", valid_from AS "validFrom", valid_until AS "validUntil", buy_rate AS "buyRate", sell_rate AS "sellRate", mid_rate AS "midRate", fetched_at AS "fetchedAt" FROM kmk_rates WHERE currency = ${currency} AND ${transactionDate}::DATE BETWEEN valid_from AND valid_until ORDER BY valid_from DESC LIMIT 1`;
+  const rows = await sql`SELECT id, currency, kmk_number AS "kmkNumber", valid_from AS "validFrom", valid_until AS "validUntil", buy_rate_cents AS "buyRate", sell_rate_cents AS "sellRate", mid_rate_cents AS "midRate", fetched_at AS "fetchedAt" FROM kmk_rates WHERE currency = ${currency} AND ${transactionDate}::DATE BETWEEN valid_from AND valid_until ORDER BY valid_from DESC LIMIT 1`;
   if (rows.length === 0) return null;
   if (kv) await kv.set(k, rows[0], { expireIn: 86_400_000 });
   return rows[0] as KmkRate;
@@ -287,9 +287,9 @@ export async function listKmkRates(
       kmk_number AS "kmkNumber",
       valid_from AS "validFrom",
       valid_until AS "validUntil",
-      buy_rate AS "buyRate",
-      sell_rate AS "sellRate",
-      mid_rate AS "midRate",
+      buy_rate_cents AS "buyRate",
+      sell_rate_cents AS "sellRate",
+      mid_rate_cents AS "midRate",
       fetched_at AS "fetchedAt"
     FROM kmk_rates
     WHERE currency = ${currency}
@@ -305,7 +305,7 @@ export async function listKmkRates(
 
 export const parseKmkRate = (rateStr: string): bigint => {
   const [int = "0", frac = ""] = rateStr.replace(/[^\d,]/g, "").split(",");
-  return BigInt(int + frac.padEnd(4, "0").substring(0, 4));
+  return BigInt(int + frac.padEnd(2, "0").substring(0, 2));
 };
 
 export const isRateSanityCheckOk = (newRate: bigint, lastRate: bigint): boolean =>
