@@ -24,3 +24,19 @@ CREATE TABLE transactions (
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY user_isolation_policy ON transactions
 USING (user_id = auth.uid());
+
+CREATE TABLE field_mappings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL,
+    source_field TEXT NOT NULL,
+    target_field TEXT NOT NULL,
+    confidence DOUBLE PRECISION NOT NULL,
+    user_verified BOOLEAN DEFAULT FALSE,
+    matcher_version TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, source_field, target_field)
+);
+
+ALTER TABLE field_mappings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY field_mappings_isolation_policy ON field_mappings
+USING (user_id = auth.uid());

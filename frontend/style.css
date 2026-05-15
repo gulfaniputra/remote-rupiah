@@ -544,3 +544,91 @@ tr:hover td {
     .middle-grid { grid-template-columns: 1fr; }
 }
 
+
+/* ===== Field Mapper ===== */
+.mapper-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-col: column;
+    gap: 1rem;
+}
+
+.mapper-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.mapper-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.mapper-row {
+    display: grid;
+    grid-template-columns: 1fr 40px 1.5fr 120px;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.mapper-row:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--text-muted);
+}
+
+.mapper-source {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.mapper-arrow {
+    display: flex;
+    justify-content: center;
+    color: var(--text-muted);
+}
+
+.mapper-target select {
+    width: 100%;
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 0.5rem;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    outline: none;
+}
+
+.mapper-target select:focus {
+    border-color: var(--accent-teal);
+}
+
+.mapper-confidence {
+    text-align: right;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.conf-high { background: rgba(34, 197, 94, 0.15); color: var(--accent-green); }
+.conf-med { background: rgba(234, 179, 8, 0.15); color: #eab308; }
+.conf-low { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
+
+.mapper-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
