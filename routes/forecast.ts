@@ -3,13 +3,16 @@ import sql from "../db/client.ts";
 import { authMiddleware } from "../services/auth_middleware.ts";
 
 const app = new Hono<{ Variables: { userId: string | undefined } }>();
-const safeId = "00000000-0000-0000-0000-000000000000";
 
 app.use("*", authMiddleware);
 
 // deno-lint-ignore no-explicit-any
 const withAuth = (id: string | undefined, fn: (tx: any) => Promise<any>) =>
-  sql.begin(async (tx: any) => { await tx`SET LOCAL app.current_user_id = ${id || safeId}`; return fn(tx); });
+  sql.begin(async (tx: any) => { 
+    if (!id) throw new Error("Authentication required for DB transaction");
+    await tx`SET LOCAL app.current_user_id = ${id}`; 
+    return fn(tx); 
+  });
 
 app.get("/", async c => {
   const year = Number(c.req.query("year")) || new Date().getFullYear();

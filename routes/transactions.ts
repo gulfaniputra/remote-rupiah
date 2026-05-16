@@ -6,7 +6,6 @@ import { lookupKmkRate } from "../services/kmk.ts";
 import { authMiddleware } from "../services/auth_middleware.ts";
 
 const app = new Hono<{ Variables: { userId: string | undefined } }>();
-const safeId = "00000000-0000-0000-0000-000000000000";
 
 const schema = z.object({
   date: z.string().date(),
@@ -23,7 +22,11 @@ app.use("*", authMiddleware);
 
 // deno-lint-ignore no-explicit-any
 const withAuth = (id: string | undefined, fn: (tx: any) => Promise<any>) => 
-  sql.begin(async tx => { await tx`SET LOCAL app.current_user_id = ${id || safeId}`; return fn(tx); });
+  sql.begin(async tx => { 
+    if (!id) throw new Error("Authentication required");
+    await tx`SET LOCAL app.current_user_id = ${id}`; 
+    return fn(tx); 
+  });
 
 const toSnake = (obj: Record<string, unknown>) => Object.fromEntries(Object.entries(obj).map(([k, v]) => [k.replace(/[A-Z]/g, m => `_${m.toLowerCase()}`), v]));
 

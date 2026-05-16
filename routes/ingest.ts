@@ -32,15 +32,21 @@ app.post("/preview", async (c) => {
 
 app.post("/", async (c) => {
   try {
-    if (parseInt(c.req.header("content-length") || "0", 10) > 5 * 1024 * 1024) return c.json({ success: false, error: "Payload too large" }, 413);
-    const { rows = [] } = await c.req.json(), uid = c.get("userId");
+    const contentLength = parseInt(c.req.header("content-length") || "0", 10);
+    if (contentLength > 5 * 1024 * 1024) return c.json({ success: false, error: "Payload too large" }, 413);
+    
+    // For JSON, we still need to be careful. If Content-Length is missing or lied about,
+    // c.req.json() could still buffer a lot. But Hono usually has a default limit.
+    const { rows = [] } = await c.req.json();
+    const uid = c.get("userId");
     if (!uid) return c.json({ success: false, error: "Unauthorized" }, 401);
     if (!Array.isArray(rows) || rows.length > 5000) return c.json({ success: false, error: "Invalid or too many rows" }, 400);
-    await sql.begin(async (t) => {
+    
+    await sql.begin(async (t: any) => {
       await t`SET LOCAL app.current_user_id = ${uid}`;
       const toInsert = rows
-        .filter(r => r.amountStr && r.date && r.source_tx_id)
-        .map(r => ({
+        .filter((r: any) => r.amountStr && r.date && r.source_tx_id)
+        .map((r: any) => ({
           user_id: uid,
           date: r.date,
           currency: r.currency || 'USD',

@@ -1,9 +1,14 @@
-module Money exposing (..)
+module Money exposing
+    ( Money, IDR, USD
+    , add, subtract, multiply, divide, divideRoundUp, proportion, compare
+    , zero, fromCents, fromCentsStr, fromBigInt, fromStr
+    , toBigInt, toCents, toAuthoritativeString, toString, toDjpString
+    , encode, decoder
+    )
 
 import BigInt exposing (BigInt)
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
-
 
 
 type Money c
@@ -18,92 +23,55 @@ type USD
     = USD
 
 
-pInt s =
-    if s == "" then
-        Nothing
-
-    else
-        s
-            |> String.toList
-            |> List.foldl
-                (\c acc ->
-                    acc
-                        |> Maybe.andThen
-                            (\v ->
-                                let
-                                    d =
-                                        Char.toCode c - 48
-                                in
-                                if d >= 0 && d <= 9 then
-                                    Just (BigInt.add (BigInt.mul v (BigInt.fromInt 10)) (BigInt.fromInt d))
-
-                                else
-                                    Nothing
-                            )
-                )
-                (Just (BigInt.fromInt 0))
+fromCents : Int -> Money c
+fromCents =
+    BigInt.fromInt >> Money
 
 
-fromCents i =
-    Money (BigInt.fromInt i)
+fromCentsStr : String -> Money c
+fromCentsStr =
+    BigInt.fromIntString >> Maybe.withDefault (BigInt.fromInt 0) >> Money
 
 
-fromCentsStr s =
-    pInt s |> Maybe.withDefault (BigInt.fromInt 0) |> Money
-
-
+fromBigInt : BigInt -> Money c
 fromBigInt =
     Money
 
 
+toBigInt : Money c -> BigInt
 toBigInt (Money b) =
     b
 
 
-{-| @deprecated - Use toAuthoritativeString instead -}
+{-| @deprecated High-value transactions exceed 32-bit bounds. Use toAuthoritativeString. -}
 toCents : Money c -> Int
 toCents =
-    toAuthoritativeString >> String.toInt >> Maybe.withDefault 0
+    toAuthoritativeString >> String.toInt >> Maybe.withDefault -1
+
 
 toAuthoritativeString : Money c -> String
 toAuthoritativeString (Money b) =
     BigInt.toString b
 
+
 encode : Money c -> Encode.Value
 encode =
     toAuthoritativeString >> Encode.string
 
+
 decoder : Decoder (Money c)
 decoder =
     Decode.string
-        |> Decode.andThen (pInt >> Maybe.map (Money >> Decode.succeed) >> Maybe.withDefault (Decode.fail "Invalid BigInt format"))
+        |> Decode.andThen (BigInt.fromIntString >> Maybe.map (Money >> Decode.succeed) >> Maybe.withDefault (Decode.fail "Invalid authoritative money string"))
 
 
 toString (Money b) =
     let
-        s =
-            BigInt.toString b
-
-        n =
-            String.startsWith "-" s
-
-        a =
-            if n then
-                String.dropLeft 1 s
-
-            else
-                s
-
-        l =
-            String.length a
+        s = BigInt.toString b
+        a = if String.startsWith "-" s then String.dropLeft 1 s else s
     in
-    (if n then
-        "-"
-
-     else
-        ""
-    )
-        ++ (if l <= 2 then
+    (if String.startsWith "-" s then "-" else "")
+        ++ (if String.length a <= 2 then
                 "0." ++ String.padLeft 2 '0' a
 
             else
@@ -156,10 +124,7 @@ compare (Money a) (Money b) =
 
 
 fromStr r =
-    let
-        s =
-            String.replace "," "" (String.trim r)
-    in
+    let s = r |> String.trim |> String.replace "," "" in
     if s == "" || String.startsWith "-" s then
         Err "Err"
 
@@ -170,7 +135,7 @@ fromStr r =
                     Err "Err"
 
                 else
-                    pInt
+                    BigInt.fromIntString
                         ((if i == "" then
                             "0"
 
@@ -183,21 +148,15 @@ fromStr r =
                         |> Result.fromMaybe "Err"
 
             [ i ] ->
-                pInt (i ++ "00") |> Maybe.map Money |> Result.fromMaybe "Err"
+                BigInt.fromIntString (i ++ "00") |> Maybe.map Money |> Result.fromMaybe "Err"
 
             _ ->
                 Err "Err"
 
 
 toDjpString (Money b) =
-    let
-        s =
-            BigInt.toString b
-
-        l =
-            String.length s
-    in
-    if l <= 2 then
+    let s = BigInt.toString b in
+    if String.length s <= 2 then
         "0," ++ String.padLeft 2 '0' s
 
     else

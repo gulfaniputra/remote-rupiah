@@ -1,6 +1,5 @@
 module Data.FieldMapping exposing (..)
 
-import Http
 import Json.Decode as JD
 import Json.Encode as JE
 

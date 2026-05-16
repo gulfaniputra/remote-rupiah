@@ -9,7 +9,11 @@ const app = new Hono<{ Variables: { userId: string | undefined } }>();
 app.use("*", authMiddleware);
 
 // deno-lint-ignore no-explicit-any
-const withAuth = (id: string | undefined, fn: (tx: any) => Promise<any>) => sql.begin(async (tx: any) => { await tx`SET LOCAL app.current_user_id = ${id || "00000000-0000-0000-0000-000000000000"}`; return fn(tx); });
+const withAuth = (id: string | undefined, fn: (tx: any) => Promise<any>) => sql.begin(async (tx: any) => { 
+  if (!id) throw new Error("Unauthorized");
+  await tx`SET LOCAL app.current_user_id = ${id}`; 
+  return fn(tx); 
+});
 
 app.post("/spt1770", zValidator("json", z.object({ year: z.string().regex(/^\d{4}$/).transform(v => parseInt(v, 10)) })), async (c) => {
   const { year } = c.req.valid("json");
@@ -24,7 +28,9 @@ app.post("/spt1770", zValidator("json", z.object({ year: z.string().regex(/^\d{4
       ctrl.enqueue(new TextEncoder().encode("Bulan,Bruto_Valas,Kurs_KMK,Bruto_IDR,Netto_IDR,PPh_24_Kredit_IDR\n"));
       let [tg, tn, tw] = [0n, 0n, 0n];
       for (const t of txs) {
-        const rate = BigInt(Math.round(Number(t.kmk_rate || 0) * 100));
+        const rateStr = String(t.kmk_rate || "0");
+        const [ri, rf = ""] = rateStr.split(".");
+        const rate = BigInt(ri) * 100n + BigInt(rf.padEnd(2, "0").slice(0, 2));
         const g = (BigInt(t.amount_cents) * rate) / 100n;
         const n = calculateNppn(g);
         const w = (BigInt(t.withholding_cents) * rate) / 100n;
