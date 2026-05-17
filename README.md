@@ -10,6 +10,7 @@ remote-rupiah automates the complexities of **UU HPP compliance**, **PPh 24 fore
 - [Production-Grade Tech Stack](#production-grade-tech-stack)
 - [Financial Integrity Protocols](#financial-integrity-protocols)
 - [Security & Multi-Tenancy](#security--multi-tenancy)
+- [Architecture Flow](#architecture-flow)
 - [Agentic Governance](#agentic-governance)
 - [Local Setup & Development](#local-setup--development)
 - [Testing Suite](#testing-suite)
@@ -44,6 +45,15 @@ We adhere to the **Zero-Float Protocol**:
 - **Database-Level Isolation:** Tenant security is enforced via **PostgreSQL RLS**. App-level `WHERE user_id = ?` filters are redundant. The database itself prevents cross-tenant data leakage.
 - **Logic Isolation:** All tax formulas reside in `frontend/src/TaxLogic.elm` as pure, side-effect-free functions.Making them 100% testable and auditable.
 
+## Architecture Flow
+
+```mermaid
+graph TD
+    Client[Elm Frontend] -->|HTTPS / Native Types| Edge[Deno Edge / Hono API]
+    Edge -->|Deno Cron| KMK[DJP KMK API Ingestion]
+    Edge -->|Secured Connection| DB[(PostgreSQL 17 + RLS)]
+```
+
 ## Agentic Governance
 
 This codebase is optimized for AI-assisted development using the `.agents/` framework:
@@ -51,6 +61,8 @@ This codebase is optimized for AI-assisted development using the `.agents/` fram
 - **Architecture Guards:** Linter-level enforcement of the Zero-Float policy.
 - **Compliance Guards:** Codified Indonesian tax logic that prevents non-compliant code from being committed.
 - **Automated Workflows:** Pre-commit protocols verifying financial precision and test coverage.
+
+These are automated linting and static analysis rules codified to enforce compliance. They are not an LLM prompt dump.
 
 ## Local Setup & Development
 
@@ -91,3 +103,11 @@ elm reactor
 
 - **Frontend:** `elm-test` for all `TaxLogic` and `Money` modules.
 - **Backend:** Deno `std/assert` for KMK ingestion and API routes.
+
+```bash
+# Run backend tests
+deno test --allow-net
+
+# Run frontend tests
+cd frontend && elm-test
+```
