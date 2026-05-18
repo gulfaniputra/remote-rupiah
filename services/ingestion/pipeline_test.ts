@@ -8,6 +8,7 @@ import {
   stringToStream,
   MemoryPersistenceStore,
   MappingConfig,
+  CanonicalField,
 } from "./pipeline.ts";
 
 // 1. UNIT TESTS: normalizeHeaders
@@ -35,12 +36,14 @@ Deno.test("Unit - First/Last Name Decoder", () => {
 });
 
 Deno.test("Unit - Signup Date Decoder", () => {
+  const res1 = schema.signupDate("2026-05-17T14:30:00.000Z");
   assertEquals(
-    (schema.signupDate("2026-05-17T14:30:00.000Z") as any).value?.toISOString(),
+    res1.ok ? res1.value.toISOString() : undefined,
     "2026-05-17T14:30:00.000Z"
   );
+  const res2 = schema.signupDate("2026-05-17");
   assertEquals(
-    (schema.signupDate("2026-05-17") as any).value?.toISOString().startsWith("2026-05-17"),
+    res2.ok ? res2.value.toISOString().startsWith("2026-05-17") : false,
     true
   );
 
@@ -167,7 +170,7 @@ Deno.test("Unit - mapAndDecodeRow strict mode unknown field fails", () => {
       error: [
         {
           row: 4,
-          field: "extra_field_1" as any,
+          field: "extra_field_1" as CanonicalField,
           code: "UNKNOWN_FIELD",
           input: "extra_field_1",
         },
@@ -204,7 +207,7 @@ Deno.test("Config - invalid MappingConfig validations", () => {
   assertEquals(
     validateMappingConfig({
       version: 1,
-      fields: [{ source: "mail", target: "email_address" as any, required: true }],
+      fields: [{ source: "mail", target: "email_address" as CanonicalField, required: true }],
     }),
     { ok: false, error: "Field at index 0 has invalid target: email_address" }
   );
@@ -308,7 +311,7 @@ Deno.test("Property - Decoded rows have no undefined fields and keys are subset 
   for (const record of records) {
     for (const key of Object.keys(record)) {
       assertEquals(validCanonicalKeys.has(key), true);
-      assertEquals((record as any)[key] !== undefined, true);
+      assertEquals((record as Record<string, unknown>)[key] !== undefined, true);
     }
   }
 });

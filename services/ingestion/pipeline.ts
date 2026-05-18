@@ -220,7 +220,11 @@ export const mapAndDecodeRow = (
     } else {
       const decodeResult = schema[field.target](value);
       if (decodeResult.ok) {
-        decoded[field.target] = decodeResult.value as any;
+        if (field.target === "signupDate") {
+          decoded.signupDate = decodeResult.value as Date;
+        } else {
+          decoded[field.target] = decodeResult.value as string;
+        }
       } else {
         errors.push({
           row: rowNumber,
