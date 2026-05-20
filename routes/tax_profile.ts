@@ -2,8 +2,9 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import sql from "../db/client.ts";
-import { authMiddleware } from "../services/auth_middleware.ts";
 import postgres from "postgres";
+
+import { authMiddleware } from "../services/auth_middleware.ts";
 
 const app = new Hono();
 
@@ -15,6 +16,8 @@ const schema = z.object({
 });
 
 app.use("*", authMiddleware);
+
+
 
 const withAuth = <T>(
   id: string | undefined,

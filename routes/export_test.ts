@@ -10,6 +10,8 @@ const makeToken = async (userId: string) => {
   return await sign(
     {
       sub: userId,
+      iss: "your-app",
+      aud: "your-users",
       exp: Math.floor(Date.now() / 1000) + 3600,
     },
     SECRET,
@@ -27,7 +29,7 @@ Deno.test("Export Route - Unauthorized when Authorization header is missing", as
   });
   assertEquals(res.status, 401);
   const body = await res.json();
-  assertEquals(body, { error: "Authorization required" });
+  assertEquals(body, { error: "Unauthorized" });
 });
 
 Deno.test("Export Route - POST /spt1770 returns 400 when body input is invalid", async () => {

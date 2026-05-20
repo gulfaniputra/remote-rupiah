@@ -10,6 +10,8 @@ const makeToken = async (userId: string) => {
   return await sign(
     {
       sub: userId,
+      iss: "your-app",
+      aud: "your-users",
       exp: Math.floor(Date.now() / 1000) + 3600,
     },
     SECRET,
@@ -21,7 +23,7 @@ Deno.test("Transactions Route - Unauthorized when Authorization header is missin
   const res = await app.request("http://localhost/");
   assertEquals(res.status, 401);
   const body = await res.json();
-  assertEquals(body, { error: "Authorization required" });
+  assertEquals(body, { error: "Unauthorized" });
 });
 
 Deno.test("Transactions Route - GET / returns empty transactions list (mocked database)", async () => {

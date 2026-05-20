@@ -10,6 +10,8 @@ const makeToken = async (userId: string) => {
   return await sign(
     {
       sub: userId,
+      iss: "your-app",
+      aud: "your-users",
       exp: Math.floor(Date.now() / 1000) + 3600,
     },
     SECRET,

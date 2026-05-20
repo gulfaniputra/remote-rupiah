@@ -11,6 +11,8 @@ const makeToken = async (userId: string) => {
   return await sign(
     {
       sub: userId,
+      iss: "your-app",
+      aud: "your-users",
       exp: Math.floor(Date.now() / 1000) + 3600,
     },
     SECRET,
@@ -22,7 +24,7 @@ Deno.test("Tax Profile Route - Unauthorized when Authorization header is missing
   const res = await app.request("http://localhost/");
   assertEquals(res.status, 401);
   const body = await res.json();
-  assertEquals(body, { error: "Authorization required" });
+  assertEquals(body, { error: "Unauthorized" });
 });
 
 Deno.test("Tax Profile Route - Unauthorized when token is invalid", async () => {
@@ -33,7 +35,7 @@ Deno.test("Tax Profile Route - Unauthorized when token is invalid", async () => 
   });
   assertEquals(res.status, 401);
   const body = await res.json();
-  assertEquals(body, { error: "Invalid token" });
+  assertEquals(body, { error: "Unauthorized" });
 });
 
 Deno.test("Tax Profile Route - GET / returns success with null (mocked database)", async () => {

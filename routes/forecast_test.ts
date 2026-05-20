@@ -10,6 +10,8 @@ const makeToken = async (userId: string) => {
   return await sign(
     {
       sub: userId,
+      iss: "your-app",
+      aud: "your-users",
       exp: Math.floor(Date.now() / 1000) + 3600,
     },
     SECRET,
@@ -21,7 +23,7 @@ Deno.test("Forecast Route - Unauthorized when Authorization header is missing", 
   const res = await app.request("http://localhost/");
   assertEquals(res.status, 401);
   const body = await res.json();
-  assertEquals(body, { error: "Authorization required" });
+  assertEquals(body, { error: "Unauthorized" });
 });
 
 Deno.test("Forecast Route - GET /fx-efficiency returns empty data when DB returns empty list (mocked database)", async () => {
