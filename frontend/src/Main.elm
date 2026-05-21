@@ -1,55 +1,206 @@
-module Main exposing (main)
+port module Main exposing (Model, Msg(..), main, update, defaultCompliance, epoch)
+
+import Api
 import Browser
 import Data.Compliance as C
+import Data.State exposing (State(..))
+import Data.Transaction exposing (Transaction)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick)
+import Http
+import Json.Decode as JD
 import Money as M
 import Svg exposing (path, svg)
 import Svg.Attributes as SA
 import TaxLogic as T
 import Time
 import View.Dashboard as D
-import Data.Wealth as W
-import Http
-import Json.Decode as JD
 
-type alias Model = { s : C.ComplianceStatus, txs : List { id : String, date : String, isVerified : Bool }, t : Time.Posix, kmk : Maybe String }
-type Msg = Verify String | Tick Time.Posix | GotKmk (Result Http.Error String)
 
-main : Program () Model Msg
-main = Browser.element 
-    { init = \_ -> ({ s = C.StandardRate, txs = [{ id = "1", date = "2026-05-01", isVerified = True }, { id = "2", date = "2026-05-05", isVerified = False }], t = Time.millisToPosix 0, kmk = Nothing }, Http.get { url = "/api/kmk/latest", expect = Http.expectJson GotKmk (JD.at ["data", "midRate"] JD.string) })
-    , update = \msg m -> case msg of 
-        Verify id -> ({ m | txs = List.map (\tx -> if tx.id == id then { tx | isVerified = True } else tx) m.txs }, Cmd.none)
-        Tick t -> ({ m | t = t, s = C.calculateStatus { deadlineYear = 2026, deadlineMonth = Time.Mar } t Time.utc }, Cmd.none)
-        GotKmk res -> case res of
-            Ok rate -> ({ m | kmk = Just rate }, Cmd.none)
-            Err _ -> (m, Cmd.none)
-    , subscriptions = \_ -> Time.every 1000 Tick
-    , view = \m ->
-        let
-            kmkStr = Maybe.withDefault "16120.00" m.kmk
-            kmkVal = String.toFloat kmkStr |> Maybe.withDefault 16120.0 |> round
-            (annUsd, kmk) = (M.fromCents 5420000, kmkVal)
-            annIdr = M.multiply annUsd kmk
-            profit = T.calculateNppn annIdr
-            indo = T.calculateIndoTax profit
-            credit = T.calculatePPh24Credit { foreignNetIncome = profit, totalTaxableIncome = profit, totalIndoTaxDue = indo, actualForeignTaxPaid = M.divide (M.multiply annIdr 10) 100 }
-            fmt m_ = "Rp " ++ M.toString m_
-            banner = case m.s of
-                C.ActionRequired { urgency } -> if urgency == C.Urgent then div [ class "banner banner-urgent sticky top-0 z-50" ] [ text "🚨 ACTION REQUIRED: NPPN Notification Deadline is March 31st!" ] else text ""
-                _ -> text ""
-        in
-        div [] 
-            [ banner
-            , div [ class "topbar" ] [ div [ class "flex items-center gap-4" ] [ svg [ SA.width "24", SA.height "24", SA.viewBox "0 0 24 24", SA.fill "none", SA.stroke "currentColor", SA.strokeWidth "2" ] [ path [ SA.d "M2 12L12 2L22 12L12 22L2 12Z" ] [] ], b [] [ text "REMOTE-RUPIAH" ] ] ]
-            , div [ class "container" ] 
-                [ div [ class "dashboard-header" ] [ h1 [] [ text "Dashboard" ], div [ class "kmk-rate" ] [ div [ class "rate" ] [ text ("1 USD = Rp " ++ kmkStr) ] ] ]
-                , D.view { ytdGross = annIdr, fxLeakage = M.zero, projectedTax = T.projectYearEndLiability profit 5, unrealizedGain = W.calculateGain (M.fromCents 10000) (M.fromCents 1500000) (M.fromCents 1600000) }
-                , div [ class "middle-grid" ] 
-                    [ div [ class "chart-card" ] [ h2 [] [ text "Tax Logic" ], div [ class "calc-row" ] [ text "Net Income", b [] [ text (fmt profit) ] ], div [ class "calc-row" ] [ text "PPh 24 Credit", b [] [ text (fmt credit) ] ], div [ class "final-payable" ] [ text "Final Payable", b [] [ text (fmt (M.subtract indo credit)) ] ] ]
-                    , div [ class "logic-engine" ] [ h2 [] [ text "Verification" ], div [ class "transaction-list" ] [ table [ class "table w-full" ] [ thead [] [ tr [] [ th [] [ text "Date" ], th [] [ text "Verification" ] ] ], tbody [] (List.map (\tx -> tr [ class (if tx.isVerified then "row-locked" else "") ] [ td [] [ text tx.date ], td [] [ if tx.isVerified then span [ class "text-green flex items-center gap-1 font-mono" ] [ text "🛡️ Verified" ] else button [ class "btn btn-outline text-secondary font-mono flex items-center gap-1", onClick (Verify tx.id) ] [ text "🛡️ Verify" ] ] ]) m.txs) ] ] ] ]
+port clearCredentials : () -> Cmd msg
+
+
+type alias Flags =
+    { token : String }
+
+
+type alias Model =
+    { state : State
+    , compliance : C.ComplianceStatus
+    , t : Time.Posix
+    , kmk : Maybe String
+    , token : String
+    }
+
+
+type Msg
+    = GotTransactions (Result Http.Error (List Transaction))
+    | Verify String
+    | Tick Time.Posix
+    | GotKmk (Result Http.Error String)
+
+
+main : Program Flags Model Msg
+main =
+    Browser.element
+        { init = init
+        , update = update
+        , subscriptions = \_ -> Time.every 1000 Tick
+        , view = view
+        }
+
+
+init : Flags -> ( Model, Cmd Msg )
+init flags =
+    ( { state = Loading
+      , compliance = C.StandardRate
+      , t = Time.millisToPosix 0
+      , kmk = Nothing
+      , token = flags.token
+      }
+    , Cmd.batch
+        [ Api.fetchTransactions flags.token GotTransactions
+        , Http.get
+            { url = "/api/kmk/latest"
+            , expect = Http.expectJson GotKmk (JD.at [ "data", "midRate" ] JD.string)
+            }
+        ]
+    )
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg m =
+    case msg of
+        GotTransactions (Ok txs) ->
+            ( { m | state = Ready { txs = txs } }, Cmd.none )
+
+        GotTransactions (Err (Http.BadStatus 401)) ->
+            ( { m | state = Failure "Session expired", token = "" }
+            , clearCredentials ()
+            )
+
+        GotTransactions (Err err) ->
+            ( { m | state = Failure (httpErrStr err) }, Cmd.none )
+
+        Verify id ->
+            case m.state of
+                Ready data ->
+                    ( { m
+                        | state =
+                            Ready
+                                { data
+                                    | txs =
+                                        List.map
+                                            (\tx ->
+                                                if tx.id == id then
+                                                    { tx | is1042sVerified = True }
+
+                                                else
+                                                    tx
+                                            )
+                                            data.txs
+                                }
+                      }
+                    , Cmd.none
+                    )
+
+                _ ->
+                    ( m, Cmd.none )
+
+        Tick t ->
+            ( { m
+                | t = t
+                , compliance =
+                    C.calculateStatus
+                        { deadlineYear = 2026, deadlineMonth = Time.Mar }
+                        t
+                        Time.utc
+              }
+            , Cmd.none
+            )
+
+        GotKmk res ->
+            case res of
+                Ok rate ->
+                    ( { m | kmk = Just rate }, Cmd.none )
+
+                Err _ ->
+                    ( m, Cmd.none )
+
+
+defaultCompliance : C.ComplianceStatus
+defaultCompliance =
+    C.StandardRate
+
+
+epoch : Time.Posix
+epoch =
+    Time.millisToPosix 0
+
+
+httpErrStr : Http.Error -> String
+httpErrStr err =
+    case err of
+        Http.BadUrl u ->
+            "Bad URL: " ++ u
+
+        Http.Timeout ->
+            "Request timed out"
+
+        Http.NetworkError ->
+            "Network error"
+
+        Http.BadStatus code ->
+            "Server error: " ++ String.fromInt code
+
+        Http.BadBody msg_ ->
+            "Bad response: " ++ msg_
+
+
+view : Model -> Html Msg
+view m =
+    let
+        kmkStr =
+            Maybe.withDefault "16120.00" m.kmk
+
+        kmkVal =
+            String.toFloat kmkStr |> Maybe.withDefault 16120.0 |> round
+
+        banner =
+            case m.compliance of
+                C.ActionRequired { urgency } ->
+                    if urgency == C.Urgent then
+                        div [ class "banner banner-urgent sticky top-0 z-50" ]
+                            [ text "🚨 ACTION REQUIRED: NPPN Notification Deadline is March 31st!" ]
+
+                    else
+                        text ""
+
+                _ ->
+                    text ""
+    in
+    div []
+        [ banner
+        , div [ class "topbar" ]
+            [ div [ class "flex items-center gap-4" ]
+                [ svg
+                    [ SA.width "24"
+                    , SA.height "24"
+                    , SA.viewBox "0 0 24 24"
+                    , SA.fill "none"
+                    , SA.stroke "currentColor"
+                    , SA.strokeWidth "2"
+                    ]
+                    [ path [ SA.d "M2 12L12 2L22 12L12 22L2 12Z" ] [] ]
+                , b [] [ text "REMOTE-RUPIAH" ]
                 ]
             ]
-    }
+        , div [ class "container" ]
+            [ div [ class "dashboard-header" ]
+                [ h1 [] [ text "Dashboard" ]
+                , div [ class "kmk-rate" ]
+                    [ div [ class "rate" ] [ text ("1 USD = Rp " ++ kmkStr) ] ]
+                ]
+            , D.view m.state kmkVal Verify
+            ]
+        ]

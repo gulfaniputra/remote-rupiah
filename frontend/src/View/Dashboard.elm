@@ -1,8 +1,117 @@
-module View.Dashboard exposing (..)
+module View.Dashboard exposing (view)
+
+import Data.State exposing (State(..))
+import Data.Transaction exposing (Transaction)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Money
-view d = div [ class "cards-grid" ] 
-    (List.map (\(l, v, c) -> div [ class ("card " ++ c) ] [ h3 [] [ text l ], div [ class "big-value font-mono" ] [ text ("Rp " ++ Money.toString v) ] ]) 
-        [ ("YTD GROSS", d.ytdGross, "card-teal"), ("FX LEAKAGE", d.fxLeakage, "card-default"), ("PROJECTED TAX", d.projectedTax, "card-default") ] 
-    ++ [ div [ class "card card-default" ] [ h3 [] [ text "UNREALIZED FX GAIN/LOSS" ], div [ class ("big-value font-mono " ++ if Money.compare d.unrealizedGain Money.zero == LT then "text-danger" else "text-success") ] [ text ("Rp " ++ Money.toString d.unrealizedGain) ] ] ])
+import Html.Events exposing (onClick)
+import Money as M
+import TaxLogic as T
+
+
+view : State -> Int -> (String -> msg) -> Html msg
+view state kmkVal onVerify =
+    case state of
+        Loading ->
+            div [ class "cards-grid" ]
+                [ div [ class "card card-default" ]
+                    [ div [ class "loading-spinner" ] [ text "Loading transactions…" ] ]
+                ]
+
+        Failure errorMsg ->
+            div [ class "cards-grid" ]
+                [ div [ class "card card-default" ]
+                    [ h3 [] [ text "Error" ]
+                    , div [ class "text-danger" ] [ text errorMsg ]
+                    ]
+                ]
+
+        Ready { txs } ->
+            renderReady txs kmkVal onVerify
+
+
+renderReady : List Transaction -> Int -> (String -> msg) -> Html msg
+renderReady txs kmkVal onVerify =
+    let
+        annIdr =
+            txs |> List.map .amountCents |> List.foldl M.add M.zero |> (\m -> M.multiply m kmkVal)
+
+        profit =
+            T.calculateNppn annIdr
+
+        indo =
+            T.calculateIndoTax profit
+
+        whtIdr =
+            txs |> List.map .withholdingCents |> List.foldl M.add M.zero |> (\m -> M.multiply m kmkVal)
+
+        credit =
+            T.calculatePPh24Credit
+                { foreignNetIncome = profit
+                , totalTaxableIncome = profit
+                , totalIndoTaxDue = indo
+                , actualForeignTaxPaid = whtIdr
+                }
+
+        fmt m =
+            "Rp " ++ M.toString m
+    in
+    div []
+        [ div [ class "cards-grid" ]
+            [ summaryCard "YTD GROSS" annIdr "card-teal"
+            , summaryCard "FX LEAKAGE" M.zero "card-default"
+            , summaryCard "PROJECTED TAX" (T.projectYearEndLiability profit 5) "card-default"
+            , div [ class "card card-default" ]
+                [ h3 [] [ text "UNREALIZED FX GAIN/LOSS" ]
+                , div [ class "big-value font-mono text-secondary" ] [ text "Rp 0.00" ]
+                ]
+            ]
+        , div [ class "middle-grid" ]
+            [ div [ class "chart-card" ]
+                [ h2 [] [ text "Tax Logic" ]
+                , div [ class "calc-row" ] [ text "Net Income", b [] [ text (fmt profit) ] ]
+                , div [ class "calc-row" ] [ text "PPh 24 Credit", b [] [ text (fmt credit) ] ]
+                , div [ class "final-payable" ] [ text "Final Payable", b [] [ text (fmt (M.subtract indo credit)) ] ]
+                ]
+            , div [ class "logic-engine" ]
+                [ h2 [] [ text "Verification" ]
+                , div [ class "transaction-list" ]
+                    [ table [ class "table w-full" ]
+                        [ thead [] [ tr [] [ th [] [ text "Date" ], th [] [ text "Status" ] ] ]
+                        , tbody []
+                            (List.map
+                                (\tx ->
+                                    tr
+                                        [ class
+                                            (if tx.is1042sVerified then
+                                                "row-locked"
+
+                                             else
+                                                ""
+                                            )
+                                        ]
+                                        [ td [] [ text tx.date ]
+                                        , td []
+                                            [ if tx.is1042sVerified then
+                                                span [ class "text-green flex items-center gap-1 font-mono" ] [ text "🛡️ Verified" ]
+
+                                              else
+                                                button [ class "btn btn-outline text-secondary font-mono flex items-center gap-1", onClick (onVerify tx.id) ] [ text "🛡️ Verify" ]
+                                            ]
+                                        ]
+                                )
+                                txs
+                            )
+                        ]
+                    ]
+                ]
+            ]
+        ]
+
+
+summaryCard : String -> M.Money c -> String -> Html msg
+summaryCard label value cls =
+    div [ class ("card " ++ cls) ]
+        [ h3 [] [ text label ]
+        , div [ class "big-value font-mono" ] [ text ("Rp " ++ M.toString value) ]
+        ]

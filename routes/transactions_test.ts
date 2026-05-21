@@ -1,13 +1,13 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertThrows } from "@std/assert";
 import { sign } from "hono/jwt";
-import app from "./transactions.ts";
+import app, { serializeTx, txOutputSchema } from "./transactions.ts";
 
 const SECRET = "test-jwt-secret-12345678901234567890";
 
 Deno.env.set("JWT_SECRET", SECRET);
 
-const makeToken = async (userId: string) => {
-  return await sign(
+const makeToken = async (userId: string) =>
+  await sign(
     {
       sub: userId,
       iss: "your-app",
@@ -15,9 +15,65 @@ const makeToken = async (userId: string) => {
       exp: Math.floor(Date.now() / 1000) + 3600,
     },
     SECRET,
-    "HS256"
+    "HS256",
   );
+
+// ──────────────────────────────────────────────────────
+// Step 1 RED/GREEN: Serialization Boundary
+// ──────────────────────────────────────────────────────
+
+const validRow: Record<string, unknown> = {
+  id: "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+  user_id: "u-001",
+  date: "2026-05-18",
+  currency: "USD",
+  amount_cents: "5420000",
+  withholding_cents: "542000",
+  actual_idr_received_cents: null,
+  kmk_rate: "16120.00",
+  is_1042s_verified: false,
+  metadata: null,
 };
+
+Deno.test("serializeTx — BIGINT fields are strictly typed as JSON strings", () => {
+  const out = serializeTx(validRow);
+  assertEquals(typeof out.amount_cents, "string");
+  assertEquals(typeof out.withholding_cents, "string");
+  assertEquals(out.amount_cents, "5420000");
+  assertEquals(out.withholding_cents, "542000");
+});
+
+Deno.test("serializeTx — user_id is stripped from output", () => {
+  const out = serializeTx(validRow);
+  assertEquals("user_id" in out, false);
+});
+
+Deno.test("serializeTx — Date objects are coerced to ISO-8601 string", () => {
+  const row = { ...validRow, date: new Date("2026-05-18T00:00:00Z") };
+  assertEquals(serializeTx(row).date, "2026-05-18");
+});
+
+Deno.test("txOutputSchema — rejects number for amount_cents (Zero-Float Protocol)", () => {
+  const invalid = { ...validRow, amount_cents: 5420000 };
+  const result = txOutputSchema.safeParse(invalid);
+  assertEquals(result.success, false);
+});
+
+Deno.test("txOutputSchema — rejects number for withholding_cents", () => {
+  const invalid = { ...validRow, withholding_cents: 542000 };
+  const result = txOutputSchema.safeParse(invalid);
+  assertEquals(result.success, false);
+});
+
+Deno.test("txOutputSchema — rejects float for amount_cents", () => {
+  const invalid = { ...validRow, amount_cents: 1250.50 };
+  const result = txOutputSchema.safeParse(invalid);
+  assertEquals(result.success, false);
+});
+
+// ──────────────────────────────────────────────────────
+// Existing Integration Tests
+// ──────────────────────────────────────────────────────
 
 Deno.test("Transactions Route - Unauthorized when Authorization header is missing", async () => {
   const res = await app.request("http://localhost/");
