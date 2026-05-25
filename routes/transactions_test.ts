@@ -4,8 +4,6 @@ import app, { serializeTx, txOutputSchema } from "./transactions.ts";
 
 const SECRET = "test-jwt-secret-12345678901234567890";
 
-Deno.env.set("JWT_SECRET", SECRET);
-
 const makeToken = async (userId: string) =>
   await sign(
     {
@@ -176,5 +174,5 @@ Deno.test("Transactions Route - PATCH /:id/verify returns 404 when ID is valid b
   });
   assertEquals(res.status, 404);
   const body = await res.json();
-  assertEquals(body, { error: "Fail" });
+  assertEquals(body, { error: "Not found" });
 });

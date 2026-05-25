@@ -4,9 +4,6 @@ import app from "./tax_profile.ts";
 
 const SECRET = "test-jwt-secret-12345678901234567890";
 
-// Ensure a consistent secret is in Deno.env for testing
-Deno.env.set("JWT_SECRET", SECRET);
-
 const makeToken = async (userId: string) => {
   return await sign(
     {

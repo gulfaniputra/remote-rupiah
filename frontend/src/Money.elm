@@ -67,16 +67,30 @@ decoder =
 
 toString (Money b) =
     let
-        s = BigInt.toString b
-        a = if String.startsWith "-" s then String.dropLeft 1 s else s
-    in
-    (if String.startsWith "-" s then "-" else "")
-        ++ (if String.length a <= 2 then
-                "0." ++ String.padLeft 2 '0' a
+        raw =
+            BigInt.toString b
+
+        unsigned =
+            if String.startsWith "-" raw then
+                String.dropLeft 1 raw
 
             else
-                String.dropRight 2 a ++ "." ++ String.right 2 a
-           )
+                raw
+
+        body =
+            if String.length unsigned <= 2 then
+                "0." ++ String.padLeft 2 '0' unsigned
+
+            else
+                String.dropRight 2 unsigned ++ "." ++ String.right 2 unsigned
+    in
+    (if String.startsWith "-" raw then
+        "-"
+
+     else
+        ""
+    )
+        ++ body
 
 
 zero =
@@ -123,8 +137,12 @@ compare (Money a) (Money b) =
     BigInt.compare a b
 
 
+fromStr : String -> Result String (Money c)
 fromStr r =
-    let s = r |> String.trim |> String.replace "," "" in
+    let
+        s =
+            r |> String.trim |> String.replace "," ""
+    in
     if s == "" || String.startsWith "-" s then
         Err "Err"
 
@@ -154,8 +172,12 @@ fromStr r =
                 Err "Err"
 
 
+toDjpString : Money c -> String
 toDjpString (Money b) =
-    let s = BigInt.toString b in
+    let
+        s =
+            BigInt.toString b
+    in
     if String.length s <= 2 then
         "0," ++ String.padLeft 2 '0' s
 

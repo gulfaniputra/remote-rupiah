@@ -9,38 +9,33 @@ export interface CsvPreview { headers: string[]; rows: Record<string, string>[];
 export function parseCsvStream(csv: string, maxRows = 5): CsvPreview {
   const records = parse(csv, { skipFirstRow: false }) as string[][];
   if (records.length === 0) return { headers: [], rows: [], totalRowCount: 0 };
-  
-  const headers = records[0];
-  const data = records.slice(1);
-  const rows = data.slice(0, maxRows).map(v => 
-    Object.fromEntries(headers.map((h, j) => [h, v[j] ?? ""]))
-  );
-  
-  return { headers, rows, totalRowCount: data.length };
+
+  const [headers, ...rows] = records;
+  return {
+    headers,
+    rows: rows.slice(0, maxRows).map((row) => Object.fromEntries(headers.map((h, j) => [h, row[j] ?? ""]))),
+    totalRowCount: rows.length,
+  };
 }
 
 /**
  * Parses a CSV stream without loading the entire file into memory.
  */
 export async function parseCsvFromStream(stream: ReadableStream<Uint8Array>, maxRows = 5): Promise<CsvPreview> {
-  const lineStream = stream
-    .pipeThrough(new TextDecoderStream())
-    .pipeThrough(new CsvParseStream());
+  const lineStream = stream.pipeThrough(new TextDecoderStream()).pipeThrough(new CsvParseStream());
+  const rows: Record<string, string>[] = [];
 
   let headers: string[] = [];
-  const rows: Record<string, string>[] = [];
-  let count = 0;
+  let totalRowCount = 0;
 
   for await (const record of lineStream) {
-    if (count === 0) {
+    if (totalRowCount === 0) {
       headers = record;
-    } else {
-      if (rows.length < maxRows) {
-        rows.push(Object.fromEntries(headers.map((h, i) => [h, record[i] ?? ""])));
-      }
+    } else if (rows.length < maxRows) {
+      rows.push(Object.fromEntries(headers.map((h, i) => [h, record[i] ?? ""])));
     }
-    count++;
+    totalRowCount++;
   }
 
-  return { headers, rows, totalRowCount: Math.max(0, count - 1) };
+  return { headers, rows, totalRowCount: Math.max(0, totalRowCount - 1) };
 }

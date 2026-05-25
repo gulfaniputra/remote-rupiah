@@ -4,8 +4,6 @@ import app from "./wealth.ts";
 
 const SECRET = "test-jwt-secret-12345678901234567890";
 
-Deno.env.set("JWT_SECRET", SECRET);
-
 const makeToken = async (userId: string) => {
   return await sign(
     {

@@ -66,12 +66,16 @@ const userId = (c: { get: unknown }) =>
   (c.get as (key: string) => unknown)("userId") as string | undefined;
 
 app.get("/", (c) =>
-  withAuth(userId(c), (tx) => tx`SELECT * FROM transactions`).then((txs) =>
-    c.json({
-      success: true,
-      transactions: (txs as Record<string, unknown>[]).map(serializeTx),
-    }),
-  ),
+  (() => {
+    const uid = userId(c);
+    if (!uid) return Promise.resolve(c.json({ error: "Unauthorized" }, 401));
+    return withAuth(uid, (tx) => tx`SELECT * FROM transactions WHERE user_id = ${uid}`).then((txs) =>
+      c.json({
+        success: true,
+        transactions: (txs as Record<string, unknown>[]).map(serializeTx),
+      }),
+    );
+  })(),
 );
 
 app.post("/", zValidator("json", schema), async (c) => {
@@ -96,59 +100,44 @@ app.post("/", zValidator("json", schema), async (c) => {
 });
 
 app.get("/:id", zValidator("param", z.object({ id: z.string().uuid() })), (c) =>
-  withAuth(
-    userId(c),
-    (tx) =>
-      tx`SELECT * FROM transactions WHERE id = ${c.req.valid("param").id}`,
-  ).then((res) =>
-    res[0]
-      ? c.json({
-          success: true,
-          data: serializeTx(res[0] as Record<string, unknown>),
-        })
-      : c.json({ error: "Not found" }, 404),
-  ),
+  (() => {
+    const uid = userId(c);
+    if (!uid) return Promise.resolve(c.json({ error: "Unauthorized" }, 401));
+    return withAuth(
+      uid,
+      (tx) => tx`SELECT * FROM transactions WHERE id = ${c.req.valid("param").id} AND user_id = ${uid}`,
+    ).then((res) =>
+      res[0]
+        ? c.json({
+            success: true,
+            data: serializeTx(res[0] as Record<string, unknown>),
+          })
+        : c.json({ error: "Not found" }, 404),
+    );
+  })(),
 );
 
 app.patch("/:id/verify", (c) => {
   const id = c.req.param("id");
-  return !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-    id,
-  )
+  const uid = userId(c);
+  if (!uid) return Promise.resolve(c.json({ error: "Unauthorized" }, 401));
+  return !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
     ? Promise.resolve(c.json({ error: "Invalid ID" }, 400))
     : withAuth(
-        userId(c),
+        uid,
         (tx) =>
-          tx`UPDATE transactions SET is_1042s_verified = TRUE, verified_at = NOW() WHERE id = ${id} AND is_1042s_verified = FALSE RETURNING *`,
+          tx`UPDATE transactions
+              SET is_1042s_verified = TRUE, verified_at = NOW()
+              WHERE id = ${id} AND user_id = ${uid} AND is_1042s_verified = FALSE
+              RETURNING *`,
       ).then((res) =>
         res[0]
           ? c.json({
               success: true,
               data: serializeTx(res[0] as Record<string, unknown>),
             })
-          : c.json({ error: "Fail" }, 404),
+          : c.json({ error: "Not found" }, 404),
       );
 });
-
-app.patch(
-  "/:id/verify",
-  authMiddleware,
-  zValidator("param", z.object({ id: z.string().uuid() })),
-  (c) =>
-    // Cast c.get as any to bypass the key check
-    withAuth(
-      (c.get as any)("userId"),
-      (tx) =>
-        tx`UPDATE transactions 
-         SET is_1042s_verified = TRUE, verified_at = CURRENT_TIMESTAMP 
-         WHERE id = ${c.req.valid("param").id} 
-         RETURNING id`,
-    ).then((res: unknown) => {
-      const rows = res as { id: string }[];
-      return rows.length > 0
-        ? c.json({ success: true })
-        : c.json({ error: "Not found" }, 404);
-    }),
-);
 
 export default app;

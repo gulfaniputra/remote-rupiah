@@ -2,8 +2,7 @@ import { app } from "../main.ts";
 import { sign } from "hono/jwt";
 import { assertEquals } from "@std/assert";
 
-const secret = (Deno.env.get("JWT_SECRET") || Deno.env.get("SUPABASE_JWT_SECRET"))?.trim() || "test-secret";
-Deno.env.set("JWT_SECRET", secret); // ensure it's set for tests
+const secret = "test-jwt-secret-12345678901234567890";
 
 const makeToken = (overrides = {}) =>
   sign({

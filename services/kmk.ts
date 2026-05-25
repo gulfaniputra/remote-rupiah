@@ -262,7 +262,13 @@ export interface KmkRate {
  *
  * Per tax_compliance rule: "Use the weekly KMK rate for the date of receipt."
  */
-const kv = typeof Deno.openKv === "function" ? await Deno.openKv() : null;
+const kv = await (async () => {
+  try {
+    return typeof Deno.openKv === "function" ? await Deno.openKv() : null;
+  } catch {
+    return null;
+  }
+})();
 
 export async function lookupKmkRate(transactionDate: string, currency = "USD"): Promise<KmkRate | null> {
   const k = ["kmk_rates", currency, transactionDate], v = kv ? (await kv.get<KmkRate>(k)).value : null;

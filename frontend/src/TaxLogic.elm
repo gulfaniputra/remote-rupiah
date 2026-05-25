@@ -1,4 +1,5 @@
 module TaxLogic exposing (..)
+
 import Money exposing (IDR, Money)
 
 type alias AnnualIncome =
@@ -27,6 +28,15 @@ type alias TaxBracket =
 
 type alias PPh24Params = { foreignNetIncome : Money IDR, totalTaxableIncome : Money IDR, totalIndoTaxDue : Money IDR, actualForeignTaxPaid : Money IDR }
 
+nonNegative : Money c -> Money c
+nonNegative amount =
+    if Money.compare amount Money.zero == LT then
+        Money.zero
+
+    else
+        amount
+
+
 calculateNppn : Money IDR -> Money IDR
 calculateNppn m =
     Money.divide (Money.multiply m 50) 100
@@ -44,39 +54,31 @@ calculateIndoTax =
 
 aggregateAnnualSummary txs =
     let
-        g =
-            List.foldl (\tx a -> Money.add tx.gross a) Money.zero txs
+        gross =
+            List.foldl (\tx acc -> Money.add tx.gross acc) Money.zero txs
 
-        n =
-            calculateNppn g
+        netIncome =
+            calculateNppn gross
 
-        t =
-            calculateIndoTax n
+        indoTaxDue =
+            calculateIndoTax netIncome
 
-        f =
-            List.foldl (\tx a -> Money.add tx.foreignTaxPaid a) Money.zero txs
+        foreignTaxPaid =
+            List.foldl (\tx acc -> Money.add tx.foreignTaxPaid acc) Money.zero txs
 
-        c =
+        pph24Credit =
             calculatePPh24Credit
-                { foreignNetIncome = n
-                , totalTaxableIncome = n
-                , totalIndoTaxDue = t
-                , actualForeignTaxPaid = f
+                { foreignNetIncome = netIncome
+                , totalTaxableIncome = netIncome
+                , totalIndoTaxDue = indoTaxDue
+                , actualForeignTaxPaid = foreignTaxPaid
                 }
     in
-    { totalGross = g
-    , totalNetIncome = n
-    , totalPPh24Credit = c
-    , totalIndoTaxDue = t
-    , finalTaxPayable =
-        Money.subtract t c
-            |> (\m ->
-                    if Money.compare m Money.zero == LT then
-                        Money.zero
-
-                    else
-                        m
-               )
+    { totalGross = gross
+    , totalNetIncome = netIncome
+    , totalPPh24Credit = pph24Credit
+    , totalIndoTaxDue = indoTaxDue
+    , finalTaxPayable = nonNegative (Money.subtract indoTaxDue pph24Credit)
     }
 
 
@@ -110,26 +112,19 @@ calculateFXLeakage m r act =
 
 
 calculateFinalPayable t c =
-    Money.subtract t c
-        |> (\m ->
-                if Money.compare m Money.zero == LT then
-                    Money.zero
-
-                else
-                    m
-           )
+    nonNegative (Money.subtract t c)
 
 
 generateTaxReport g f =
     let
-        s =
+        summary =
             aggregateAnnualSummary [ { gross = g, foreignTaxPaid = f } ]
     in
-    { totalTaxDue = Money.toAuthoritativeString s.finalTaxPayable
+    { totalTaxDue = Money.toAuthoritativeString summary.finalTaxPayable
     , proof =
         { nppnBasisPoints = 5000
-        , grossIdr = Money.toAuthoritativeString s.totalGross
-        , taxableProfitIdr = Money.toAuthoritativeString s.totalNetIncome
+        , grossIdr = Money.toAuthoritativeString summary.totalGross
+        , taxableProfitIdr = Money.toAuthoritativeString summary.totalNetIncome
         , bracketBreakdown = []
         , pph24Logic = "min"
         }
@@ -188,23 +183,21 @@ sortBrackets =
 
 calculateProgressiveTax : List TaxBracket -> Money IDR -> Money IDR
 calculateProgressiveTax brackets income =
-    let
-        calcBracket bracket acc =
+    List.foldl
+        (\bracket acc ->
             let
                 limit =
                     case bracket.upper of
-                        Just u ->
-                            minMoney income u
+                        Just upper ->
+                            minMoney income upper
 
                         Nothing ->
                             income
-
-                taxable =
-                    maxMoney Money.zero (Money.subtract limit bracket.lower)
             in
-            Money.add acc (Money.divide (Money.multiply taxable bracket.rate) 10000)
-    in
-    List.foldl calcBracket Money.zero (sortBrackets brackets)
+            Money.add acc (Money.divide (Money.multiply (maxMoney Money.zero (Money.subtract limit bracket.lower)) bracket.rate) 10000)
+        )
+        Money.zero
+        (sortBrackets brackets)
 
 
 calculatePPh24 : Money IDR -> Money IDR -> Money IDR -> Money IDR -> Money IDR
@@ -224,8 +217,11 @@ calculateTax brackets input =
 
         totalTax =
             calculateProgressiveTax brackets totalIncome
+
+        pph24Credit =
+            calculatePPh24 totalTax input.income.foreign totalIncome input.foreignTaxPaid
     in
     { totalTax = totalTax
-    , pph24Credit = calculatePPh24 totalTax input.income.foreign totalIncome input.foreignTaxPaid
-    , netTaxPayable = maxMoney Money.zero (Money.subtract totalTax (calculatePPh24 totalTax input.income.foreign totalIncome input.foreignTaxPaid))
+    , pph24Credit = pph24Credit
+    , netTaxPayable = nonNegative (Money.subtract totalTax pph24Credit)
     }

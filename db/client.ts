@@ -1,8 +1,15 @@
 import postgres from "postgres";
 
-const dbUrl = Deno.env.get("DATABASE_URL") ?? "postgres://postgres:postgres@localhost:5432/remote_rupiah";
-
 const isTesting = !Deno.mainModule.endsWith("main.ts");
+const defaultDbUrl = "postgres://postgres:postgres@localhost:5432/remote_rupiah";
+
+const dbUrl = (() => {
+  try {
+    return Deno.env.get("DATABASE_URL") ?? defaultDbUrl;
+  } catch {
+    return defaultDbUrl;
+  }
+})();
 
 const mockSql = new Proxy(function() {}, {
   get(_, prop) {
