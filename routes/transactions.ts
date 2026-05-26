@@ -69,7 +69,7 @@ app.get("/", (c) =>
   (() => {
     const uid = userId(c);
     if (!uid) return Promise.resolve(c.json({ error: "Unauthorized" }, 401));
-    return withAuth(uid, (tx) => tx`SELECT * FROM transactions WHERE user_id = ${uid}`).then((txs) =>
+    return withAuth(uid, (tx) => tx`SELECT * FROM transactions`).then((txs) =>
       c.json({
         success: true,
         transactions: (txs as Record<string, unknown>[]).map(serializeTx),
@@ -105,7 +105,7 @@ app.get("/:id", zValidator("param", z.object({ id: z.string().uuid() })), (c) =>
     if (!uid) return Promise.resolve(c.json({ error: "Unauthorized" }, 401));
     return withAuth(
       uid,
-      (tx) => tx`SELECT * FROM transactions WHERE id = ${c.req.valid("param").id} AND user_id = ${uid}`,
+      (tx) => tx`SELECT * FROM transactions WHERE id = ${c.req.valid("param").id}`,
     ).then((res) =>
       res[0]
         ? c.json({
@@ -128,7 +128,7 @@ app.patch("/:id/verify", (c) => {
         (tx) =>
           tx`UPDATE transactions
               SET is_1042s_verified = TRUE, verified_at = NOW()
-              WHERE id = ${id} AND user_id = ${uid} AND is_1042s_verified = FALSE
+              WHERE id = ${id} AND is_1042s_verified = FALSE
               RETURNING *`,
       ).then((res) =>
         res[0]

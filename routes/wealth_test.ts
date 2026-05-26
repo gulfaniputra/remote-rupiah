@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import { sign } from "hono/jwt";
 import app from "./wealth.ts";
 
@@ -41,4 +41,18 @@ Deno.test("Wealth Route - POST /convert returns success when conversion records 
   assertEquals(res.status, 200);
   const body = await res.json();
   assertEquals(body.success, true);
+});
+
+Deno.test("api shape", async () => {
+  const token = await makeToken("test-user-id-123");
+  const res = await app.request("http://localhost/unrealized", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  const json = await res.json();
+
+  assertExists(json.fx_rate);
+  assertExists(json.total_unrealized_idr_cents);
+  assert(Array.isArray(json.positions));
 });

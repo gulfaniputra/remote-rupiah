@@ -25,6 +25,19 @@ const mockSql = new Proxy(function() {}, {
     if (queryStr.includes("SELECT id, unspent_usd_cents")) {
       return [{ id: "mock-tx-id-123", unspent_usd_cents: "1000000" }];
     }
+    if (
+      queryStr.includes("amount_cents::text AS amount_cents") &&
+      queryStr.includes("metadata->>'source' AS source") &&
+      queryStr.includes("ORDER BY date ASC, id ASC")
+    ) {
+      return [
+        {
+          amount_cents: "100000",
+          actual_idr_received_cents: "1400000000",
+          source: "wise",
+        },
+      ];
+    }
     return [];
   }
 }) as unknown as postgres.Sql;

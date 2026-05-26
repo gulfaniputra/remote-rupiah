@@ -9,14 +9,15 @@ export type AuthToken = {
 };
 
 const TEST_JWT_SECRET = "test-jwt-secret-12345678901234567890";
+const isTesting = !Deno.mainModule.endsWith("main.ts");
 
 function isAuthToken(x: unknown): x is AuthToken {
-  return typeof x === "object" &&
-    x !== null &&
-    typeof (x as any).sub === "string" &&
-    typeof (x as any).exp === "number" &&
-    typeof (x as any).iss === "string" &&
-    typeof (x as any).aud === "string";
+  if (typeof x !== "object" || x === null) return false;
+  const token = x as Record<string, unknown>;
+  return typeof token.sub === "string" &&
+    typeof token.exp === "number" &&
+    typeof token.iss === "string" &&
+    typeof token.aud === "string";
 }
 
 const unauthorized = () =>
@@ -27,9 +28,10 @@ const unauthorized = () =>
 
 const getJwtSecret = () => {
   try {
-    return (Deno.env.get("JWT_SECRET") || Deno.env.get("SUPABASE_JWT_SECRET"))?.trim() || TEST_JWT_SECRET;
+    const secret = (Deno.env.get("JWT_SECRET") || Deno.env.get("SUPABASE_JWT_SECRET"))?.trim();
+    return secret || (isTesting ? TEST_JWT_SECRET : undefined);
   } catch {
-    return TEST_JWT_SECRET;
+    return isTesting ? TEST_JWT_SECRET : undefined;
   }
 };
 
@@ -38,6 +40,7 @@ export const authMiddleware = async (c: Context, next: Next) => {
   if (!auth?.startsWith("Bearer ")) return unauthorized();
 
   const secret = getJwtSecret();
+  if (!secret) return unauthorized();
 
   try {
     const decoded = await verify(auth.split(" ")[1], secret, "HS256");

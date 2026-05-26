@@ -126,7 +126,10 @@ view m =
             div [] [ text ("Error: " ++ err) ]
 
         Ready data ->
-            D.render m data
+            D.view
+                (Ready data)
+                (m.kmk |> Maybe.andThen String.toInt |> Maybe.withDefault 0)
+                Verify
 
 
 
