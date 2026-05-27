@@ -11,6 +11,13 @@ const dbUrl = (() => {
   }
 })();
 
+export const testMocks = {
+  kmkRates: [] as Array<{ valid_from: string; mid_rate_cents: string; currency: string }>,
+  clear() {
+    this.kmkRates = [];
+  }
+};
+
 const mockSql = new Proxy(function() {}, {
   get(_, prop) {
     if (prop === "begin") {
@@ -21,7 +28,8 @@ const mockSql = new Proxy(function() {}, {
     return function() { return []; };
   },
   apply(_, __, argumentsList) {
-    const queryStr = String(argumentsList[0] || "");
+    const firstArg = argumentsList[0];
+    const queryStr = Array.isArray(firstArg) ? firstArg.join("?") : String(firstArg || "");
     if (queryStr.includes("SELECT id, unspent_usd_cents")) {
       return [{ id: "mock-tx-id-123", unspent_usd_cents: "1000000" }];
     }
@@ -38,9 +46,23 @@ const mockSql = new Proxy(function() {}, {
         },
       ];
     }
+    if (queryStr.includes("kmk_rates") && queryStr.includes("valid_from")) {
+      const dateVal = argumentsList[1];
+      if (typeof dateVal === "string") {
+        const match = testMocks.kmkRates.find(r => r.valid_from === dateVal && r.currency === "USD");
+        if (match) {
+          return [{
+            valid_from: match.valid_from,
+            mid_rate_cents: match.mid_rate_cents
+          }];
+        }
+      }
+      return [];
+    }
     return [];
   }
 }) as unknown as postgres.Sql;
+
 
 let realSql: postgres.Sql;
 let useMock = isTesting;

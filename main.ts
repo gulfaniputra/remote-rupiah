@@ -8,12 +8,27 @@ import forecast from "./routes/forecast.ts";
 import wealth from "./routes/wealth.ts";
 import fieldMapping from "./routes/field_mapping.ts";
 import { registerKmkCron } from "./services/kmk_cron.ts";
+import { getKmkRateByDate } from "./services/kmk_resolver.ts";
 
 export const app = new Hono();
 
 app.get("/", (c: Context) => {
   return c.text("Remote Rupiah API");
 });
+
+app.get("/kmk-rate", async (c: Context) => {
+  const dateParam = c.req.query("date");
+  if (!dateParam) return c.json({ error: "Missing date parameter" }, 400);
+  if (isNaN(Date.parse(dateParam))) return c.json({ error: "Invalid date format" }, 400);
+
+  try {
+    return c.json(await getKmkRateByDate(new Date(dateParam)));
+  } catch (err: unknown) {
+    return c.json({ error: err instanceof Error ? err.message : String(err) }, 404);
+  }
+});
+
+
 
 app.route("/api/transactions", transactions);
 app.route("/api/kmk", kmk);
