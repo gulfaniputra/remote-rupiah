@@ -1,21 +1,11 @@
 import { Hono } from "hono";
-import sql from "../db/client.ts";
+import sql, { withAuth } from "../db/client.ts";
 import { authMiddleware } from "../services/auth_middleware.ts";
 import postgres from "postgres";
 
 const app = new Hono();
 
 app.use("*", authMiddleware);
-
-const withAuth = <T>(
-  id: string | undefined,
-  fn: (tx: postgres.TransactionSql) => Promise<T>
-): Promise<T> =>
-  sql.begin(async (tx) => { 
-    if (!id) throw new Error("Authentication required for DB transaction");
-    await tx`SET LOCAL app.current_user_id = ${id}`; 
-    return fn(tx); 
-  }) as Promise<T>;
 
 app.get("/", c => {
   const year = Number(c.req.query("year")) || new Date().getFullYear();

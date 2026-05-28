@@ -138,7 +138,26 @@ const sqlProxy = new Proxy(function() {}, {
       }
       throw err;
     }
-  }
-}) as unknown as postgres.Sql;
+}}) as unknown as postgres.Sql;
+
+export type UserId = string & { readonly brand: unique symbol };
+
+export function requireUserId(id: string | undefined): UserId {
+  if (!id) throw new Error("Authentication required");
+  return id as UserId;
+}
+
+export const withAuth = async <T>(
+  id: string | undefined,
+  fn: (tx: postgres.TransactionSql, userId: UserId) => Promise<T>
+): Promise<T> => {
+  const userId = requireUserId(id);
+
+  return sqlProxy.begin(async (tx) => {
+    await tx`SET LOCAL app.current_user_id = ${userId}`;
+    return fn(tx as unknown as postgres.TransactionSql, userId);
+  }) as Promise<T>;
+};
 
 export default sqlProxy;
+

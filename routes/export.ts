@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import sql from "../db/client.ts";
+import sql, { withAuth } from "../db/client.ts";
 import { authMiddleware } from "../services/auth_middleware.ts";
 import { calculateNppn } from "../services/tax_logic.ts";
 import postgres from "postgres";
@@ -9,22 +9,10 @@ import postgres from "postgres";
 const app = new Hono();
 app.use("*", authMiddleware);
 
-const withAuth = <T>(
-  id: string | undefined,
-  fn: (tx: postgres.TransactionSql) => Promise<T>
-): Promise<T> =>
-  sql.begin(async (tx) => {
-    if (!id) throw new Error("Unauthorized");
-    await tx`SET LOCAL app.current_user_id = ${id}`;
-    return fn(tx);
-  }) as Promise<T>;
-
 app.post("/spt1770", zValidator("json", z.object({ year: z.string().regex(/^\d{4}$/).transform(v => parseInt(v, 10)) })), c => {
   const { year } = c.req.valid("json");
   const userId = (c.get as (key: string) => unknown)("userId") as string | undefined;
-  return !userId
-    ? Promise.resolve(c.json({ error: "Auth required" }, 401))
-    : withAuth(userId, (tx) => tx`SELECT date, amount_cents, kmk_rate, withholding_cents FROM transactions WHERE EXTRACT(YEAR FROM date) = ${year}`)
+  return withAuth(userId, (tx) => tx`SELECT date, amount_cents, kmk_rate, withholding_cents FROM transactions WHERE EXTRACT(YEAR FROM date) = ${year}`)
         .then(txs => !txs.length
           ? c.json({ error: "Empty" }, 404)
           : c.body(new ReadableStream({

@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { match } from "../services/matcher.ts";
+import { Suggestion, match } from "../services/matcher.ts";
 import { authMiddleware } from "../services/auth_middleware.ts";
-import sql from "../db/client.ts";
+import sql, { withAuth } from "../db/client.ts";
 import postgres from "postgres";
 
 const app = new Hono();
@@ -37,12 +37,11 @@ app.post("/confirm", zValidator("json", confirmSchema), async (c) => {
   if (!uid) return c.json({ success: false, error: "Unauthorized" }, 401);
 
   try {
-    await sql.begin(async (t: postgres.TransactionSql) => {
-      await t`SET LOCAL app.current_user_id = ${uid}`;
+    await withAuth(uid, async (t, userId) => {
       await t`
         INSERT INTO field_mappings ${t(
           c.req.valid("json").mappings.map((m) => ({
-            user_id: uid,
+            user_id: userId,
             source_field: m.source,
             target_field: m.target,
             confidence: m.confidence,

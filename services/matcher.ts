@@ -5,6 +5,8 @@ export type FieldMatch = {
   method: 'exact' | 'normalized' | 'fuzzy' | 'none';
 };
 
+export type Suggestion = FieldMatch;
+
 /**
  * Normalizes a field name according to the spec:
  * - lowercase

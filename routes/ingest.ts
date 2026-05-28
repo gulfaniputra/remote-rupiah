@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { parseCsvFromStream, parseCsvStream } from "../services/csv_parser.ts";
 import { authMiddleware } from "../services/auth_middleware.ts";
-import sql from "../db/client.ts";
+import sql, { withAuth } from "../db/client.ts";
 import { parseAmount } from "../services/math_utils.ts";
 
 import postgres from "postgres";
@@ -111,10 +111,9 @@ app.post("/", async (c) => {
     if (!uid) return c.json({ success: false, error: "Unauthorized" }, 401);
     if (!Array.isArray(rows) || rows.length > 5000) return c.json({ success: false, error: "Invalid or too many rows" }, 400);
     
-    await sql.begin(async (t: postgres.TransactionSql) => {
-      await t`SET LOCAL app.current_user_id = ${uid}`;
+    await withAuth(uid, async (t, userId) => {
       const toInsert = rows
-        .map((r) => parseIngestRow(r, uid))
+        .map((r) => parseIngestRow(r, userId))
         .filter((r): r is ValidatedIngestRow => r !== null);
       if (toInsert.length > 0) {
         await t`INSERT INTO transactions ${t(toInsert as unknown as Record<string, unknown>[])} ON CONFLICT (user_id, source_tx_id) DO NOTHING`;
