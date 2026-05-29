@@ -8,19 +8,31 @@ trigger: always_on
 
 # Coding Conventions: Minimalist Functionalism
 
-**Objective:** Maximize maintainability and reduce cognitive load by adhering to a "Minimum Viable Code" philosophy.
+**Objective:** Maximize maintainability and reduce cognitive load by adhering to
+a "Minimum Viable Code" philosophy.
 
 ## 1. Dependency Minimalism
 
-- **Native-First:** Exhaust the capabilities of the Elm and Deno Standard Libraries before adding external packages.
-- **Audit Requirement:** Any new dependency must be justified by a significant reduction in custom complexity that cannot be achieved with <50 lines of native code.
-- **Security Exception:** Never roll your own security or cryptographic primitives (e.g., password hashing, JWT verification, encryption). For these, always use proven, peer-reviewed libraries (e.g., `noble-hashes` or Deno’s `WebCrypto` API) regardless of the 50-line rule.
+- **Native-First:** Exhaust the capabilities of the Elm and Deno Standard
+  Libraries before adding external packages.
+- **Audit Requirement:** Any new dependency must be justified by a significant
+  reduction in custom complexity that cannot be achieved with <50 lines of
+  native code.
+- **Security Exception:** Never roll your own security or cryptographic
+  primitives (e.g., password hashing, JWT verification, encryption). For these,
+  always use proven, peer-reviewed libraries (e.g., `noble-hashes` or Deno’s
+  `WebCrypto` API) regardless of the 50-line rule.
 
 ## 2. Structural Minimalism (LOC & Declarations)
 
-- **Point-Free Style:** In Elm and TypeScript, prefer function composition and pipelining over intermediate variable declarations.
-- **Function Density:** Avoid creating "wrapper" functions that merely pass arguments. If a task can be performed by a higher-order function (e.g., `List.map`, `Array.reduce`), do not declare a separate helper function.
-- **Variable Elimination:** Favor nested expressions or pipelining over temporary variable assignments unless the variable is strictly required for clarity in complex logic.
+- **Point-Free Style:** In Elm and TypeScript, prefer function composition and
+  pipelining over intermediate variable declarations.
+- **Function Density:** Avoid creating "wrapper" functions that merely pass
+  arguments. If a task can be performed by a higher-order function (e.g.,
+  `List.map`, `Array.reduce`), do not declare a separate helper function.
+- **Variable Elimination:** Favor nested expressions or pipelining over
+  temporary variable assignments unless the variable is strictly required for
+  clarity in complex logic.
 
 ## 3. Implementation Examples
 
@@ -67,5 +79,7 @@ const processData = (data: Raw[]) =>
 
 ## 4. Enforcement
 
-- Code reviews will flag unnecessary helper functions or intermediate variables that do not contribute to logic clarity.
-- Maintain high-density code to optimize for repository-wide analysis and maximize AI context window efficiency.
+- Code reviews will flag unnecessary helper functions or intermediate variables
+  that do not contribute to logic clarity.
+- Maintain high-density code to optimize for repository-wide analysis and
+  maximize AI context window efficiency.

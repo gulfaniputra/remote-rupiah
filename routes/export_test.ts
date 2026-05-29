@@ -13,7 +13,7 @@ const makeToken = async (userId: string) => {
       exp: Math.floor(Date.now() / 1000) + 3600,
     },
     SECRET,
-    "HS256"
+    "HS256",
   );
 };
 

@@ -28,7 +28,9 @@ const unauthorized = () =>
 
 const getJwtSecret = () => {
   try {
-    const secret = (Deno.env.get("JWT_SECRET") || Deno.env.get("SUPABASE_JWT_SECRET"))?.trim();
+    const secret =
+      (Deno.env.get("JWT_SECRET") || Deno.env.get("SUPABASE_JWT_SECRET"))
+        ?.trim();
     return secret || (isTesting ? TEST_JWT_SECRET : undefined);
   } catch {
     return isTesting ? TEST_JWT_SECRET : undefined;

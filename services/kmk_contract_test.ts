@@ -39,18 +39,24 @@ Deno.test("KMK API Contract Verification (Mock)", () => {
               kurs_tengah: "17146.00",
               kode_mata_uang: "USD",
               nama_mata_uang: "US Dollar",
-            }
-          ]
-        }
-      ]
-    }
+            },
+          ],
+        },
+      ],
+    },
   };
 
   const result = KmkApiResponseSchema.safeParse(mockResponse);
-  assertEquals(result.success, true, "Schema should match the mock response structure");
-  
+  assertEquals(
+    result.success,
+    true,
+    "Schema should match the mock response structure",
+  );
+
   if (result.success) {
-    const usd = result.data.data.result[0].kurs.find(k => k.kode_mata_uang === "USD");
+    const usd = result.data.data.result[0].kurs.find((k) =>
+      k.kode_mata_uang === "USD"
+    );
     assertEquals(usd?.kurs_tengah, "17146.00");
   }
 });

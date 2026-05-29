@@ -7,9 +7,9 @@ import sql from "../db/client.ts";
 
 /** Schema for a single currency entry in the API response */
 const KmkApiCurrencySchema = z.object({
-  kurs_beli: z.string(),    // Buy rate as string, e.g. "17146.00"
-  kurs_jual: z.string(),    // Sell rate
-  kurs_tengah: z.string(),  // Mid rate (used for PPh calculations)
+  kurs_beli: z.string(), // Buy rate as string, e.g. "17146.00"
+  kurs_jual: z.string(), // Sell rate
+  kurs_tengah: z.string(), // Mid rate (used for PPh calculations)
   kode_mata_uang: z.string().length(3), // "USD"
   nama_mata_uang: z.string(),
 });
@@ -19,9 +19,9 @@ const KmkApiResponseSchema = z.object({
   status: z.string(),
   data: z.object({
     result: z.array(z.object({
-      no_kmk: z.string(),        // Decree number e.g. "17/MK/EF.2/2026"
-      tgl_berlaku: z.string(),    // Start date YYYY-MM-DD
-      tgl_akhir: z.string(),      // End date YYYY-MM-DD
+      no_kmk: z.string(), // Decree number e.g. "17/MK/EF.2/2026"
+      tgl_berlaku: z.string(), // Start date YYYY-MM-DD
+      tgl_akhir: z.string(), // End date YYYY-MM-DD
       kurs: z.array(KmkApiCurrencySchema),
     })),
   }),
@@ -41,7 +41,7 @@ function getAccessToken(): string {
   if (!token) {
     throw new Error(
       "KMK_ACCESS_TOKEN env var is required. " +
-      "Register at https://fiskal.kemenkeu.go.id to obtain one."
+        "Register at https://fiskal.kemenkeu.go.id to obtain one.",
     );
   }
   return token;
@@ -81,7 +81,7 @@ export async function fetchKmkRates(
   if (!response.ok) {
     const body = await response.text();
     throw new Error(
-      `KMK API returned HTTP ${response.status}: ${body.slice(0, 500)}`
+      `KMK API returned HTTP ${response.status}: ${body.slice(0, 500)}`,
     );
   }
 
@@ -111,26 +111,30 @@ export async function upsertKmkRates(
 ): Promise<UpsertResult> {
   const result: UpsertResult = { inserted: 0, skipped: 0, errors: [] };
   const allowedCurrencies = typeof targetCurrencies === "string"
-    ? targetCurrencies.includes(",") 
-      ? targetCurrencies.split(",").map(s => s.trim())
+    ? targetCurrencies.includes(",")
+      ? targetCurrencies.split(",").map((s) => s.trim())
       : [targetCurrencies]
     : targetCurrencies;
 
   for (const period of apiResponse.data.result) {
     const currenciesToProcess = allowedCurrencies
-      ? period.kurs.filter((k: KmkApiCurrency) => allowedCurrencies.includes(k.kode_mata_uang))
+      ? period.kurs.filter((k: KmkApiCurrency) =>
+        allowedCurrencies.includes(k.kode_mata_uang)
+      )
       : period.kurs;
 
     if (currenciesToProcess.length === 0 && allowedCurrencies) {
       result.errors.push(
-        `No matches for [${allowedCurrencies.join(",")}] in KMK ${period.no_kmk}`
+        `No matches for [${
+          allowedCurrencies.join(",")
+        }] in KMK ${period.no_kmk}`,
       );
       continue;
     }
 
     for (const currencyEntry of currenciesToProcess) {
       const currency = currencyEntry.kode_mata_uang;
-      
+
       // Use strings directly for DB insertion to maintain precision (Postgres NUMERIC handles strings)
       // This complies with the "No Float" spirit by avoiding JS number type for financial coefficients.
       const buyRate = currencyEntry.kurs_beli;
@@ -140,7 +144,7 @@ export async function upsertKmkRates(
       // Basic sanity check to ensure these are actually numerical strings
       if (!/^\d+(\.\d+)?$/.test(midRate)) {
         result.errors.push(
-          `Invalid rate value for ${currency} in KMK ${period.no_kmk}: ${midRate}`
+          `Invalid rate value for ${currency} in KMK ${period.no_kmk}: ${midRate}`,
         );
         continue;
       }
@@ -170,7 +174,9 @@ export async function upsertKmkRates(
         }
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
-        result.errors.push(`DB error for ${currency} in KMK ${period.no_kmk}: ${message}`);
+        result.errors.push(
+          `DB error for ${currency} in KMK ${period.no_kmk}: ${message}`,
+        );
       }
     }
   }
@@ -220,12 +226,12 @@ export async function backfillKmkRates(
     const d = new Date();
     d.setDate(d.getDate() - (i * 7));
     const dateStr = d.toISOString().slice(0, 10).replace(/-/g, ""); // YYYYMMDD
-    
+
     try {
       // Fetch and sync the specified currencies for that week
-      const upsertResult = await syncKmkRates({ 
-        date: dateStr, 
-        currency: currencies.join(",") 
+      const upsertResult = await syncKmkRates({
+        date: dateStr,
+        currency: currencies.join(","),
       });
 
       finalResult.inserted += upsertResult.inserted;
@@ -233,7 +239,9 @@ export async function backfillKmkRates(
       finalResult.errors.push(...upsertResult.errors);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
-      finalResult.errors.push(`Backfill failed for week ${i} (${dateStr}): ${message}`);
+      finalResult.errors.push(
+        `Backfill failed for week ${i} (${dateStr}): ${message}`,
+      );
     }
   }
 
@@ -270,10 +278,15 @@ const kv = await (async () => {
   }
 })();
 
-export async function lookupKmkRate(transactionDate: string, currency = "USD"): Promise<KmkRate | null> {
-  const k = ["kmk_rates", currency, transactionDate], v = kv ? (await kv.get<KmkRate>(k)).value : null;
+export async function lookupKmkRate(
+  transactionDate: string,
+  currency = "USD",
+): Promise<KmkRate | null> {
+  const k = ["kmk_rates", currency, transactionDate],
+    v = kv ? (await kv.get<KmkRate>(k)).value : null;
   if (v) return v;
-  const rows = await sql`SELECT id, currency, kmk_number AS "kmkNumber", valid_from AS "validFrom", valid_until AS "validUntil", buy_rate_cents AS "buyRate", sell_rate_cents AS "sellRate", mid_rate_cents AS "midRate", fetched_at AS "fetchedAt" FROM kmk_rates WHERE currency = ${currency} AND ${transactionDate}::DATE BETWEEN valid_from AND valid_until ORDER BY valid_from DESC LIMIT 1`;
+  const rows =
+    await sql`SELECT id, currency, kmk_number AS "kmkNumber", valid_from AS "validFrom", valid_until AS "validUntil", buy_rate_cents AS "buyRate", sell_rate_cents AS "sellRate", mid_rate_cents AS "midRate", fetched_at AS "fetchedAt" FROM kmk_rates WHERE currency = ${currency} AND ${transactionDate}::DATE BETWEEN valid_from AND valid_until ORDER BY valid_from DESC LIMIT 1`;
   if (rows.length === 0) return null;
   if (kv) await kv.set(k, rows[0], { expireIn: 86_400_000 });
   return rows[0] as KmkRate;
@@ -314,5 +327,9 @@ export const parseKmkRate = (rateStr: string): bigint => {
   return BigInt(int + frac.padEnd(2, "0").substring(0, 2));
 };
 
-export const isRateSanityCheckOk = (newRate: bigint, lastRate: bigint): boolean =>
-  (newRate > lastRate ? newRate - lastRate : lastRate - newRate) <= lastRate / 10n;
+export const isRateSanityCheckOk = (
+  newRate: bigint,
+  lastRate: bigint,
+): boolean =>
+  (newRate > lastRate ? newRate - lastRate : lastRate - newRate) <=
+    lastRate / 10n;

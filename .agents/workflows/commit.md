@@ -4,28 +4,35 @@ description: Conventional Commit
 
 ---
 
-trigger: "on_git_commit"
-description: "Enforces project-specific Conventional Commits and pre-commit safety checks."
+trigger: "on_git_commit" description: "Enforces project-specific Conventional
+Commits and pre-commit safety checks."
 
 ---
 
 # Workflow: Remote-Rupiah Commit Protocol
 
-**Context:** Every commit must maintain the integrity of our financial compliance engine.
+**Context:** Every commit must maintain the integrity of our financial
+compliance engine.
 
 ## 1. Pre-Commit Validation
 
 Before generating a message, you MUST verify:
 
-- **The Float-Filter:** Scan the diff for the keyword `Float`. If `Float` is found in a file touching `TaxLogic`, `Transactions`, or `Money`, **REJECT** the commit.
-- **Safety Prompt:** If rejected, prompt the user: "This change introduces a Float in a financial context, violating the Zero-Float protocol. Should I refactor this to use the Money opaque type?"
-- **Integrity Check:** Run `deno lint` and `elm make`.
+- **The Float-Filter:** Scan the diff for the keyword `Float`. If `Float` is
+  found in a file touching `TaxLogic`, `Transactions`, or `Money`, **REJECT**
+  the commit.
+- **Safety Prompt:** If rejected, prompt the user: "This change introduces a
+  Float in a financial context, violating the Zero-Float protocol. Should I
+  refactor this to use the Money opaque type?"
 - **Float Check:**
   ```bash
   # Reject float math literals in compliance modules
   grep -E "(\/|\*)\s*[0-9]*\.[0-9]+" frontend/src/TaxLogic.elm && { echo "CRITICAL: Float math leak"; exit 1; }
   ```
-- **Logic Check:** If files in `frontend/src/TaxLogic.elm` or `services/` were modified, you MUST run `deno test` and `elm-test` and ensure they pass.
+- **Logic Check:** If files in `frontend/src/TaxLogic.elm` or `services/` were
+  modified, you MUST run `deno test` and `elm-test` and ensure they pass.
+- **Integrity Check:** Run `deno lint` and `elm make`.
+- **Code Format Check:** Run `deno fmt`.
 
 ## 2. Conventional Commit Schema
 
@@ -52,4 +59,5 @@ Generate the message using this strict format: `<type>(<scope>): <description>`
 1. **Analyze:** Examine the staged changes and identified affected scopes.
 2. **Audit:** Run all Pre-Commit Validation checks. Do not proceed if they fail.
 3. **Draft:** Generate a compliant message based on the audit results.
-4. **Final Approval:** Present the audit status and the proposed message to the developer.
+4. **Final Approval:** Present the audit status and the proposed message to the
+   developer.

@@ -1,8 +1,12 @@
 # remote-rupiah
 
-**remote-rupiah** is a high-precision, edge-native financial compliance engine designed for Indonesian remote professionals and digital nomads working with U.S. clients.
+**remote-rupiah** is a high-precision, edge-native financial compliance engine
+designed for Indonesian remote professionals and digital nomads working with
+U.S. clients.
 
-remote-rupiah automates the complexities of **UU HPP compliance**, **PPh 24 foreign tax credits**, and **KMK (Kurs Menteri Keuangan)** rate management while ensuring mathematical integrity through a strict **Zero-Float architecture**.
+remote-rupiah automates the complexities of **UU HPP compliance**, **PPh 24
+foreign tax credits**, and **KMK (Kurs Menteri Keuangan)** rate management while
+ensuring mathematical integrity through a strict **Zero-Float architecture**.
 
 ## Table of Contents
 
@@ -17,10 +21,15 @@ remote-rupiah automates the complexities of **UU HPP compliance**, **PPh 24 fore
 
 ## Strategic Value Proposition
 
-- **The Compliance Engine:** Deep implementation of Indonesian Tax Law, specifically optimized for **KLU 62010 (Software Development)** with automated NPPN (Norma) calculations.
-- **Architectural Integrity:** Leverages **Elm's** type system and **PostgreSQL 17 RLS** to provide mathematical certainty and cryptographic data isolation.
-- **Leak Detection:** Identifies hidden **monetary leaks** from FX spreads across platforms like Wise, Revolut, and PayPal.
-- **DJP Coretax Ready:** Generates compliant export formats for the Indonesian tax portal.
+- **The Compliance Engine:** Deep implementation of Indonesian Tax Law,
+  specifically optimized for **KLU 62010 (Software Development)** with automated
+  NPPN (Norma) calculations.
+- **Architectural Integrity:** Leverages **Elm's** type system and **PostgreSQL
+  17 RLS** to provide mathematical certainty and cryptographic data isolation.
+- **Leak Detection:** Identifies hidden **monetary leaks** from FX spreads
+  across platforms like Wise, Revolut, and PayPal.
+- **DJP Coretax Ready:** Generates compliant export formats for the Indonesian
+  tax portal.
 
 ## Production-Grade Tech Stack
 
@@ -35,15 +44,23 @@ remote-rupiah automates the complexities of **UU HPP compliance**, **PPh 24 fore
 
 We adhere to the **Zero-Float Protocol**:
 
-1.  **Strict Integer Math:** `Float` is banned for currency. All values are `BIGINT` (cents) in the DB and opaque `Money` types in Elm.
-2.  **UU HPP Compliance:** Automatic **50% NPPN** application for software development services.
-3.  **PPh 24 "Lesser of" Rule:** Prevents double-taxation on US-source income by calculating the specific credit cap: `(ForeignNet / TotalTaxable) * TotalTaxDue`.
-4.  **KMK Automation:** Automated weekly fetch of official **Kurs Menteri Keuangan** rates via Deno Cron, ensuring audit-compliant IDR conversion.
+1. **Strict Integer Math:** `Float` is banned for currency. All values are
+   `BIGINT` (cents) in the DB and opaque `Money` types in Elm.
+2. **UU HPP Compliance:** Automatic **50% NPPN** application for software
+   development services.
+3. **PPh 24 "Lesser of" Rule:** Prevents double-taxation on US-source income by
+   calculating the specific credit cap:
+   `(ForeignNet / TotalTaxable) * TotalTaxDue`.
+4. **KMK Automation:** Automated weekly fetch of official **Kurs Menteri
+   Keuangan** rates via Deno Cron, ensuring audit-compliant IDR conversion.
 
 ## Security & Multi-Tenancy
 
-- **Database-Level Isolation:** Tenant security is enforced via **PostgreSQL RLS**. App-level `WHERE user_id = ?` filters are redundant. The database itself prevents cross-tenant data leakage.
-- **Logic Isolation:** All tax formulas reside in `frontend/src/TaxLogic.elm` as pure, side-effect-free functions.Making them 100% testable and auditable.
+- **Database-Level Isolation:** Tenant security is enforced via **PostgreSQL
+  RLS**. App-level `WHERE user_id = ?` filters are redundant. The database
+  itself prevents cross-tenant data leakage.
+- **Logic Isolation:** All tax formulas reside in `frontend/src/TaxLogic.elm` as
+  pure, side-effect-free functions.Making them 100% testable and auditable.
 
 ## Architecture Flow
 
@@ -56,13 +73,17 @@ graph TD
 
 ## Agentic Governance
 
-This codebase is optimized for AI-assisted development using the `.agents/` framework:
+This codebase is optimized for AI-assisted development using the `.agents/`
+framework:
 
 - **Architecture Guards:** Linter-level enforcement of the Zero-Float policy.
-- **Compliance Guards:** Codified Indonesian tax logic that prevents non-compliant code from being committed.
-- **Automated Workflows:** Pre-commit protocols verifying financial precision and test coverage.
+- **Compliance Guards:** Codified Indonesian tax logic that prevents
+  non-compliant code from being committed.
+- **Automated Workflows:** Pre-commit protocols verifying financial precision
+  and test coverage.
 
-These are automated linting and static analysis rules codified to enforce compliance. They are not an LLM prompt dump.
+These are automated linting and static analysis rules codified to enforce
+compliance. They are not an LLM prompt dump.
 
 ## Local Setup & Development
 

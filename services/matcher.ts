@@ -2,7 +2,7 @@ export type FieldMatch = {
   source: string;
   target: string | null;
   confidence: number;
-  method: 'exact' | 'normalized' | 'fuzzy' | 'none';
+  method: "exact" | "normalized" | "fuzzy" | "none";
 };
 
 export type Suggestion = FieldMatch;
@@ -18,7 +18,7 @@ export function normalize(s: string): string {
   return s
     .toLowerCase()
     .trim()
-    .replace(/[_\-\s]+/g, '_');
+    .replace(/[_\-\s]+/g, "_");
 }
 
 /**
@@ -79,21 +79,33 @@ const THRESHOLD = 0.85;
 const AMBIGUITY_THRESHOLD = 0.1;
 
 export function match(source: string, targets: string[]): FieldMatch {
-  if (!source || targets.length === 0) return { source, target: null, confidence: 0, method: 'none' };
+  if (!source || targets.length === 0) {
+    return { source, target: null, confidence: 0, method: "none" };
+  }
 
-  if (targets.includes(source)) return { source, target: source, confidence: 1.0, method: 'exact' };
+  if (targets.includes(source)) {
+    return { source, target: source, confidence: 1.0, method: "exact" };
+  }
 
   const normMatch = targets.find((t) => normalize(t) === normalize(source));
-  if (normMatch) return { source, target: normMatch, confidence: 1.0, method: 'normalized' };
+  if (normMatch) {
+    return { source, target: normMatch, confidence: 1.0, method: "normalized" };
+  }
 
   const scores = targets
-    .map((target) => ({ target, score: Number(jaroWinkler(normalize(source), normalize(target)).toFixed(4)) }))
+    .map((target) => ({
+      target,
+      score: Number(
+        jaroWinkler(normalize(source), normalize(target)).toFixed(4),
+      ),
+    }))
     .sort((a, b) => b.score - a.score || a.target.localeCompare(b.target));
 
   const best = scores[0];
   const second = scores[1];
 
-  return !best || best.score < THRESHOLD || (second && best.score - second.score < AMBIGUITY_THRESHOLD)
-    ? { source, target: null, confidence: 0, method: 'none' }
-    : { source, target: best.target, confidence: best.score, method: 'fuzzy' };
+  return !best || best.score < THRESHOLD ||
+      (second && best.score - second.score < AMBIGUITY_THRESHOLD)
+    ? { source, target: null, confidence: 0, method: "none" }
+    : { source, target: best.target, confidence: best.score, method: "fuzzy" };
 }

@@ -1,6 +1,10 @@
-import { parse, CsvParseStream } from "@std/csv";
+import { CsvParseStream, parse } from "@std/csv";
 
-export interface CsvPreview { headers: string[]; rows: Record<string, string>[]; totalRowCount: number }
+export interface CsvPreview {
+  headers: string[];
+  rows: Record<string, string>[];
+  totalRowCount: number;
+}
 
 /**
  * Parses a CSV string and returns a preview.
@@ -13,7 +17,9 @@ export function parseCsvStream(csv: string, maxRows = 5): CsvPreview {
   const [headers, ...rows] = records;
   return {
     headers,
-    rows: rows.slice(0, maxRows).map((row) => Object.fromEntries(headers.map((h, j) => [h, row[j] ?? ""]))),
+    rows: rows.slice(0, maxRows).map((row) =>
+      Object.fromEntries(headers.map((h, j) => [h, row[j] ?? ""]))
+    ),
     totalRowCount: rows.length,
   };
 }
@@ -21,8 +27,13 @@ export function parseCsvStream(csv: string, maxRows = 5): CsvPreview {
 /**
  * Parses a CSV stream without loading the entire file into memory.
  */
-export async function parseCsvFromStream(stream: ReadableStream<Uint8Array>, maxRows = 5): Promise<CsvPreview> {
-  const lineStream = stream.pipeThrough(new TextDecoderStream()).pipeThrough(new CsvParseStream());
+export async function parseCsvFromStream(
+  stream: ReadableStream<Uint8Array>,
+  maxRows = 5,
+): Promise<CsvPreview> {
+  const lineStream = stream.pipeThrough(new TextDecoderStream()).pipeThrough(
+    new CsvParseStream(),
+  );
   const rows: Record<string, string>[] = [];
 
   let headers: string[] = [];
@@ -32,7 +43,9 @@ export async function parseCsvFromStream(stream: ReadableStream<Uint8Array>, max
     if (totalRowCount === 0) {
       headers = record;
     } else if (rows.length < maxRows) {
-      rows.push(Object.fromEntries(headers.map((h, i) => [h, record[i] ?? ""])));
+      rows.push(
+        Object.fromEntries(headers.map((h, i) => [h, record[i] ?? ""])),
+      );
     }
     totalRowCount++;
   }

@@ -1,5 +1,9 @@
 import { assertEquals, assertRejects } from "@std/assert";
-import { resolveKmkWeek, format, getKmkRateByDate } from "../services/kmk_resolver.ts";
+import {
+  format,
+  getKmkRateByDate,
+  resolveKmkWeek,
+} from "../services/kmk_resolver.ts";
 import { testMocks } from "../db/client.ts";
 import sql from "../db/client.ts";
 import { app } from "../main.ts";
@@ -10,7 +14,7 @@ async function seed(validFrom: string, rateStr: string) {
   testMocks.kmkRates.push({
     valid_from: validFrom,
     mid_rate_cents: centsStr,
-    currency: "USD"
+    currency: "USD",
   });
 
   try {
@@ -97,7 +101,10 @@ Deno.test("GET /kmk-rate invalid date", async () => {
 
 Deno.test("QA: Always Wednesday", () => {
   for (let i = 0; i < 365; i++) {
-    assertEquals(resolveKmkWeek(new Date(Date.UTC(2026, 0, i + 1))).getUTCDay(), 3);
+    assertEquals(
+      resolveKmkWeek(new Date(Date.UTC(2026, 0, i + 1))).getUTCDay(),
+      3,
+    );
   }
 });
 

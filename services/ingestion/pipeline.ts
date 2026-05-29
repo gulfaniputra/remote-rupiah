@@ -1,16 +1,26 @@
 import { CsvParseStream } from "@std/csv";
 
 /**
- * Deterministic CSV Ingestion Pipeline with a Field Mapping Layer.
+ * Deterministic Transaction Ingestion Pipeline with a Field Mapping Layer.
  * Follows strict pure-functional core constraints and minimalist code style.
  */
 
+export interface Transaction {
+  id: string;
+  date: Date;
+  amount: bigint;
+  currency: string;
+  actual_idr_received_cents?: bigint | null;
+  metadata?: Record<string, any> | null;
+}
+
 export type CanonicalField =
-  | "email"
-  | "firstName"
-  | "lastName"
-  | "signupDate"
-  | "status";
+  | "id"
+  | "date"
+  | "amount"
+  | "currency"
+  | "actual_idr_received_cents"
+  | "source";
 
 export type ErrorCode =
   | "REQUIRED_MISSING"
@@ -47,30 +57,24 @@ export interface MappingConfig {
   fields: readonly FieldMapping[];
 }
 
-export interface CanonicalRow {
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  signupDate?: Date;
-  status?: string;
-}
-
 export type Decoder<T> = (input: string) => Result<ErrorCode, T>;
 
 export interface Schema {
-  email: Decoder<string>;
-  firstName: Decoder<string>;
-  lastName: Decoder<string>;
-  signupDate: Decoder<Date>;
-  status: Decoder<string>;
+  id: Decoder<string>;
+  date: Decoder<Date>;
+  amount: Decoder<bigint>;
+  currency: Decoder<string>;
+  actual_idr_received_cents: Decoder<bigint>;
+  source: Decoder<string>;
 }
 
 const VALID_CANONICAL_FIELDS: CanonicalField[] = [
-  "email",
-  "firstName",
-  "lastName",
-  "signupDate",
-  "status",
+  "id",
+  "date",
+  "amount",
+  "currency",
+  "actual_idr_received_cents",
+  "source",
 ];
 
 /**
@@ -78,48 +82,74 @@ const VALID_CANONICAL_FIELDS: CanonicalField[] = [
  * No implicit coercion, explicit failures only.
  */
 export const schema: Schema = {
-  email: (input: string): Result<ErrorCode, string> =>
-    /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(input)
-      ? { ok: true, value: input }
-      : { ok: false, error: "INVALID_FORMAT" },
-
-  firstName: (input: string): Result<ErrorCode, string> =>
-    input === "" || input.trim() === ""
+  id: (input: string): Result<ErrorCode, string> =>
+    input.trim() === ""
       ? { ok: false, error: "INVALID_FORMAT" }
       : { ok: true, value: input },
 
-  lastName: (input: string): Result<ErrorCode, string> =>
-    input === "" || input.trim() === ""
-      ? { ok: false, error: "INVALID_FORMAT" }
-      : { ok: true, value: input },
-
-  signupDate: (input: string): Result<ErrorCode, Date> => {
-    if (!/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?(Z|[+-]\d{2}:?\d{2})?)?$/.test(input)) {
+  date: (input: string): Result<ErrorCode, Date> => {
+    if (
+      !/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?(Z|[+-]\d{2}:?\d{2})?)?$/
+        .test(input)
+    ) {
       return { ok: false, error: "INVALID_FORMAT" };
     }
     const date = new Date(input);
     if (isNaN(date.getTime())) {
       return { ok: false, error: "TRANSFORM_FAILED" };
     }
-    // Prevent JavaScript Date silent coercion of out-of-range calendar dates (e.g. Feb 31)
-    const [y, m, d] = input.split("T")[0].split("-").map((s) => parseInt(s, 10));
+    const [y, m, d] = input.split("T")[0].split("-").map((s) =>
+      parseInt(s, 10)
+    );
     const utcDate = new Date(Date.UTC(y, m - 1, d));
     return utcDate.getUTCFullYear() === y &&
-      utcDate.getUTCMonth() === m - 1 &&
-      utcDate.getUTCDate() === d
+        utcDate.getUTCMonth() === m - 1 &&
+        utcDate.getUTCDate() === d
       ? { ok: true, value: date }
       : { ok: false, error: "TRANSFORM_FAILED" };
   },
 
-  status: (input: string): Result<ErrorCode, string> =>
-    ["active", "inactive", "pending"].includes(input)
-      ? { ok: true, value: input }
+  amount: (input: string): Result<ErrorCode, bigint> => {
+    const clean = input.replace(/,/g, "");
+    if (!/^-?\d+(\.\d+)?$/.test(clean)) {
+      return { ok: false, error: "INVALID_FORMAT" };
+    }
+    try {
+      const [i, f = ""] = clean.split(".");
+      const centsStr = (i || "0") + f.padEnd(2, "0").slice(0, 2);
+      return { ok: true, value: BigInt(centsStr) };
+    } catch {
+      return { ok: false, error: "INVALID_FORMAT" };
+    }
+  },
+
+  currency: (input: string): Result<ErrorCode, string> =>
+    /^[a-zA-Z]{3}$/.test(input)
+      ? { ok: true, value: input.toUpperCase() }
       : { ok: false, error: "INVALID_FORMAT" },
+
+  actual_idr_received_cents: (input: string): Result<ErrorCode, bigint> => {
+    const clean = input.replace(/,/g, "");
+    if (!/^-?\d+(\.\d+)?$/.test(clean)) {
+      return { ok: false, error: "INVALID_FORMAT" };
+    }
+    try {
+      const [i, f = ""] = clean.split(".");
+      const centsStr = (i || "0") + f.padEnd(2, "0").slice(0, 2);
+      return { ok: true, value: BigInt(centsStr) };
+    } catch {
+      return { ok: false, error: "INVALID_FORMAT" };
+    }
+  },
+
+  source: (input: string): Result<ErrorCode, string> =>
+    input.trim() === ""
+      ? { ok: false, error: "INVALID_FORMAT" }
+      : { ok: true, value: input },
 };
 
 /**
  * Normalizes CSV headers.
- * Converts to lowercase, trims whitespace, and replaces spaces/dashes with underscores.
  */
 export const normalizeHeaders = (headers: string[]): string[] =>
   headers.map((h) =>
@@ -133,10 +163,9 @@ export const normalizeHeaders = (headers: string[]): string[] =>
 
 /**
  * Validates a MappingConfig object.
- * Enforces non-empty source, valid CanonicalField target, and unique target mapping.
  */
 export const validateMappingConfig = (
-  config: unknown
+  config: unknown,
 ): Result<string, MappingConfig> => {
   if (!config || typeof config !== "object") {
     return { ok: false, error: "Config must be an object" };
@@ -158,14 +187,23 @@ export const validateMappingConfig = (
     }
     const fm = f as Record<string, unknown>;
     if (typeof fm.source !== "string" || fm.source.trim() === "") {
-      return { ok: false, error: `Field at index ${i} has empty or non-string source` };
+      return {
+        ok: false,
+        error: `Field at index ${i} has empty or non-string source`,
+      };
     }
     const target = fm.target as CanonicalField;
     if (!VALID_CANONICAL_FIELDS.includes(target)) {
-      return { ok: false, error: `Field at index ${i} has invalid target: ${target}` };
+      return {
+        ok: false,
+        error: `Field at index ${i} has invalid target: ${target}`,
+      };
     }
     if (typeof fm.required !== "boolean") {
-      return { ok: false, error: `Field at index ${i} must have a boolean required field` };
+      return {
+        ok: false,
+        error: `Field at index ${i} must have a boolean required field`,
+      };
     }
     if (targets.has(target)) {
       return { ok: false, error: `Duplicate target field: ${target}` };
@@ -177,19 +215,31 @@ export const validateMappingConfig = (
 };
 
 /**
+ * Deterministic ID generation for Transaction (pure)
+ */
+export const generateDeterministicId = (t: Omit<Transaction, "id">): string => {
+  const str = `${
+    t.date instanceof Date ? t.date.toISOString() : t.date
+  }|${t.amount}|${t.currency.toUpperCase()}|${t.metadata?.source ?? ""}`;
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + (hash << 6) + (hash << 16) - hash;
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+};
+
+/**
  * Maps and decodes a single parsed CSV row.
- * Pure functional core logic with zero side-effects.
  */
 export const mapAndDecodeRow = (
   row: Record<string, string>,
   config: MappingConfig,
   rowNumber: number,
-  mode: "strict" | "lenient"
-): Result<RowError[], CanonicalRow> => {
+  mode: "strict" | "lenient",
+): Result<RowError[], Transaction> => {
   const errors: RowError[] = [];
   const sourceKeys = new Set(config.fields.map((f) => f.source));
 
-  // In strict mode, verify if there are any unknown fields in the CSV row
   if (mode === "strict") {
     for (const key of Object.keys(row)) {
       if (!sourceKeys.has(key)) {
@@ -203,7 +253,12 @@ export const mapAndDecodeRow = (
     }
   }
 
-  const decoded: CanonicalRow = {};
+  let id: string | undefined;
+  let date: Date | undefined;
+  let amount: bigint | undefined;
+  let currency: string | undefined;
+  let actualIdrReceivedCents: bigint | null = null;
+  let source: string | undefined;
 
   for (const field of config.fields) {
     const value = row[field.source];
@@ -220,25 +275,69 @@ export const mapAndDecodeRow = (
     } else {
       const decodeResult = schema[field.target](value);
       if (decodeResult.ok) {
-        if (field.target === "signupDate") {
-          decoded.signupDate = decodeResult.value as Date;
-        } else {
-          decoded[field.target] = decodeResult.value as string;
+        if (field.target === "id") id = decodeResult.value as string;
+        else if (field.target === "date") date = decodeResult.value as Date;
+        else if (field.target === "amount") {
+          amount = decodeResult.value as bigint;
+        } else if (field.target === "currency") {
+          currency = decodeResult.value as string;
+        } else if (field.target === "actual_idr_received_cents") {
+          actualIdrReceivedCents = decodeResult.value as bigint;
+        } else if (field.target === "source") {
+          source = decodeResult.value as string;
         }
       } else {
         errors.push({
           row: rowNumber,
           field: field.target,
-          code: decodeResult.error,
+          code: decodeResult.error as ErrorCode,
           input: value,
         });
       }
     }
   }
 
-  return errors.length > 0
-    ? { ok: false, error: errors }
-    : { ok: true, value: decoded };
+  if (errors.length > 0) {
+    return { ok: false, error: errors };
+  }
+
+  if (date === undefined || amount === undefined || currency === undefined) {
+    const missing: RowError[] = [];
+    if (date === undefined) {
+      missing.push({ row: rowNumber, field: "date", code: "REQUIRED_MISSING" });
+    }
+    if (amount === undefined) {
+      missing.push({
+        row: rowNumber,
+        field: "amount",
+        code: "REQUIRED_MISSING",
+      });
+    }
+    if (currency === undefined) {
+      missing.push({
+        row: rowNumber,
+        field: "currency",
+        code: "REQUIRED_MISSING",
+      });
+    }
+    return { ok: false, error: missing };
+  }
+
+  const txWithoutId = {
+    date,
+    amount,
+    currency,
+    actual_idr_received_cents: actualIdrReceivedCents,
+    metadata: source ? { ...row, source } : { ...row },
+  };
+
+  return {
+    ok: true,
+    value: {
+      id: id || generateDeterministicId(txWithoutId),
+      ...txWithoutId,
+    },
+  };
 };
 
 /**
@@ -254,10 +353,9 @@ export const stringToStream = (csv: string): ReadableStream<Uint8Array> =>
 
 /**
  * Pure generator to stream rows from a ReadableStream of bytes.
- * Ensures the memory footprint remains small during execution.
  */
 export async function* parseCsvStreamToRows(
-  stream: ReadableStream<Uint8Array>
+  stream: ReadableStream<Uint8Array>,
 ): AsyncGenerator<Record<string, string>, void, unknown> {
   const lineStream = stream
     .pipeThrough(new TextDecoderStream())
@@ -281,60 +379,46 @@ export async function* parseCsvStreamToRows(
 }
 
 /**
- * Persistence layer interface with hash-based and/or unique field idempotency.
+ * Persistence layer interface.
  */
 export interface PersistenceStore {
-  save(row: CanonicalRow): Promise<void>;
-  exists(row: CanonicalRow): Promise<boolean>;
+  save(row: Transaction): Promise<void>;
+  exists(row: Transaction): Promise<boolean>;
   clear(): Promise<void>;
-  getAll(): Promise<CanonicalRow[]>;
+  getAll(): Promise<Transaction[]>;
 }
 
 /**
  * An in-memory implementation of the PersistenceStore.
- * Guarantees idempotency by using a unique deterministic hash or unique field.
  */
 export class MemoryPersistenceStore implements PersistenceStore {
-  private rows = new Map<string, CanonicalRow>();
+  private rows = new Map<string, Transaction>();
 
-  private hashRow(row: CanonicalRow): string {
-    return row.email
-      ? `email:${row.email.trim().toLowerCase()}`
-      : [
-          row.firstName ?? "",
-          row.lastName ?? "",
-          row.signupDate?.toISOString() ?? "",
-          row.status ?? "",
-        ].join("|");
+  async save(row: Transaction): Promise<void> {
+    this.rows.set(row.id, row);
   }
 
-  async save(row: CanonicalRow): Promise<void> {
-    const key = this.hashRow(row);
-    this.rows.set(key, row);
-  }
-
-  async exists(row: CanonicalRow): Promise<boolean> {
-    return this.rows.has(this.hashRow(row));
+  async exists(row: Transaction): Promise<boolean> {
+    return this.rows.has(row.id);
   }
 
   async clear(): Promise<void> {
     this.rows.clear();
   }
 
-  async getAll(): Promise<CanonicalRow[]> {
+  async getAll(): Promise<Transaction[]> {
     return Array.from(this.rows.values());
   }
 }
 
 /**
  * Streaming CSV Ingestion Service.
- * Evaluates records row-by-row and persists only completely valid rows.
  */
 export const ingestCsvStream = async (
   stream: ReadableStream<Uint8Array>,
   config: MappingConfig,
   store: PersistenceStore,
-  mode: "strict" | "lenient"
+  mode: "strict" | "lenient",
 ): Promise<IngestionReport> => {
   const configVal = validateMappingConfig(config);
   if (!configVal.ok) {
@@ -366,4 +450,3 @@ export const ingestCsvStream = async (
 
   return report;
 };
-

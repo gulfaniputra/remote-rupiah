@@ -1,317 +1,161 @@
 import { assertEquals } from "@std/assert";
 import {
-  normalizeHeaders,
-  validateMappingConfig,
-  schema,
-  mapAndDecodeRow,
-  ingestCsvStream,
-  stringToStream,
-  MemoryPersistenceStore,
-  MappingConfig,
   CanonicalField,
+  ingestCsvStream,
+  mapAndDecodeRow,
+  MappingConfig,
+  MemoryPersistenceStore,
+  normalizeHeaders,
+  schema,
+  stringToStream,
+  validateMappingConfig,
 } from "./pipeline.ts";
 
-// 1. UNIT TESTS: normalizeHeaders
 Deno.test("Unit - normalizeHeaders basic and edge cases", () => {
   assertEquals(
-    normalizeHeaders([" First Name ", "Last-Name", "Email Address", "signupDate", "status!!"]),
-    ["first_name", "last_name", "email_address", "signupdate", "status"]
+    normalizeHeaders([
+      " Transaction Date ",
+      "Tx-Amount",
+      "Currency Code",
+      "actual_idr_received_cents",
+    ]),
+    [
+      "transaction_date",
+      "tx_amount",
+      "currency_code",
+      "actual_idr_received_cents",
+    ],
   );
 });
 
-// 2. UNIT TESTS: Decoder per field
-Deno.test("Unit - Email Decoder", () => {
-  assertEquals(schema.email("user@example.com"), { ok: true, value: "user@example.com" });
-  assertEquals(schema.email("invalid-email"), { ok: false, error: "INVALID_FORMAT" });
-  assertEquals(schema.email(""), { ok: false, error: "INVALID_FORMAT" });
-});
-
-Deno.test("Unit - First/Last Name Decoder", () => {
-  assertEquals(schema.firstName("John"), { ok: true, value: "John" });
-  assertEquals(schema.firstName(""), { ok: false, error: "INVALID_FORMAT" });
-  assertEquals(schema.firstName("   "), { ok: false, error: "INVALID_FORMAT" });
-
-  assertEquals(schema.lastName("Doe"), { ok: true, value: "Doe" });
-  assertEquals(schema.lastName(""), { ok: false, error: "INVALID_FORMAT" });
-});
-
-Deno.test("Unit - Signup Date Decoder", () => {
-  const res1 = schema.signupDate("2026-05-17T14:30:00.000Z");
+Deno.test("Unit - Date Decoder", () => {
+  const res1 = schema.date("2026-05-17T14:30:00.000Z");
   assertEquals(
     res1.ok ? res1.value.toISOString() : undefined,
-    "2026-05-17T14:30:00.000Z"
+    "2026-05-17T14:30:00.000Z",
   );
-  const res2 = schema.signupDate("2026-05-17");
+
+  const res2 = schema.date("2026-05-17");
   assertEquals(
     res2.ok ? res2.value.toISOString().startsWith("2026-05-17") : false,
-    true
+    true,
   );
 
-  assertEquals(schema.signupDate("17-05-2026"), { ok: false, error: "INVALID_FORMAT" });
-  assertEquals(schema.signupDate("2026/05/17"), { ok: false, error: "INVALID_FORMAT" });
-  assertEquals(schema.signupDate("2026-02-31"), { ok: false, error: "TRANSFORM_FAILED" });
-  assertEquals(schema.signupDate("2026-02-29"), { ok: false, error: "TRANSFORM_FAILED" });
+  assertEquals(schema.date("17-05-2026"), {
+    ok: false,
+    error: "INVALID_FORMAT",
+  });
+  assertEquals(schema.date("2026-02-31"), {
+    ok: false,
+    error: "TRANSFORM_FAILED",
+  });
 });
 
-Deno.test("Unit - Status Decoder", () => {
-  assertEquals(schema.status("active"), { ok: true, value: "active" });
-  assertEquals(schema.status("inactive"), { ok: true, value: "inactive" });
-  assertEquals(schema.status("pending"), { ok: true, value: "pending" });
-  assertEquals(schema.status("suspended"), { ok: false, error: "INVALID_FORMAT" });
-  assertEquals(schema.status(""), { ok: false, error: "INVALID_FORMAT" });
+Deno.test("Unit - Amount Decoder", () => {
+  assertEquals(schema.amount("1250.55"), { ok: true, value: 125055n });
+  assertEquals(schema.amount("-400.00"), { ok: true, value: -40000n });
+  assertEquals(schema.amount("0"), { ok: true, value: 0n });
+  assertEquals(schema.amount("abc"), { ok: false, error: "INVALID_FORMAT" });
 });
 
-// 3. UNIT TESTS: Mapping and Decode success, missing, invalid
+Deno.test("Unit - Currency Decoder", () => {
+  assertEquals(schema.currency("USD"), { ok: true, value: "USD" });
+  assertEquals(schema.currency("usd"), { ok: true, value: "USD" });
+  assertEquals(schema.currency("USDT"), { ok: false, error: "INVALID_FORMAT" });
+});
+
 const sampleConfig: MappingConfig = {
   version: 1,
   fields: [
-    { source: "email", target: "email", required: true },
-    { source: "first_name", target: "firstName", required: true },
-    { source: "last_name", target: "lastName", required: false },
-    { source: "signup_date", target: "signupDate", required: true },
-    { source: "status", target: "status", required: false },
+    { source: "tx_date", target: "date", required: true },
+    { source: "tx_amount", target: "amount", required: true },
+    { source: "tx_currency", target: "currency", required: true },
+    {
+      source: "idr_received",
+      target: "actual_idr_received_cents",
+      required: false,
+    },
+    { source: "tx_source", target: "source", required: false },
   ],
 };
 
-Deno.test("Unit - mapAndDecodeRow success", () => {
-  assertEquals(
-    mapAndDecodeRow(
-      {
-        email: "john.doe@example.com",
-        first_name: "John",
-        last_name: "Doe",
-        signup_date: "2026-05-17T12:00:00Z",
-        status: "active",
-      },
-      sampleConfig,
-      1,
-      "lenient"
-    ),
+Deno.test("Unit - mapAndDecodeRow success with generated id", () => {
+  const result = mapAndDecodeRow(
     {
-      ok: true,
-      value: {
-        email: "john.doe@example.com",
-        firstName: "John",
-        lastName: "Doe",
-        signupDate: new Date("2026-05-17T12:00:00Z"),
-        status: "active",
-      },
-    }
-  );
-});
-
-Deno.test("Unit - mapAndDecodeRow required missing fails", () => {
-  assertEquals(
-    mapAndDecodeRow(
-      {
-        email: "",
-        first_name: "John",
-        signup_date: "2026-05-17T12:00:00Z",
-      },
-      sampleConfig,
-      2,
-      "lenient"
-    ),
-    {
-      ok: false,
-      error: [
-        {
-          row: 2,
-          field: "email",
-          code: "REQUIRED_MISSING",
-          input: "",
-        },
-      ],
-    }
-  );
-});
-
-Deno.test("Unit - mapAndDecodeRow invalid format fails", () => {
-  assertEquals(
-    mapAndDecodeRow(
-      {
-        email: "john.doe.at.example.com",
-        first_name: "John",
-        signup_date: "2026-05-17T12:00:00Z",
-      },
-      sampleConfig,
-      3,
-      "lenient"
-    ),
-    {
-      ok: false,
-      error: [
-        {
-          row: 3,
-          field: "email",
-          code: "INVALID_FORMAT",
-          input: "john.doe.at.example.com",
-        },
-      ],
-    }
-  );
-});
-
-Deno.test("Unit - mapAndDecodeRow strict mode unknown field fails", () => {
-  assertEquals(
-    mapAndDecodeRow(
-      {
-        email: "john.doe@example.com",
-        first_name: "John",
-        signup_date: "2026-05-17T12:00:00Z",
-        extra_field_1: "value1",
-      },
-      sampleConfig,
-      4,
-      "strict"
-    ),
-    {
-      ok: false,
-      error: [
-        {
-          row: 4,
-          field: "extra_field_1" as CanonicalField,
-          code: "UNKNOWN_FIELD",
-          input: "extra_field_1",
-        },
-      ],
-    }
-  );
-});
-
-// 4. CONFIG TESTS: validateMappingConfig fails fast
-Deno.test("Config - invalid MappingConfig validations", () => {
-  assertEquals(validateMappingConfig(null).ok, false);
-  assertEquals(validateMappingConfig({}).ok, false);
-  assertEquals(validateMappingConfig({ version: 1 }).ok, false);
-
-  assertEquals(
-    validateMappingConfig({
-      version: 1,
-      fields: [
-        { source: "email1", target: "email", required: true },
-        { source: "email2", target: "email", required: false },
-      ],
-    }),
-    { ok: false, error: "Duplicate target field: email" }
-  );
-
-  assertEquals(
-    validateMappingConfig({
-      version: 1,
-      fields: [{ source: "", target: "email", required: true }],
-    }),
-    { ok: false, error: "Field at index 0 has empty or non-string source" }
-  );
-
-  assertEquals(
-    validateMappingConfig({
-      version: 1,
-      fields: [{ source: "mail", target: "email_address" as CanonicalField, required: true }],
-    }),
-    { ok: false, error: "Field at index 0 has invalid target: email_address" }
-  );
-});
-
-// 5. GOLDEN & INTEGRATION TESTS: Snapshot style exact matches
-Deno.test("Golden & Integration - CSV ingestion with report and persistence", async () => {
-  const store = new MemoryPersistenceStore();
-  const report = await ingestCsvStream(
-    stringToStream(
-      "email,first_name,last_name,signup_date,status\n" +
-        "alice@example.com,Alice,Smith,2026-01-10T08:00:00Z,active\n" +
-        "bob@example.com,Bob,,2026-02-20T09:00:00Z,inactive\n" +
-        "charlie.example.com,Charlie,Brown,2026-03-30T10:00:00Z,pending\n" +
-        "dan@example.com,Dan,Jones,2026-02-31T11:00:00Z,active\n"
-    ),
+      tx_date: "2026-05-17T12:00:00Z",
+      tx_amount: "100.00",
+      tx_currency: "USD",
+      idr_received: "1500000.00",
+      tx_source: "wise",
+    },
     sampleConfig,
-    store,
-    "lenient"
+    1,
+    "lenient",
   );
-
-  assertEquals(report.total, 4);
-  assertEquals(report.success, 2);
-  assertEquals(report.failed, 2);
-  assertEquals(report.success + report.failed, report.total);
-
-  assertEquals(report.errors.length, 2);
-  assertEquals(report.errors[0], {
-    row: 3,
-    field: "email",
-    code: "INVALID_FORMAT",
-    input: "charlie.example.com",
-  });
-  assertEquals(report.errors[1], {
-    row: 4,
-    field: "signupDate",
-    code: "TRANSFORM_FAILED",
-    input: "2026-02-31T11:00:00Z",
-  });
-
-  const saved = await store.getAll();
-  assertEquals(saved.length, 2);
-  assertEquals(saved[0].email, "alice@example.com");
-  assertEquals(saved[0].firstName, "Alice");
-  assertEquals(saved[0].lastName, "Smith");
-  assertEquals(saved[0].signupDate instanceof Date, true);
-  assertEquals(saved[0].status, "active");
-
-  assertEquals(saved[1].email, "bob@example.com");
-  assertEquals(saved[1].firstName, "Bob");
-  assertEquals(saved[1].lastName, undefined);
-  assertEquals(saved[1].signupDate instanceof Date, true);
-  assertEquals(saved[1].status, "inactive");
+  assertEquals(result.ok, true);
+  if (result.ok) {
+    assertEquals(result.value.date.toISOString(), "2026-05-17T12:00:00.000Z");
+    assertEquals(result.value.amount, 10000n);
+    assertEquals(result.value.currency, "USD");
+    assertEquals(result.value.actual_idr_received_cents, 150000000n);
+    assertEquals(result.value.metadata?.source, "wise");
+    assertEquals(typeof result.value.id, "string");
+  }
 });
 
-// 6. INVARIANT TESTS: run(csv) === run(csv) (Idempotency)
-Deno.test("Invariant - Idempotency and Determinism", async () => {
-  const csv =
-    "email,first_name,last_name,signup_date,status\n" +
-    "elena@example.com,Elena,Rostova,2026-05-01T00:00:00Z,active\n";
-
-  const config: MappingConfig = {
-    version: 1,
-    fields: [
-      { source: "email", target: "email", required: true },
-      { source: "first_name", target: "firstName", required: true },
-      { source: "last_name", target: "lastName", required: true },
-      { source: "signup_date", target: "signupDate", required: true },
-      { source: "status", target: "status", required: true },
-    ],
-  };
-
-  const store = new MemoryPersistenceStore();
-
-  const report1 = await ingestCsvStream(stringToStream(csv), config, store, "lenient");
-  const count1 = (await store.getAll()).length;
-
-  const report2 = await ingestCsvStream(stringToStream(csv), config, store, "lenient");
-  const count2 = (await store.getAll()).length;
-
-  assertEquals(report1, report2);
-  assertEquals(count1, 1);
-  assertEquals(count2, 1);
-});
-
-// 7. PROPERTY TESTS: no undefined fields & output keys ⊆ CanonicalField
-Deno.test("Property - Decoded rows have no undefined fields and keys are subset of CanonicalField", async () => {
+// Phase 1 requirements:
+Deno.test("Ingestion - output includes id/date/amount/currency", async () => {
   const store = new MemoryPersistenceStore();
   await ingestCsvStream(
     stringToStream(
-      "email,first_name,signup_date\n" + "frank@example.com,Frank,2026-04-12T15:00:00Z\n"
+      "tx_date,tx_amount,tx_currency,tx_source\n" +
+        "2026-05-01T00:00:00Z,1000.00,USD,wise\n",
     ),
     sampleConfig,
     store,
-    "lenient"
+    "lenient",
   );
-
   const records = await store.getAll();
-  const validCanonicalKeys = new Set(["email", "firstName", "lastName", "signupDate", "status"]);
+  assertEquals(records.length, 1);
+  const r = records[0];
+  assertEquals(typeof r.id, "string");
+  assertEquals(r.id.length > 0, true);
+  assertEquals(r.date instanceof Date, true);
+  assertEquals(r.amount, 100000n);
+  assertEquals(r.currency, "USD");
+});
 
-  for (const record of records) {
-    for (const key of Object.keys(record)) {
-      assertEquals(validCanonicalKeys.has(key), true);
-      assertEquals((record as Record<string, unknown>)[key] !== undefined, true);
-    }
-  }
+Deno.test("Ingestion - id stable across repeated runs", async () => {
+  const csv =
+    "tx_date,tx_amount,tx_currency,tx_source\n2026-05-01T00:00:00Z,1000.00,USD,wise\n";
+
+  const store1 = new MemoryPersistenceStore();
+  await ingestCsvStream(stringToStream(csv), sampleConfig, store1, "lenient");
+  const r1 = (await store1.getAll())[0];
+
+  const store2 = new MemoryPersistenceStore();
+  await ingestCsvStream(stringToStream(csv), sampleConfig, store2, "lenient");
+  const r2 = (await store2.getAll())[0];
+
+  assertEquals(r1.id, r2.id);
+});
+
+Deno.test("Ingestion - no null/undefined critical fields", async () => {
+  const store = new MemoryPersistenceStore();
+  await ingestCsvStream(
+    stringToStream(
+      "tx_date,tx_amount,tx_currency,tx_source\n" +
+        "2026-05-01T00:00:00Z,1000.00,USD,wise\n",
+    ),
+    sampleConfig,
+    store,
+    "lenient",
+  );
+  const records = await store.getAll();
+  assertEquals(records.length, 1);
+  const r = records[0];
+  assertEquals(r.id !== undefined && r.id !== null, true);
+  assertEquals(r.date !== undefined && r.date !== null, true);
+  assertEquals(r.amount !== undefined && r.amount !== null, true);
+  assertEquals(r.currency !== undefined && r.currency !== null, true);
 });

@@ -1,27 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Remote-Rupiah Dashboard</title>
-    <meta name="description" content="Personal finance and tax dashboard for Indonesian remote developers — NPPN, PPh 24, and FX tracking.">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta
+      name="description"
+      content="Personal finance and tax dashboard for Indonesian remote developers — NPPN, PPh 24, and FX tracking."
+    >
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    >
     <link rel="stylesheet" href="style.css">
-</head>
-<body>
+  </head>
+  <body>
     <div id="elm-app"></div>
     <script src="elm.js"></script>
     <script>
-        var app = Elm.Main.init({
-            node: document.getElementById('elm-app'),
-            flags: { token: localStorage.getItem('rr_token') || '' }
+      var app = Elm.Main.init({
+        node: document.getElementById("elm-app"),
+        flags: { token: localStorage.getItem("rr_token") || "" },
+      });
+      if (app.ports && app.ports.clearCredentials) {
+        app.ports.clearCredentials.subscribe(function () {
+          localStorage.removeItem("rr_token");
+          window.location.reload();
         });
-        if (app.ports && app.ports.clearCredentials) {
-            app.ports.clearCredentials.subscribe(function() {
-                localStorage.removeItem('rr_token');
-                window.location.reload();
-            });
-        }
+      }
     </script>
-</body>
+  </body>
 </html>

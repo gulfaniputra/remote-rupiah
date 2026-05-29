@@ -1,13 +1,8 @@
 import sql from "../../db/client.ts";
 import postgres from "postgres";
+import { Transaction } from "../ingestion/pipeline.ts";
 
 const isTesting = !Deno.mainModule.endsWith("main.ts");
-
-export type WealthEntry = {
-  source: string;
-  usd_cents: bigint;
-  idr_cents: bigint;
-};
 
 export type RealizedGain = {
   source: string;
@@ -78,21 +73,38 @@ export class StubFx implements FxProvider {
   }
 }
 
-export const runFIFO = (entries: WealthEntry[]): FIFOResult => {
+const validateTransaction = (t: any) => {
+  if (
+    !t ||
+    typeof t.id !== "string" ||
+    t.id.trim() === "" ||
+    !(t.date instanceof Date) ||
+    isNaN(t.date.getTime()) ||
+    typeof t.amount !== "bigint" ||
+    typeof t.currency !== "string" ||
+    t.currency.length !== 3
+  ) {
+    throw new Error("Invalid transaction: malformed shape");
+  }
+};
+
+export const runFIFO = (entries: Transaction[]): FIFOResult => {
   const openLots: Lot[] = [];
   const realized: RealizedGain[] = [];
 
   for (const entry of entries) {
-    if (entry.usd_cents > 0n) {
+    validateTransaction(entry);
+
+    if (entry.amount > 0n) {
       openLots.push({
-        source: entry.source,
-        amount_usd_cents: entry.usd_cents,
-        cost_basis_idr_cents: entry.idr_cents,
+        source: entry.metadata?.source ?? "unknown",
+        amount_usd_cents: entry.amount,
+        cost_basis_idr_cents: entry.actual_idr_received_cents ?? 0n,
       });
       continue;
     }
 
-    let remaining = -entry.usd_cents;
+    let remaining = -entry.amount;
 
     while (remaining > 0n) {
       const current = openLots[0];
@@ -105,7 +117,8 @@ export const runFIFO = (entries: WealthEntry[]): FIFOResult => {
         : current.amount_usd_cents;
       const costBasis = current.cost_basis_idr_cents * matched /
         current.amount_usd_cents;
-      const proceeds = entry.idr_cents * matched / (-entry.usd_cents);
+      const proceeds = (entry.actual_idr_received_cents ?? 0n) * matched /
+        (-entry.amount);
 
       realized.push({
         source: current.source,
@@ -160,17 +173,23 @@ export const computeUnrealized = (
   }));
 
 type TransactionRow = {
+  id: string;
+  date: string;
+  currency: string;
   amount_cents: string | bigint;
   actual_idr_received_cents: string | bigint | null;
-  source: string | null;
+  metadata: any;
 };
 
 export const getUnrealized = async (
-  entries: WealthEntry[],
+  entries: Transaction[],
   fx: FxProvider,
 ): Promise<UnrealizedReport> => {
   const fx_rate = await fx.getLatestUsdIdr();
-  const positions = computeUnrealized(aggregate(runFIFO(entries).openLots), fx_rate);
+  const positions = computeUnrealized(
+    aggregate(runFIFO(entries).openLots),
+    fx_rate,
+  );
   return {
     fx_rate,
     positions,
@@ -189,9 +208,12 @@ export const getUnrealizedForUser = (
     await tx`SELECT set_config('app.current_user_id', ${userId}, true)`;
     const rows = await tx`
       SELECT
+        id::text AS id,
+        date::text AS date,
+        currency,
         amount_cents::text AS amount_cents,
         actual_idr_received_cents::text AS actual_idr_received_cents,
-        metadata->>'source' AS source
+        metadata
       FROM transactions
       WHERE currency = 'USD'
       ORDER BY date ASC, id ASC
@@ -199,13 +221,18 @@ export const getUnrealizedForUser = (
 
     return getUnrealized(
       rows.flatMap((row) =>
-        BigInt(row.amount_cents) === 0n
-          ? []
-          : [{
-            source: row.source ?? "unknown",
-            usd_cents: BigInt(row.amount_cents),
-            idr_cents: BigInt(row.actual_idr_received_cents ?? 0),
-          }]
+        BigInt(row.amount_cents) === 0n ? [] : [{
+          id: row.id,
+          date: new Date(row.date),
+          amount: BigInt(row.amount_cents),
+          currency: row.currency,
+          actual_idr_received_cents: row.actual_idr_received_cents
+            ? BigInt(row.actual_idr_received_cents)
+            : 0n,
+          metadata: typeof row.metadata === "string"
+            ? JSON.parse(row.metadata)
+            : row.metadata,
+        }]
       ),
       fx,
     );

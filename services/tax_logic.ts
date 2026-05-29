@@ -1,6 +1,6 @@
 /**
  * DJP Compliance Logic (UU HPP 2026)
- * 
+ *
  * NOTE: These formulas MUST match frontend/src/TaxLogic.elm exactly.
  * All currency values are in cents (BIGINT).
  */
@@ -20,7 +20,7 @@ export function calculateNppn(brutoCents: bigint): bigint {
 export function calculatePPh24Cap(
   foreignNetIncomeCents: bigint,
   totalTaxableIncomeCents: bigint,
-  totalTaxDueCents: bigint
+  totalTaxDueCents: bigint,
 ): bigint {
   if (totalTaxableIncomeCents === 0n) return 0n;
   return (foreignNetIncomeCents * totalTaxDueCents) / totalTaxableIncomeCents;

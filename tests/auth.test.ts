@@ -5,45 +5,54 @@ import { assertEquals } from "@std/assert";
 const secret = "test-jwt-secret-12345678901234567890";
 
 const makeToken = (overrides = {}) =>
-  sign({
-    sub: "user-1",
-    iss: "your-app",
-    aud: "your-users",
-    exp: Math.floor(Date.now() / 1000) + 3600,
-    ...overrides,
-  }, secret, "HS256");
+  sign(
+    {
+      sub: "user-1",
+      iss: "your-app",
+      aud: "your-users",
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      ...overrides,
+    },
+    secret,
+    "HS256",
+  );
 
 Deno.test("401 no token", async () =>
-  assertEquals((await app.request("/api/tax-profile")).status, 401)
-);
+  assertEquals((await app.request("/api/tax-profile")).status, 401));
 
 Deno.test("401 invalid token", async () =>
   assertEquals(
-    (await app.request("/api/tax-profile", { headers: { Authorization: "Bearer invalid.token" } })).status,
-    401
-  )
-);
+    (await app.request("/api/tax-profile", {
+      headers: { Authorization: "Bearer invalid.token" },
+    })).status,
+    401,
+  ));
 
 Deno.test("200 valid token", async () => {
   const token = await makeToken();
-  const status = (await app.request("/api/tax-profile", { headers: { Authorization: `Bearer ${token}` } })).status;
-  if (status === 401) throw new Error("Expected 200 (or at least not 401 due to db mock)");
+  const status = (await app.request("/api/tax-profile", {
+    headers: { Authorization: `Bearer ${token}` },
+  })).status;
+  if (status === 401) {
+    throw new Error("Expected 200 (or at least not 401 due to db mock)");
+  }
 });
 
 Deno.test("401 expired token", async () =>
   assertEquals(
-    (await app.request("/api/tax-profile", { headers: { Authorization: `Bearer ${await makeToken({ exp: 0 })}` } })).status,
-    401
-  )
-);
+    (await app.request("/api/tax-profile", {
+      headers: { Authorization: `Bearer ${await makeToken({ exp: 0 })}` },
+    })).status,
+    401,
+  ));
 
 Deno.test("401 wrong issuer", async () =>
   assertEquals(
-    (await app.request("/api/tax-profile", { headers: { Authorization: `Bearer ${await makeToken({ iss: "bad" })}` } })).status,
-    401
-  )
-);
+    (await app.request("/api/tax-profile", {
+      headers: { Authorization: `Bearer ${await makeToken({ iss: "bad" })}` },
+    })).status,
+    401,
+  ));
 
 Deno.test("route requires auth", async () =>
-  assertEquals((await app.request("/api/tax-profile")).status, 401)
-);
+  assertEquals((await app.request("/api/tax-profile")).status, 401));

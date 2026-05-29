@@ -3,7 +3,11 @@ import { parseAmount } from "../math_utils.ts";
 export const mapWiseRow = (r: Record<string, string>) => {
   const d = new Date(r["Created on"]);
   if (isNaN(d.getTime())) {
-    throw new Error(`Invalid transaction date: "${r["Created on"]}" for Transfer ID ${r["Transfer ID"]}`);
+    throw new Error(
+      `Invalid transaction date: "${r["Created on"]}" for Transfer ID ${
+        r["Transfer ID"]
+      }`,
+    );
   }
   return {
     external_id: r["Transfer ID"],

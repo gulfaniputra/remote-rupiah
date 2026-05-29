@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import sql, { withAuth, UserId } from "../db/client.ts";
+import sql, { UserId, withAuth } from "../db/client.ts";
 import { lookupKmkRate } from "../services/kmk.ts";
 import { authMiddleware } from "../services/auth_middleware.ts";
 import postgres from "postgres";
@@ -72,7 +72,9 @@ app.post("/", zValidator("json", schema), async (c) => {
   return withAuth(
     uid,
     (tx, userId) =>
-      tx`INSERT INTO transactions ${tx(toSnake({ ...d, kmkRate: rate, userId }) as Record<string, unknown>)} RETURNING *`,
+      tx`INSERT INTO transactions ${
+        tx(toSnake({ ...d, kmkRate: rate, userId }) as Record<string, unknown>)
+      } RETURNING *`,
   ).then((res) =>
     c.json(
       {
@@ -82,39 +84,48 @@ app.post("/", zValidator("json", schema), async (c) => {
           : undefined,
       },
       201,
-    ),
+    )
   );
 });
 
-app.get("/:id", zValidator("param", z.object({ id: z.string().uuid() })), (c) => {
-  const uid = userId(c);
-  return withAuth(
-    uid,
-    (tx) => tx`SELECT * FROM transactions WHERE id = ${c.req.valid("param").id}`,
-  ).then((res) =>
-    res[0]
-      ? c.json({
+app.get(
+  "/:id",
+  zValidator("param", z.object({ id: z.string().uuid() })),
+  (c) => {
+    const uid = userId(c);
+    return withAuth(
+      uid,
+      (tx) =>
+        tx`SELECT * FROM transactions WHERE id = ${c.req.valid("param").id}`,
+    ).then((res) =>
+      res[0]
+        ? c.json({
           success: true,
           data: serializeTx(res[0] as Record<string, unknown>),
         })
-      : c.json({ error: "Not found" }, 404),
-  );
-});
+        : c.json({ error: "Not found" }, 404)
+    );
+  },
+);
 
 app.patch("/:id/verify", async (c) => {
   const id = c.req.param("id");
   const uid = userId(c);
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+  ) {
     return c.json({ error: "Invalid ID" }, 400);
   }
   const res = await withAuth(uid, (tx) =>
     tx`UPDATE transactions
           SET is_1042s_verified = TRUE, verified_at = NOW()
           WHERE id = ${id} AND is_1042s_verified = FALSE
-          RETURNING *`
-  );
+          RETURNING *`);
   return res[0]
-    ? c.json({ success: true, data: serializeTx(res[0] as Record<string, unknown>) })
+    ? c.json({
+      success: true,
+      data: serializeTx(res[0] as Record<string, unknown>),
+    })
     : c.json({ error: "Not found" }, 404);
 });
 

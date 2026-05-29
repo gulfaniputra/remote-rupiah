@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { Suggestion, match } from "../services/matcher.ts";
+import { match, Suggestion } from "../services/matcher.ts";
 import { authMiddleware } from "../services/auth_middleware.ts";
 import sql, { withAuth } from "../db/client.ts";
 import postgres from "postgres";
@@ -19,7 +19,7 @@ const suggestSchema = z.object({
 app.post("/suggest", zValidator("json", suggestSchema), async (c) => {
   const { sourceFields, targetFields } = c.req.valid("json");
   return c.json(
-    sourceFields.map((source) => match(source, [...new Set(targetFields)]))
+    sourceFields.map((source) => match(source, [...new Set(targetFields)])),
   );
 });
 
@@ -39,7 +39,8 @@ app.post("/confirm", zValidator("json", confirmSchema), async (c) => {
   try {
     await withAuth(uid, async (t, userId) => {
       await t`
-        INSERT INTO field_mappings ${t(
+        INSERT INTO field_mappings ${
+        t(
           c.req.valid("json").mappings.map((m) => ({
             user_id: userId,
             source_field: m.source,
@@ -47,8 +48,9 @@ app.post("/confirm", zValidator("json", confirmSchema), async (c) => {
             confidence: m.confidence,
             user_verified: m.userVerified,
             matcher_version: "1.0.0",
-          }))
-        )}
+          })),
+        )
+      }
         ON CONFLICT (user_id, source_field, target_field) 
         DO UPDATE SET 
           confidence = EXCLUDED.confidence,

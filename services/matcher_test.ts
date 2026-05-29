@@ -40,7 +40,7 @@ Deno.test("Matcher - no match (low confidence)", () => {
 Deno.test("Matcher - ambiguity case", () => {
   // If scores are too close (diff < 0.1), return none
   const source = "test";
-  const targets = ["test1", "test2"]; 
+  const targets = ["test1", "test2"];
   // Assume these will have very close fuzzy scores if not exact/normalized
   const result = match(source, targets);
   assertEquals(result.method, "none");
@@ -56,10 +56,10 @@ Deno.test("Matcher - empty input", () => {
 });
 
 Deno.test("Matcher - duplicate targets", () => {
-    // Should handle duplicates gracefully, though targets should ideally be unique
-    const source = "email";
-    const targets = ["email", "email"];
-    const result = match(source, targets);
-    assertEquals(result.method, "exact");
-    assertEquals(result.target, "email");
+  // Should handle duplicates gracefully, though targets should ideally be unique
+  const source = "email";
+  const targets = ["email", "email"];
+  const result = match(source, targets);
+  assertEquals(result.method, "exact");
+  assertEquals(result.target, "email");
 });
