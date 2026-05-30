@@ -9,6 +9,7 @@ import wealth from "./routes/wealth.ts";
 import fieldMapping from "./routes/field_mapping.ts";
 import { registerKmkCron } from "./services/kmk_cron.ts";
 import { getKmkRateByDate } from "./services/kmk_resolver.ts";
+import csv from "./backend/src/routes/csv.ts";
 
 export const app = new Hono();
 
@@ -43,6 +44,7 @@ app.route("/api/tax-profile", taxProfile);
 app.route("/api/forecast", forecast);
 app.route("/api/wealth", wealth);
 app.route("/api/v1/field-mapping", fieldMapping);
+app.route("/api/csv", csv);
 
 if (import.meta.main) {
   // Register Deno.cron jobs for automated KMK rate sync

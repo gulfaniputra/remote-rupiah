@@ -16,10 +16,14 @@ export const testMocks = {
   kmkRates: [] as Array<
     { valid_from: string; mid_rate_cents: string; currency: string }
   >,
+  csvMappingsByUser: {} as Record<string, unknown>,
   clear() {
     this.kmkRates = [];
+    this.csvMappingsByUser = {};
   },
 };
+
+let currentMockUserId = "";
 
 const mockSql = new Proxy(function () {}, {
   get(_, prop) {
@@ -43,6 +47,21 @@ const mockSql = new Proxy(function () {}, {
     const queryStr = Array.isArray(firstArg)
       ? firstArg.join("?")
       : String(firstArg || "");
+    const sqlValue = (index: number) => {
+      const value = argumentsList[index];
+      return typeof value === "string" ? value : String(value ?? "");
+    };
+    const extractUserId = () =>
+      argumentsList
+        .map((value) => (typeof value === "string" ? value : ""))
+        .find((value) => /^user-[A-Za-z0-9_-]+$/.test(value)) ?? "";
+    if (queryStr.includes("SET LOCAL app.current_user_id")) {
+      const userId = extractUserId() || sqlValue(1);
+      if (userId) {
+        currentMockUserId = userId;
+      }
+      return [];
+    }
     if (queryStr.includes("SELECT id, unspent_usd_cents")) {
       return [{ id: "mock-tx-id-123", unspent_usd_cents: "1000000" }];
     }
@@ -73,6 +92,24 @@ const mockSql = new Proxy(function () {}, {
         }
       }
       return [];
+    }
+    if (queryStr.includes("csv_mappings")) {
+      const currentUserId = extractUserId() || currentMockUserId || "default";
+      if (queryStr.includes("INSERT")) {
+        const rawMapping = argumentsList
+          .map((value) => (typeof value === "string" ? value : ""))
+          .find((value) => value.startsWith("{")) || sqlValue(2) || sqlValue(1);
+        testMocks.csvMappingsByUser[currentUserId] = rawMapping
+          ? JSON.parse(rawMapping)
+          : {};
+        return [{ id: "mock-mapping-id" }];
+      } else {
+        const mapping = testMocks.csvMappingsByUser[currentUserId];
+        if (mapping) {
+          return [{ mapping }];
+        }
+        return [];
+      }
     }
     return [];
   },
@@ -158,14 +195,14 @@ const sqlProxy = new Proxy(function () {}, {
   apply(_, __, argumentsList) {
     if (useMock) {
       return Reflect.apply(
-        mockSql as unknown as Function,
+        mockSql as unknown as (...args: unknown[]) => unknown,
         mockSql,
         argumentsList,
       );
     }
     try {
       const result = Reflect.apply(
-        realSql as unknown as Function,
+        realSql as unknown as (...args: unknown[]) => unknown,
         realSql,
         argumentsList,
       ) as {
@@ -206,11 +243,14 @@ export function requireUserId(id: string | undefined): UserId {
   return id as UserId;
 }
 
-export const withAuth = async <T>(
+export const withAuth = <T>(
   id: string | undefined,
   fn: (tx: postgres.TransactionSql, userId: UserId) => Promise<T>,
 ): Promise<T> => {
   const userId = requireUserId(id);
+  if (useMock) {
+    currentMockUserId = userId;
+  }
 
   return sqlProxy.begin(async (tx) => {
     await tx`SET LOCAL app.current_user_id = ${userId}`;
