@@ -1,7 +1,9 @@
-module View.Dashboard exposing (view)
+module View.Dashboard exposing (totalFxLeakage, totalUnrealized, view)
 
+import Data.FxEfficiency exposing (FxEfficiencyData)
 import Data.State exposing (State(..))
 import Data.Transaction exposing (Transaction)
+import Data.Unrealized exposing (Unrealized)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
@@ -26,15 +28,21 @@ view state kmkVal onVerify =
                     ]
                 ]
 
-        Ready { txs } ->
-            renderReady txs kmkVal onVerify
+        Ready { txs, unrealized, fxLeakage } ->
+            renderReady txs unrealized fxLeakage kmkVal onVerify
 
 
-renderReady : List Transaction -> Int -> (String -> msg) -> Html msg
-renderReady txs kmkVal onVerify =
+renderReady : List Transaction -> List Unrealized -> List FxEfficiencyData -> Int -> (String -> msg) -> Html msg
+renderReady txs unrealized fxLeakage kmkVal onVerify =
     let
         annIdr =
             txs |> List.map .amountCents |> List.foldl M.add M.zero |> (\m -> M.multiply m kmkVal)
+
+        unrealizedIdr =
+            totalUnrealized unrealized
+
+        fxLeakageIdr =
+            totalFxLeakage fxLeakage
 
         profit =
             T.calculateNppn annIdr
@@ -59,11 +67,11 @@ renderReady txs kmkVal onVerify =
     div []
         [ div [ class "cards-grid" ]
             [ summaryCard "YTD GROSS" annIdr "card-teal"
-            , summaryCard "FX LEAKAGE" M.zero "card-default"
+            , summaryCard "FX LEAKAGE" fxLeakageIdr "card-default"
             , summaryCard "PROJECTED TAX" (T.projectYearEndLiability profit 5) "card-default"
             , div [ class "card card-default" ]
                 [ h3 [] [ text "UNREALIZED FX GAIN/LOSS" ]
-                , div [ class "big-value font-mono text-secondary" ] [ text "Rp 0.00" ]
+                , div [ class "big-value font-mono text-secondary" ] [ text ("Rp " ++ M.toString unrealizedIdr) ]
                 ]
             ]
         , div [ class "middle-grid" ]
@@ -115,3 +123,21 @@ summaryCard label value cls =
         [ h3 [] [ text label ]
         , div [ class "big-value font-mono" ] [ text ("Rp " ++ M.toString value) ]
         ]
+
+
+totalUnrealized : List Unrealized -> M.Money M.IDR
+totalUnrealized =
+    List.foldl
+        (\position acc ->
+            M.add acc position.unrealizedIdrCents
+        )
+        M.zero
+
+
+totalFxLeakage : List FxEfficiencyData -> M.Money M.IDR
+totalFxLeakage =
+    List.foldl
+        (\position acc ->
+            M.add acc position.spreadCents
+        )
+        M.zero

@@ -73,16 +73,17 @@ export class StubFx implements FxProvider {
   }
 }
 
-const validateTransaction = (t: any) => {
+const validateTransaction = (t: unknown) => {
+  const transaction = t as Record<string, unknown>;
   if (
     !t ||
-    typeof t.id !== "string" ||
-    t.id.trim() === "" ||
-    !(t.date instanceof Date) ||
-    isNaN(t.date.getTime()) ||
-    typeof t.amount !== "bigint" ||
-    typeof t.currency !== "string" ||
-    t.currency.length !== 3
+    typeof transaction.id !== "string" ||
+    transaction.id.trim() === "" ||
+    !(transaction.date instanceof Date) ||
+    isNaN(transaction.date.getTime()) ||
+    typeof transaction.amount !== "bigint" ||
+    typeof transaction.currency !== "string" ||
+    transaction.currency.length !== 3
   ) {
     throw new Error("Invalid transaction: malformed shape");
   }
@@ -96,8 +97,9 @@ export const runFIFO = (entries: Transaction[]): FIFOResult => {
     validateTransaction(entry);
 
     if (entry.amount > 0n) {
+      const source = entry.metadata?.source;
       openLots.push({
-        source: entry.metadata?.source ?? "unknown",
+        source: typeof source === "string" ? source : "unknown",
         amount_usd_cents: entry.amount,
         cost_basis_idr_cents: entry.actual_idr_received_cents ?? 0n,
       });
@@ -178,7 +180,7 @@ type TransactionRow = {
   currency: string;
   amount_cents: string | bigint;
   actual_idr_received_cents: string | bigint | null;
-  metadata: any;
+  metadata: Record<string, unknown> | null;
 };
 
 export const getUnrealized = async (

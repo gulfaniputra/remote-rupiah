@@ -150,7 +150,7 @@ Deno.test("wealth rejects malformed transaction shape", () => {
   ];
 
   try {
-    runFIFO(malformed as any);
+    runFIFO(malformed as unknown as Parameters<typeof runFIFO>[0]);
     throw new Error("Should have thrown");
   } catch (e) {
     assertEquals((e as Error).message.includes("Invalid transaction"), true);

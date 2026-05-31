@@ -1,7 +1,9 @@
 module MainUpdateTest exposing (..)
 
+import Data.FxEfficiency as FxEfficiency
 import Data.State exposing (State(..))
 import Data.Transaction exposing (Transaction)
+import Data.Unrealized as Unrealized
 import Expect
 import Http
 import Main
@@ -32,6 +34,24 @@ loadingModel =
     }
 
 
+mockUnrealized : Unrealized.Unrealized
+mockUnrealized =
+    { source = "wise"
+    , unrealizedIdrCents = Money.fromCents 100000000
+    }
+
+
+mockFxEfficiency : FxEfficiency.FxEfficiencyData
+mockFxEfficiency =
+    { date = "2026-05-18"
+    , amountCents = Money.fromCents 100000
+    , kmkRate = Just "16120.00"
+    , actualIdrCents = Just (Money.fromCents 1610000000)
+    , spreadCents = Money.fromCents 5000000
+    , source = Just "wise"
+    }
+
+
 suite : Test
 suite =
     describe "Main.update"
@@ -40,7 +60,19 @@ suite =
                 Main.update (Main.GotTransactions (Ok [ mockTx ])) loadingModel
                     |> Tuple.first
                     |> .state
-                    |> Expect.equal (Ready { txs = [ mockTx ] })
+                    |> Expect.equal (Ready { txs = [ mockTx ], unrealized = [], fxLeakage = [] })
+        , test "GotUnrealized Ok transitions Loading → Ready" <|
+            \_ ->
+                Main.update (Main.GotUnrealized (Ok [ mockUnrealized ])) loadingModel
+                    |> Tuple.first
+                    |> .state
+                    |> Expect.equal (Ready { txs = [], unrealized = [ mockUnrealized ], fxLeakage = [] })
+        , test "GotFxEfficiency Ok transitions Loading → Ready" <|
+            \_ ->
+                Main.update (Main.GotFxEfficiency (Ok [ mockFxEfficiency ])) loadingModel
+                    |> Tuple.first
+                    |> .state
+                    |> Expect.equal (Ready { txs = [], unrealized = [], fxLeakage = [ mockFxEfficiency ] })
         , test "GotTransactions Err BadStatus 401 transitions to Failure with session expired" <|
             \_ ->
                 Main.update (Main.GotTransactions (Err (Http.BadStatus 401))) loadingModel
@@ -64,5 +96,5 @@ suite =
                 Main.update (Main.GotTransactions (Ok [])) loadingModel
                     |> Tuple.first
                     |> .state
-                    |> Expect.equal (Ready { txs = [] })
+                    |> Expect.equal (Ready { txs = [], unrealized = [], fxLeakage = [] })
         ]

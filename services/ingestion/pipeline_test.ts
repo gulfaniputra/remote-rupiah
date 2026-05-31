@@ -1,6 +1,5 @@
 import { assertEquals } from "@std/assert";
 import {
-  CanonicalField,
   ingestCsvStream,
   mapAndDecodeRow,
   MappingConfig,
@@ -8,7 +7,6 @@ import {
   normalizeHeaders,
   schema,
   stringToStream,
-  validateMappingConfig,
 } from "./pipeline.ts";
 
 Deno.test("Unit - normalizeHeaders basic and edge cases", () => {

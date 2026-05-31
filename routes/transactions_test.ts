@@ -1,4 +1,4 @@
-import { assertEquals, assertThrows } from "@std/assert";
+import { assertEquals } from "@std/assert";
 import { sign } from "hono/jwt";
 import app, { serializeTx, txOutputSchema } from "./transactions.ts";
 

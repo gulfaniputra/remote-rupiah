@@ -1,8 +1,10 @@
-module Api exposing (fetchTransactions, verify1042s, fetchCsvMapping, saveCsvMapping)
+module Api exposing (fetchCsvMapping, fetchFxEfficiency, fetchTransactions, fetchUnrealized, saveCsvMapping, verify1042s)
 
+import Data.FxEfficiency as FxEfficiency exposing (FxEfficiencyData)
 import Data.Transaction as Transaction exposing (Transaction)
-import Http
+import Data.Unrealized as Unrealized exposing (Unrealized)
 import Dict exposing (Dict)
+import Http
 import Json.Decode as JD
 import Json.Encode as JE
 
@@ -38,19 +40,21 @@ verify1042s token id toMsg =
 decodeMapping : JD.Decoder (Maybe (Dict String String))
 decodeMapping =
     JD.field "success" JD.bool
-        |> JD.andThen (\success ->
-            if success then
-                JD.field "mapping" (JD.nullable (JD.dict JD.string))
-            else
-                JD.fail "API returned success = false"
-        )
+        |> JD.andThen
+            (\success ->
+                if success then
+                    JD.field "mapping" (JD.nullable (JD.dict JD.string))
+
+                else
+                    JD.fail "API returned success = false"
+            )
 
 
 encodeMapping : Dict String String -> JE.Value
 encodeMapping mapping =
     mapping
         |> Dict.toList
-        |> List.map (\(k, v) -> (k, JE.string v))
+        |> List.map (\( k, v ) -> ( k, JE.string v ))
         |> JE.object
 
 
@@ -79,3 +83,28 @@ saveCsvMapping token mapping toMsg =
         , tracker = Nothing
         }
 
+
+fetchUnrealized : String -> (Result Http.Error (List Unrealized) -> msg) -> Cmd msg
+fetchUnrealized token toMsg =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
+        , url = "/api/wealth/unrealized"
+        , body = Http.emptyBody
+        , expect = Http.expectJson toMsg Unrealized.listDecoder
+        , timeout = Just 10000
+        , tracker = Nothing
+        }
+
+
+fetchFxEfficiency : String -> (Result Http.Error (List FxEfficiencyData) -> msg) -> Cmd msg
+fetchFxEfficiency token toMsg =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
+        , url = "/api/forecast/fx-efficiency"
+        , body = Http.emptyBody
+        , expect = Http.expectJson toMsg FxEfficiency.listDecoder
+        , timeout = Just 10000
+        , tracker = Nothing
+        }

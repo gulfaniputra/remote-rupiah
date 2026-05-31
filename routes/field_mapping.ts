@@ -1,10 +1,9 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { match, Suggestion } from "../services/matcher.ts";
+import { match } from "../services/matcher.ts";
 import { authMiddleware } from "../services/auth_middleware.ts";
-import sql, { withAuth } from "../db/client.ts";
-import postgres from "postgres";
+import { withAuth } from "../db/client.ts";
 
 const app = new Hono();
 
@@ -16,7 +15,7 @@ const suggestSchema = z.object({
   targetFields: z.array(z.string().min(1)).min(1).max(100),
 });
 
-app.post("/suggest", zValidator("json", suggestSchema), async (c) => {
+app.post("/suggest", zValidator("json", suggestSchema), (c) => {
   const { sourceFields, targetFields } = c.req.valid("json");
   return c.json(
     sourceFields.map((source) => match(source, [...new Set(targetFields)])),

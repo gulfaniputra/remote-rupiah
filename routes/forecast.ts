@@ -1,7 +1,6 @@
 import { Hono } from "hono";
-import sql, { withAuth } from "../db/client.ts";
+import { withAuth } from "../db/client.ts";
 import { authMiddleware } from "../services/auth_middleware.ts";
-import postgres from "postgres";
 
 const app = new Hono();
 

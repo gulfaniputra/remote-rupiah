@@ -11,7 +11,7 @@ export interface Transaction {
   amount: bigint;
   currency: string;
   actual_idr_received_cents?: bigint | null;
-  metadata?: Record<string, any> | null;
+  metadata?: Record<string, unknown> | null;
 }
 
 export type CanonicalField =
@@ -394,20 +394,22 @@ export interface PersistenceStore {
 export class MemoryPersistenceStore implements PersistenceStore {
   private rows = new Map<string, Transaction>();
 
-  async save(row: Transaction): Promise<void> {
+  save(row: Transaction): Promise<void> {
     this.rows.set(row.id, row);
+    return Promise.resolve();
   }
 
-  async exists(row: Transaction): Promise<boolean> {
-    return this.rows.has(row.id);
+  exists(row: Transaction): Promise<boolean> {
+    return Promise.resolve(this.rows.has(row.id));
   }
 
-  async clear(): Promise<void> {
+  clear(): Promise<void> {
     this.rows.clear();
+    return Promise.resolve();
   }
 
-  async getAll(): Promise<Transaction[]> {
-    return Array.from(this.rows.values());
+  getAll(): Promise<Transaction[]> {
+    return Promise.resolve(Array.from(this.rows.values()));
   }
 }
 

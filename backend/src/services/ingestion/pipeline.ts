@@ -15,15 +15,16 @@ export interface PersistenceStore {
 /**
  * Strict type-guard to validate CanonicalTx at boundary, ensuring no implicit coercion.
  */
-export function isCanonicalTx(tx: any): tx is CanonicalTx {
+export function isCanonicalTx(tx: unknown): tx is CanonicalTx {
+  const candidate = tx as Record<string, unknown>;
   return (
     tx !== null &&
     typeof tx === "object" &&
-    tx.date instanceof Date &&
-    !isNaN(tx.date.getTime()) &&
-    typeof tx.amount === "bigint" &&
-    typeof tx.currency === "string" &&
-    /^[A-Z]{3}$/.test(tx.currency)
+    candidate.date instanceof Date &&
+    !isNaN(candidate.date.getTime()) &&
+    typeof candidate.amount === "bigint" &&
+    typeof candidate.currency === "string" &&
+    /^[A-Z]{3}$/.test(candidate.currency)
   );
 }
 

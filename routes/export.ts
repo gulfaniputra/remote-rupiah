@@ -1,10 +1,9 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import sql, { withAuth } from "../db/client.ts";
+import { withAuth } from "../db/client.ts";
 import { authMiddleware } from "../services/auth_middleware.ts";
 import { calculateNppn } from "../services/tax_logic.ts";
-import postgres from "postgres";
 
 const app = new Hono();
 app.use("*", authMiddleware);

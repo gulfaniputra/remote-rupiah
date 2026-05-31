@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import sql, { requireUserId, UserId, withAuth } from "../db/client.ts";
+import { requireUserId, withAuth } from "../db/client.ts";
 import postgres from "postgres";
 
 import { authMiddleware } from "../services/auth_middleware.ts";
@@ -28,7 +28,7 @@ export type TaxProfileInput = {
   kluCode: string;
 };
 
-export async function createTaxProfile(
+export function createTaxProfile(
   userId: string | undefined,
   data: TaxProfileInput,
   tx?: postgres.TransactionSql,

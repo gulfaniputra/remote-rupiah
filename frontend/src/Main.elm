@@ -3,12 +3,12 @@ port module Main exposing (Model, Msg(..), defaultCompliance, epoch, main, updat
 import Api
 import Browser
 import Data.Compliance as C
+import Data.FxEfficiency exposing (FxEfficiencyData)
 import Data.State exposing (State(..))
 import Data.Transaction exposing (Transaction)
+import Data.Unrealized exposing (Unrealized)
 import Html exposing (..)
 import Http
-import Json.Decode as JD
-import Money as M
 import Time
 import View.Dashboard as D
 
@@ -49,6 +49,8 @@ epoch =
 
 type Msg
     = GotTransactions (Result Http.Error (List Transaction))
+    | GotUnrealized (Result Http.Error (List Unrealized))
+    | GotFxEfficiency (Result Http.Error (List FxEfficiencyData))
     | Verify String
     | Verified String (Result Http.Error ())
     | Tick Time.Posix
@@ -63,7 +65,49 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg m =
     case msg of
         GotTransactions (Ok txs) ->
-            ( { m | state = Ready { txs = txs } }, Cmd.none )
+            ( { m
+                | state =
+                    case m.state of
+                        Ready data ->
+                            Ready { data | txs = txs }
+
+                        _ ->
+                            Ready { txs = txs, unrealized = [], fxLeakage = [] }
+              }
+            , Cmd.none
+            )
+
+        GotUnrealized (Ok unrealized) ->
+            ( { m
+                | state =
+                    case m.state of
+                        Ready data ->
+                            Ready { data | unrealized = unrealized }
+
+                        _ ->
+                            Ready { txs = [], unrealized = unrealized, fxLeakage = [] }
+              }
+            , Cmd.none
+            )
+
+        GotFxEfficiency (Ok fxLeakage) ->
+            ( { m
+                | state =
+                    case m.state of
+                        Ready data ->
+                            Ready { data | fxLeakage = fxLeakage }
+
+                        _ ->
+                            Ready { txs = [], unrealized = [], fxLeakage = fxLeakage }
+              }
+            , Cmd.none
+            )
+
+        GotUnrealized (Err _) ->
+            ( m, Cmd.none )
+
+        GotFxEfficiency (Err _) ->
+            ( m, Cmd.none )
 
         GotTransactions (Err err) ->
             case err of
@@ -139,7 +183,14 @@ view m =
 main : Program { token : String } Model Msg
 main =
     Browser.element
-        { init = \flags -> ( { state = Loading, compliance = defaultCompliance, t = epoch, kmk = Nothing, token = flags.token }, Cmd.none )
+        { init =
+            \flags ->
+                ( { state = Loading, compliance = defaultCompliance, t = epoch, kmk = Nothing, token = flags.token }
+                , Cmd.batch
+                    [ Api.fetchUnrealized flags.token GotUnrealized
+                    , Api.fetchFxEfficiency flags.token GotFxEfficiency
+                    ]
+                )
         , update = update
         , view = view
         , subscriptions = \_ -> Sub.none

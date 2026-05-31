@@ -1,10 +1,8 @@
 import { Hono } from "hono";
 import { parseCsvFromStream, parseCsvStream } from "../services/csv_parser.ts";
 import { authMiddleware } from "../services/auth_middleware.ts";
-import sql, { withAuth } from "../db/client.ts";
+import { withAuth } from "../db/client.ts";
 import { parseAmount } from "../services/math_utils.ts";
-
-import postgres from "postgres";
 
 const app = new Hono();
 const MAX_PAYLOAD_BYTES = 5 * 1024 * 1024;
