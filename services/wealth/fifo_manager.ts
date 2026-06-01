@@ -1,12 +1,12 @@
 import sql from "../../db/client.ts";
 import postgres from "postgres";
 
-export const recordConversion = (u: string, c: bigint) =>
+export const recordConversion = (u: string, s: string, c: bigint) =>
   sql.begin(async (tx: postgres.TransactionSql<Record<string, unknown>>) => {
     await tx`SELECT set_config('app.current_user_id', ${u}, true)`;
     let rem = c;
     const rows =
-      await tx`SELECT id, unspent_usd_cents FROM transactions WHERE unspent_usd_cents > 0 ORDER BY date ASC, id ASC FOR UPDATE`;
+      await tx`SELECT id, unspent_usd_cents FROM transactions WHERE unspent_usd_cents > 0 AND metadata->>'source' = ${s} ORDER BY date ASC, id ASC FOR UPDATE`;
     for (const r of rows) {
       if (rem <= 0n) break;
       const uns = BigInt(r.unspent_usd_cents as string),

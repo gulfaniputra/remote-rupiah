@@ -1,8 +1,13 @@
 module DashboardViewTest exposing (suite)
 
+import Data.FxEfficiency as FxEfficiency
+import Data.State exposing (State(..))
 import Expect
+import Html.Attributes as Attr
 import Money
 import Test exposing (Test, describe, test)
+import Test.Html.Query as Query
+import Test.Html.Selector as Selector
 import View.Dashboard as Dashboard
 
 
@@ -35,4 +40,15 @@ suite =
                 Dashboard.totalFxLeakage []
                     |> Money.toCents
                     |> Expect.equal 0
+        , test "renders wallet source selector" <|
+            \_ ->
+                Dashboard.view
+                    (Ready { txs = [], unrealized = [], fxLeakage = [] })
+                    0
+                    "wise"
+                    (\_ -> ())
+                    (\_ -> ())
+                    |> Query.fromHtml
+                    |> Query.find [ Selector.tag "select" ]
+                    |> Query.has [ Selector.attribute (Attr.value "wise") ]
         ]

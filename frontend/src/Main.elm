@@ -30,6 +30,7 @@ type alias Model =
     , t : Time.Posix
     , kmk : Maybe String
     , token : String
+    , source : String
     }
 
 
@@ -51,6 +52,7 @@ type Msg
     = GotTransactions (Result Http.Error (List Transaction))
     | GotUnrealized (Result Http.Error (List Unrealized))
     | GotFxEfficiency (Result Http.Error (List FxEfficiencyData))
+    | UpdateSource String
     | Verify String
     | Verified String (Result Http.Error ())
     | Tick Time.Posix
@@ -108,6 +110,9 @@ update msg m =
 
         GotFxEfficiency (Err _) ->
             ( m, Cmd.none )
+
+        UpdateSource source ->
+            ( { m | source = source }, Cmd.none )
 
         GotTransactions (Err err) ->
             case err of
@@ -173,6 +178,8 @@ view m =
             D.view
                 (Ready data)
                 (m.kmk |> Maybe.andThen String.toInt |> Maybe.withDefault 0)
+                m.source
+                UpdateSource
                 Verify
 
 
@@ -185,7 +192,7 @@ main =
     Browser.element
         { init =
             \flags ->
-                ( { state = Loading, compliance = defaultCompliance, t = epoch, kmk = Nothing, token = flags.token }
+                ( { state = Loading, compliance = defaultCompliance, t = epoch, kmk = Nothing, token = flags.token, source = "wise" }
                 , Cmd.batch
                     [ Api.fetchUnrealized flags.token GotUnrealized
                     , Api.fetchFxEfficiency flags.token GotFxEfficiency

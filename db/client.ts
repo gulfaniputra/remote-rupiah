@@ -63,6 +63,18 @@ const mockSql = new Proxy(function () {}, {
       return [];
     }
     if (queryStr.includes("SELECT id, unspent_usd_cents")) {
+      const source = argumentsList
+        .map((value) => (typeof value === "string" ? value : ""))
+        .find((value) => value === "wise" || value === "bank") || "";
+      if (queryStr.includes("metadata->>'source'")) {
+        if (source === "bank") {
+          return [{ id: "mock-tx-id-456", unspent_usd_cents: "250000" }];
+        }
+        if (source === "wise") {
+          return [{ id: "mock-tx-id-123", unspent_usd_cents: "1000000" }];
+        }
+        return [];
+      }
       return [{ id: "mock-tx-id-123", unspent_usd_cents: "1000000" }];
     }
     if (

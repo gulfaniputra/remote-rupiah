@@ -31,6 +31,7 @@ loadingModel =
     , t = Main.epoch
     , kmk = Nothing
     , token = "test-token"
+    , source = "wise"
     }
 
 
@@ -97,4 +98,10 @@ suite =
                     |> Tuple.first
                     |> .state
                     |> Expect.equal (Ready { txs = [], unrealized = [], fxLeakage = [] })
+        , test "UpdateSource mutates selected source" <|
+            \_ ->
+                Main.update (Main.UpdateSource "bank") loadingModel
+                    |> Tuple.first
+                    |> .source
+                    |> Expect.equal "bank"
         ]

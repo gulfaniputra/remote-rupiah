@@ -20,11 +20,13 @@ app.post(
       amountUsdCents: z.union([z.number().int(), z.bigint()]).transform((v) =>
         BigInt(v)
       ),
+      source: z.string().min(1),
     }),
   ),
   (c) =>
     recordConversion(
       (c.get as (key: string) => unknown)("userId") as string,
+      c.req.valid("json").source,
       c.req.valid("json").amountUsdCents,
     )
       .then(() =>

@@ -6,13 +6,13 @@ import Data.Transaction exposing (Transaction)
 import Data.Unrealized exposing (Unrealized)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, onInput)
 import Money as M
 import TaxLogic as T
 
 
-view : State -> Int -> (String -> msg) -> Html msg
-view state kmkVal onVerify =
+view : State -> Int -> String -> (String -> msg) -> (String -> msg) -> Html msg
+view state kmkVal source onSourceChange onVerify =
     case state of
         Loading ->
             div [ class "cards-grid" ]
@@ -29,11 +29,11 @@ view state kmkVal onVerify =
                 ]
 
         Ready { txs, unrealized, fxLeakage } ->
-            renderReady txs unrealized fxLeakage kmkVal onVerify
+            renderReady txs unrealized fxLeakage kmkVal source onSourceChange onVerify
 
 
-renderReady : List Transaction -> List Unrealized -> List FxEfficiencyData -> Int -> (String -> msg) -> Html msg
-renderReady txs unrealized fxLeakage kmkVal onVerify =
+renderReady : List Transaction -> List Unrealized -> List FxEfficiencyData -> Int -> String -> (String -> msg) -> (String -> msg) -> Html msg
+renderReady txs unrealized fxLeakage kmkVal source onSourceChange onVerify =
     let
         annIdr =
             txs |> List.map .amountCents |> List.foldl M.add M.zero |> (\m -> M.multiply m kmkVal)
@@ -66,6 +66,19 @@ renderReady txs unrealized fxLeakage kmkVal onVerify =
     in
     div []
         [ div [ class "cards-grid" ]
+            [ div [ class "card card-default" ]
+                [ h3 [] [ text "WALLET SOURCE" ]
+                , select
+                    [ class "select"
+                    , value source
+                    , onInput onSourceChange
+                    ]
+                    [ option [ value "wise" ] [ text "wise" ]
+                    , option [ value "bank" ] [ text "bank" ]
+                    ]
+                ]
+            ]
+        , div [ class "cards-grid" ]
             [ summaryCard "YTD GROSS" annIdr "card-teal"
             , summaryCard "FX LEAKAGE" fxLeakageIdr "card-default"
             , summaryCard "PROJECTED TAX" (T.projectYearEndLiability profit 5) "card-default"

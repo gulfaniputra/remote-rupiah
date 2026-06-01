@@ -36,11 +36,24 @@ Deno.test("Wealth Route - POST /convert returns success when conversion records 
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ amountUsdCents: 50000 }),
+    body: JSON.stringify({ amountUsdCents: 50000, source: "wise" }),
   });
   assertEquals(res.status, 200);
   const body = await res.json();
   assertEquals(body.success, true);
+});
+
+Deno.test("Wealth Route - POST /convert rejects requests missing source", async () => {
+  const token = await makeToken("test-user-id-123");
+  const res = await app.request("http://localhost/convert", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ amountUsdCents: 50000 }),
+  });
+  assertEquals(res.status, 400);
 });
 
 Deno.test("api shape", async () => {
