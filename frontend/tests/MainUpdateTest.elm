@@ -32,6 +32,7 @@ loadingModel =
     , kmk = Nothing
     , token = "test-token"
     , source = "wise"
+    , uploadStatus = ""
     }
 
 

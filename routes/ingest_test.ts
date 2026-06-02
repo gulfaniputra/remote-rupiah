@@ -21,33 +21,47 @@ Deno.test("Ingest Route - Unauthorized when Authorization header is missing", as
   const res = await app.request("http://localhost/", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": "text/csv",
     },
-    body: JSON.stringify({ rows: [] }),
+    body:
+      "Transfer ID,Created on,Source Currency,Amount Sent,Amount Received\n",
   });
   assertEquals(res.status, 401);
 });
 
-Deno.test("Ingest Route - POST / returns success and ingests valid rows (mocked database)", async () => {
+Deno.test("Ingest Route - POST / ingests Wise CSV rows", async () => {
   const token = await makeToken("test-user-id-123");
   const res = await app.request("http://localhost/", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
+      "Content-Type": "text/csv",
     },
-    body: JSON.stringify({
-      rows: [
-        {
-          date: "2026-05-18",
-          currency: "USD",
-          amountStr: "$1,234.56",
-          source_tx_id: "tx-12345",
-        },
-      ],
-    }),
+    body:
+      "Transfer ID,Created on,Source Currency,Amount Sent,Amount Received\n" +
+      "tx-12345,2026-05-18T00:00:00Z,USD,1000.00,14000000.00\n",
   });
   assertEquals(res.status, 200);
   const body = await res.json();
-  assertEquals(body, { success: true, ingested: 1 });
+  assertEquals(body.success, true);
+  assertEquals(body.ingested, 1);
+  assertEquals(body.platform, "wise");
+});
+
+Deno.test("Ingest Route - POST / ingests PayPal CSV rows", async () => {
+  const token = await makeToken("test-user-id-123");
+  const res = await app.request("http://localhost/", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "text/csv",
+    },
+    body:
+      "Date,Currency,Amount,Transaction ID\n2026-05-18T00:00:00Z,USD,42.25,pp-123\n",
+  });
+  assertEquals(res.status, 200);
+  const body = await res.json();
+  assertEquals(body.success, true);
+  assertEquals(body.ingested, 1);
+  assertEquals(body.platform, "paypal");
 });

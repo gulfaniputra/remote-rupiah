@@ -46,8 +46,10 @@ suite =
                     (Ready { txs = [], unrealized = [], fxLeakage = [] })
                     0
                     "wise"
+                    ""
                     (\_ -> ())
                     (\_ -> ())
+                    ()
                     |> Query.fromHtml
                     |> Query.find [ Selector.tag "select" ]
                     |> Query.has [ Selector.attribute (Attr.value "wise") ]

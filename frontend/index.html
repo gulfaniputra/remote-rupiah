@@ -22,10 +22,65 @@
         node: document.getElementById("elm-app"),
         flags: { token: localStorage.getItem("rr_token") || "" },
       });
+
       if (app.ports && app.ports.clearCredentials) {
         app.ports.clearCredentials.subscribe(function () {
           localStorage.removeItem("rr_token");
           window.location.reload();
+        });
+      }
+
+      var fileInput = document.createElement("input");
+      fileInput.type = "file";
+      fileInput.accept = ".csv,text/csv";
+      fileInput.style.display = "none";
+      document.body.appendChild(fileInput);
+
+      if (app.ports && app.ports.requestCsvFile) {
+        app.ports.requestCsvFile.subscribe(function () {
+          fileInput.value = "";
+          fileInput.click();
+        });
+      }
+
+      fileInput.addEventListener("change", function () {
+        var file = fileInput.files && fileInput.files[0];
+        if (!file || !app.ports || !app.ports.csvSelected) return;
+
+        file.text().then(function (csv) {
+          app.ports.csvSelected.send(csv);
+        });
+      });
+
+      if (app.ports && app.ports.uploadCsv) {
+        app.ports.uploadCsv.subscribe(function (payload) {
+          fetch("/api/v1/ingest", {
+            method: "POST",
+            headers: {
+              "Authorization": "Bearer " + payload.token,
+              "Content-Type": "text/csv",
+            },
+            body: payload.csv,
+          })
+            .then(function (response) {
+              return response.text().then(function (text) {
+                if (app.ports && app.ports.uploadCompleted) {
+                  app.ports.uploadCompleted.send(
+                    response.ok
+                      ? "Upload complete"
+                      : "Upload failed: " + response.status + " " +
+                        text,
+                  );
+                }
+              });
+            })
+            .catch(function (err) {
+              if (app.ports && app.ports.uploadCompleted) {
+                app.ports.uploadCompleted.send(
+                  "Upload failed: " + err.message,
+                );
+              }
+            });
         });
       }
     </script>

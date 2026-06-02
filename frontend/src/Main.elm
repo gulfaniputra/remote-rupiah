@@ -18,6 +18,10 @@ import View.Dashboard as D
 
 
 port clearCredentials : () -> Cmd msg
+port requestCsvFile : () -> Cmd msg
+port uploadCsv : { token : String, csv : String } -> Cmd msg
+port csvSelected : (String -> msg) -> Sub msg
+port uploadCompleted : (String -> msg) -> Sub msg
 
 
 
@@ -31,6 +35,7 @@ type alias Model =
     , kmk : Maybe String
     , token : String
     , source : String
+    , uploadStatus : String
     }
 
 
@@ -57,6 +62,9 @@ type Msg
     | Verified String (Result Http.Error ())
     | Tick Time.Posix
     | GotKmk (Result Http.Error String)
+    | RequestCsvUpload
+    | FileSelected String
+    | FileUploadCompleted String
 
 
 
@@ -113,6 +121,15 @@ update msg m =
 
         UpdateSource source ->
             ( { m | source = source }, Cmd.none )
+
+        RequestCsvUpload ->
+            ( m, requestCsvFile () )
+
+        FileSelected csv ->
+            ( { m | uploadStatus = "Uploading CSV..." }, uploadCsv { token = m.token, csv = csv } )
+
+        FileUploadCompleted result ->
+            ( { m | uploadStatus = result }, Cmd.none )
 
         GotTransactions (Err err) ->
             case err of
@@ -179,8 +196,10 @@ view m =
                 (Ready data)
                 (m.kmk |> Maybe.andThen String.toInt |> Maybe.withDefault 0)
                 m.source
+                m.uploadStatus
                 UpdateSource
                 Verify
+                RequestCsvUpload
 
 
 
@@ -192,7 +211,7 @@ main =
     Browser.element
         { init =
             \flags ->
-                ( { state = Loading, compliance = defaultCompliance, t = epoch, kmk = Nothing, token = flags.token, source = "wise" }
+                ( { state = Loading, compliance = defaultCompliance, t = epoch, kmk = Nothing, token = flags.token, source = "wise", uploadStatus = "" }
                 , Cmd.batch
                     [ Api.fetchUnrealized flags.token GotUnrealized
                     , Api.fetchFxEfficiency flags.token GotFxEfficiency
@@ -200,5 +219,10 @@ main =
                 )
         , update = update
         , view = view
-        , subscriptions = \_ -> Sub.none
+        , subscriptions =
+            \_ ->
+                Sub.batch
+                    [ csvSelected FileSelected
+                    , uploadCompleted FileUploadCompleted
+                    ]
         }

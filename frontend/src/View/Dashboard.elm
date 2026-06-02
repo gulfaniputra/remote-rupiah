@@ -11,8 +11,8 @@ import Money as M
 import TaxLogic as T
 
 
-view : State -> Int -> String -> (String -> msg) -> (String -> msg) -> Html msg
-view state kmkVal source onSourceChange onVerify =
+view : State -> Int -> String -> String -> (String -> msg) -> (String -> msg) -> msg -> Html msg
+view state kmkVal source uploadStatus onSourceChange onVerify onUpload =
     case state of
         Loading ->
             div [ class "cards-grid" ]
@@ -29,11 +29,11 @@ view state kmkVal source onSourceChange onVerify =
                 ]
 
         Ready { txs, unrealized, fxLeakage } ->
-            renderReady txs unrealized fxLeakage kmkVal source onSourceChange onVerify
+            renderReady txs unrealized fxLeakage kmkVal source uploadStatus onSourceChange onVerify onUpload
 
 
-renderReady : List Transaction -> List Unrealized -> List FxEfficiencyData -> Int -> String -> (String -> msg) -> (String -> msg) -> Html msg
-renderReady txs unrealized fxLeakage kmkVal source onSourceChange onVerify =
+renderReady : List Transaction -> List Unrealized -> List FxEfficiencyData -> Int -> String -> String -> (String -> msg) -> (String -> msg) -> msg -> Html msg
+renderReady txs unrealized fxLeakage kmkVal source uploadStatus onSourceChange onVerify onUpload =
     let
         annIdr =
             txs |> List.map .amountCents |> List.foldl M.add M.zero |> (\m -> M.multiply m kmkVal)
@@ -76,6 +76,12 @@ renderReady txs unrealized fxLeakage kmkVal source onSourceChange onVerify =
                     [ option [ value "wise" ] [ text "wise" ]
                     , option [ value "bank" ] [ text "bank" ]
                     ]
+                , button [ class "btn btn-outline mt-3", onClick onUpload ] [ text "Upload CSV" ]
+                , if String.isEmpty uploadStatus then
+                    text ""
+
+                  else
+                    div [ class "text-secondary mt-2 font-mono" ] [ text uploadStatus ]
                 ]
             ]
         , div [ class "cards-grid" ]
