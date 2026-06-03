@@ -3,6 +3,7 @@ import { authMiddleware } from "../services/auth_middleware.ts";
 import { withAuth } from "../db/client.ts";
 import { CsvParseStream } from "@std/csv";
 import { detectPlatform } from "../services/ingestion/detector.ts";
+import { mapCsvRow } from "../backend/src/services/ingestion/csv-mapper.ts";
 import { mapRevolutRow } from "../services/ingestion/revolut_parser.ts";
 import { mapPaypalRow } from "../services/ingestion/paypal_parser.ts";
 import { mapWiseRow } from "../services/ingestion/wise_parser.ts";
@@ -14,6 +15,11 @@ const ROW_MAPPERS = {
   revolut: mapRevolutRow,
   paypal: mapPaypalRow,
 } as const;
+type CanonicalRow = {
+  date: Date;
+  amount: bigint;
+  currency: string;
+};
 
 app.use("*", authMiddleware);
 
@@ -75,6 +81,16 @@ const parseCsvRows = async (body: string) => {
   return { headers, rows };
 };
 
+const loadCsvMapping = (uid: string) =>
+  withAuth(uid, async (tx) => {
+    const rows = await tx`
+      SELECT mapping FROM csv_mappings
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+    return rows[0]?.mapping ?? null;
+  });
+
 const serialize = (row: {
   external_id: string;
   date: string;
@@ -91,6 +107,19 @@ const serialize = (row: {
   metadata: row.metadata,
 });
 
+const serializeCanonical = (
+  row: CanonicalRow,
+  sourceTxId: string,
+  metadata: Record<string, unknown>,
+) => ({
+  source_tx_id: sourceTxId,
+  date: row.date.toISOString().split("T")[0],
+  currency: row.currency,
+  amount_cents: row.amount,
+  actual_idr_received_cents: null,
+  metadata,
+});
+
 app.post("/", async (c) => {
   try {
     const ct = c.req.header("Content-Type") || "";
@@ -104,14 +133,44 @@ app.post("/", async (c) => {
 
     const { headers, rows } = await parseCsvRows(body);
     const platform = detectPlatform(headers.join(","));
-    if (!platform) {
-      return c.json({ success: false, error: "Unsupported CSV format" }, 400);
-    }
-
     const uid = (c.get as (key: string) => unknown)("userId") as string;
     if (!uid) return c.json({ success: false, error: "Unauthorized" }, 401);
 
-    const mapped = rows.map((row) => serialize(ROW_MAPPERS[platform](row)));
+    const mapped = platform
+      ? rows.map((row) => serialize(ROW_MAPPERS[platform](row)))
+      : await (async () => {
+        const mapping = await loadCsvMapping(uid);
+        if (!mapping) {
+          return null;
+        }
+
+        const decoded = rows.map((row) => mapCsvRow(row, mapping, headers));
+        const failed = decoded.find((result) => !result.ok);
+        if (failed && !failed.ok) {
+          return c.json(
+            { success: false, error: failed.error, headers },
+            400,
+          );
+        }
+
+        return decoded.map((result, index) =>
+          serializeCanonical(
+            (result as { ok: true; value: CanonicalRow }).value,
+            String(index),
+            rows[index] ?? {},
+          )
+        );
+      })();
+
+    if (mapped === null) {
+      return c.json(
+        { success: false, error: "CSV mapping required", headers },
+        428,
+      );
+    }
+    if (!Array.isArray(mapped)) {
+      return mapped;
+    }
 
     if (mapped.length > 0) {
       await withAuth(uid, async (tx, userId) => {

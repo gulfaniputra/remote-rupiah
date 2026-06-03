@@ -1,4 +1,4 @@
-module Api exposing (fetchCsvMapping, fetchFxEfficiency, fetchTransactions, fetchUnrealized, saveCsvMapping, verify1042s)
+module Api exposing (TransactionFetchError(..), decodeMappingRequired, fetchCsvMapping, fetchFxEfficiency, fetchTransactions, fetchUnrealized, saveCsvMapping, verify1042s)
 
 import Data.FxEfficiency as FxEfficiency exposing (FxEfficiencyData)
 import Data.Transaction as Transaction exposing (Transaction)
@@ -9,7 +9,18 @@ import Json.Decode as JD
 import Json.Encode as JE
 
 
-fetchTransactions : String -> (Result Http.Error (List Transaction) -> msg) -> Cmd msg
+type TransactionFetchError
+    = SessionExpired
+    | MappingRequired (List String)
+    | NetworkError
+
+
+decodeMappingRequired : JD.Decoder (List String)
+decodeMappingRequired =
+    JD.field "headers" (JD.list JD.string)
+
+
+fetchTransactions : String -> (Result TransactionFetchError (List Transaction) -> msg) -> Cmd msg
 fetchTransactions token toMsg =
     Http.request
         { method = "GET"
@@ -17,8 +28,30 @@ fetchTransactions token toMsg =
         , url = "/api/transactions"
         , body = Http.emptyBody
         , expect =
-            Http.expectJson toMsg
-                (JD.field "transactions" (JD.list Transaction.decoder))
+            Http.expectStringResponse toMsg
+                (\response ->
+                    case response of
+                        Http.GoodStatus_ _ body ->
+                            JD.decodeString
+                                (JD.field "transactions" (JD.list Transaction.decoder))
+                                body
+                                |> Result.mapError (\_ -> NetworkError)
+
+                        Http.BadStatus_ metadata body ->
+                            if metadata.statusCode == 428 then
+                                JD.decodeString decodeMappingRequired body
+                                    |> Result.mapError (\_ -> NetworkError)
+                                    |> Result.andThen (\headers -> Err (MappingRequired headers))
+
+                            else if metadata.statusCode == 401 then
+                                Err SessionExpired
+
+                            else
+                                Err NetworkError
+
+                        _ ->
+                            Err NetworkError
+                )
         , timeout = Just 15000
         , tracker = Nothing
         }

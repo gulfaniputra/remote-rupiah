@@ -1,11 +1,11 @@
 module MainUpdateTest exposing (..)
 
+import Api
 import Data.FxEfficiency as FxEfficiency
 import Data.State exposing (State(..))
 import Data.Transaction exposing (Transaction)
 import Data.Unrealized as Unrealized
 import Expect
-import Http
 import Main
 import Money
 import Test exposing (..)
@@ -77,22 +77,28 @@ suite =
                     |> Expect.equal (Ready { txs = [], unrealized = [], fxLeakage = [ mockFxEfficiency ] })
         , test "GotTransactions Err BadStatus 401 transitions to Failure with session expired" <|
             \_ ->
-                Main.update (Main.GotTransactions (Err (Http.BadStatus 401))) loadingModel
+                Main.update (Main.GotTransactions (Err Api.SessionExpired)) loadingModel
                     |> Tuple.first
                     |> .state
                     |> Expect.equal (Failure "Session expired")
         , test "GotTransactions Err BadStatus 401 clears token" <|
             \_ ->
-                Main.update (Main.GotTransactions (Err (Http.BadStatus 401))) loadingModel
+                Main.update (Main.GotTransactions (Err Api.SessionExpired)) loadingModel
                     |> Tuple.first
                     |> .token
                     |> Expect.equal ""
         , test "GotTransactions Err NetworkError transitions to Failure" <|
             \_ ->
-                Main.update (Main.GotTransactions (Err Http.NetworkError)) loadingModel
+                Main.update (Main.GotTransactions (Err Api.NetworkError)) loadingModel
                     |> Tuple.first
                     |> .state
                     |> Expect.equal (Failure "Network error")
+        , test "GotTransactions Err MappingRequired transitions to MappingRequired" <|
+            \_ ->
+                Main.update (Main.GotTransactions (Err (Api.MappingRequired [ "Posted At", "Net Amount", "Currency" ]))) loadingModel
+                    |> Tuple.first
+                    |> .state
+                    |> Expect.equal (MappingRequired { headers = [ "Posted At", "Net Amount", "Currency" ] })
         , test "Ready state with empty list" <|
             \_ ->
                 Main.update (Main.GotTransactions (Ok [])) loadingModel

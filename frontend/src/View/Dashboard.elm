@@ -28,6 +28,14 @@ view state kmkVal source uploadStatus onSourceChange onVerify onUpload =
                     ]
                 ]
 
+        MappingRequired _ ->
+            div [ class "cards-grid" ]
+                [ div [ class "card card-default" ]
+                    [ h3 [] [ text "CSV mapping required" ]
+                    , div [ class "text-secondary" ] [ text "Open the CSV mapper to continue." ]
+                    ]
+                ]
+
         Ready { txs, unrealized, fxLeakage } ->
             renderReady txs unrealized fxLeakage kmkVal source uploadStatus onSourceChange onVerify onUpload
 

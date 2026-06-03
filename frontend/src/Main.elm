@@ -2,6 +2,7 @@ port module Main exposing (Model, Msg(..), defaultCompliance, epoch, main, updat
 
 import Api
 import Browser
+import CsvMapper
 import Data.Compliance as C
 import Data.FxEfficiency exposing (FxEfficiencyData)
 import Data.State exposing (State(..))
@@ -18,9 +19,17 @@ import View.Dashboard as D
 
 
 port clearCredentials : () -> Cmd msg
+
+
 port requestCsvFile : () -> Cmd msg
+
+
 port uploadCsv : { token : String, csv : String } -> Cmd msg
+
+
 port csvSelected : (String -> msg) -> Sub msg
+
+
 port uploadCompleted : (String -> msg) -> Sub msg
 
 
@@ -54,9 +63,10 @@ epoch =
 
 
 type Msg
-    = GotTransactions (Result Http.Error (List Transaction))
+    = GotTransactions (Result Api.TransactionFetchError (List Transaction))
     | GotUnrealized (Result Http.Error (List Unrealized))
     | GotFxEfficiency (Result Http.Error (List FxEfficiencyData))
+    | CsvMapperMsg CsvMapper.Msg
     | UpdateSource String
     | Verify String
     | Verified String (Result Http.Error ())
@@ -133,8 +143,11 @@ update msg m =
 
         GotTransactions (Err err) ->
             case err of
-                Http.BadStatus 401 ->
+                Api.SessionExpired ->
                     ( { m | token = "", state = Failure "Session expired" }, clearCredentials () )
+
+                Api.MappingRequired headers ->
+                    ( { m | state = MappingRequired { headers = headers } }, Cmd.none )
 
                 _ ->
                     ( { m | state = Failure "Network error" }, Cmd.none )
@@ -177,6 +190,9 @@ update msg m =
         GotKmk _ ->
             ( m, Cmd.none )
 
+        CsvMapperMsg _ ->
+            ( m, Cmd.none )
+
 
 
 -- VIEW (Placeholder)
@@ -190,6 +206,9 @@ view m =
 
         Failure err ->
             div [] [ text ("Error: " ++ err) ]
+
+        MappingRequired { headers } ->
+            Html.map CsvMapperMsg (CsvMapper.view (CsvMapper.init m.token headers))
 
         Ready data ->
             D.view

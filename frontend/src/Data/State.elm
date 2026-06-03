@@ -8,4 +8,5 @@ import Data.Unrealized exposing (Unrealized)
 type State
     = Loading
     | Failure String
+    | MappingRequired { headers : List String }
     | Ready { txs : List Transaction, unrealized : List Unrealized, fxLeakage : List FxEfficiencyData }
