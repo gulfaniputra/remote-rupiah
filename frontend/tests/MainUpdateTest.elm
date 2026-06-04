@@ -3,6 +3,7 @@ module MainUpdateTest exposing (..)
 import Api
 import Data.FxEfficiency as FxEfficiency
 import Data.State exposing (State(..))
+import Data.TaxProfile as TaxProfile
 import Data.Transaction exposing (Transaction)
 import Data.Unrealized as Unrealized
 import Expect
@@ -33,6 +34,7 @@ loadingModel =
     , token = "test-token"
     , source = "wise"
     , uploadStatus = ""
+    , taxProfile = TaxProfile.empty
     }
 
 
@@ -111,4 +113,10 @@ suite =
                     |> Tuple.first
                     |> .source
                     |> Expect.equal "bank"
+        , test "Export message sets status to Exporting..." <|
+            \_ ->
+                Main.update (Main.Export 2026) loadingModel
+                    |> Tuple.first
+                    |> .uploadStatus
+                    |> Expect.equal "Exporting SPT..."
         ]

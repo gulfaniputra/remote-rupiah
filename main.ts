@@ -3,6 +3,7 @@ import transactions from "./routes/transactions.ts";
 import kmk from "./routes/kmk.ts";
 import ingest from "./routes/ingest.ts";
 import exportSpt from "./routes/export.ts";
+import exportDjp from "./routes/export_djp.ts";
 import taxProfile from "./routes/tax_profile.ts";
 import forecast from "./routes/forecast.ts";
 import wealth from "./routes/wealth.ts";
@@ -38,6 +39,7 @@ app.route("/api/transactions", transactions);
 app.route("/api/kmk", kmk);
 app.route("/api/v1/ingest", ingest);
 app.route("/api/export", exportSpt);
+app.route("/api/export/djp", exportDjp);
 
 app.route("/api/tax-profile", taxProfile);
 

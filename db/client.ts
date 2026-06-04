@@ -17,9 +17,26 @@ export const testMocks = {
     { valid_from: string; mid_rate_cents: string; currency: string }
   >,
   csvMappingsByUser: {} as Record<string, unknown>,
+  taxProfiles: [] as Array<{
+    user_id: string;
+    npwp: string;
+    nik: string;
+    address: string;
+    klu_code: number;
+  }>,
+  transactions: [] as Array<{
+    user_id: string;
+    date: string;
+    amount_cents: string;
+    withholding_cents: string;
+    kmk_rate: string;
+    is_1042s_verified: boolean;
+  }>,
   clear() {
     this.kmkRates = [];
     this.csvMappingsByUser = {};
+    this.taxProfiles = [];
+    this.transactions = [];
   },
 };
 
@@ -122,6 +139,21 @@ const mockSql = new Proxy(function () {}, {
         }
         return [];
       }
+    }
+    if (queryStr.includes("user_tax_profiles")) {
+      const currentUserId = extractUserId() || currentMockUserId || "default";
+      if (queryStr.includes("INSERT")) {
+        return [{ user_id: currentUserId }];
+      } else {
+        const profile = testMocks.taxProfiles.find((p) =>
+          p.user_id === currentUserId
+        );
+        return profile ? [profile] : [];
+      }
+    }
+    if (queryStr.includes("FROM transactions")) {
+      const currentUserId = extractUserId() || currentMockUserId || "default";
+      return testMocks.transactions.filter((t) => t.user_id === currentUserId);
     }
     return [];
   },

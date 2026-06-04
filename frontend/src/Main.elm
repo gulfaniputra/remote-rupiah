@@ -6,6 +6,7 @@ import CsvMapper
 import Data.Compliance as C
 import Data.FxEfficiency exposing (FxEfficiencyData)
 import Data.State exposing (State(..))
+import Data.TaxProfile as TaxProfile exposing (TaxProfile)
 import Data.Transaction exposing (Transaction)
 import Data.Unrealized exposing (Unrealized)
 import Html exposing (..)
@@ -33,6 +34,9 @@ port csvSelected : (String -> msg) -> Sub msg
 port uploadCompleted : (String -> msg) -> Sub msg
 
 
+port downloadCsv : { filename : String, content : String } -> Cmd msg
+
+
 
 -- MODEL
 
@@ -45,6 +49,7 @@ type alias Model =
     , token : String
     , source : String
     , uploadStatus : String
+    , taxProfile : TaxProfile
     }
 
 
@@ -75,6 +80,15 @@ type Msg
     | RequestCsvUpload
     | FileSelected String
     | FileUploadCompleted String
+    | GotTaxProfile (Result Http.Error (Maybe TaxProfile))
+    | UpdateNpwp String
+    | UpdateNik String
+    | UpdateAddress String
+    | UpdateKluCode String
+    | SaveTaxProfile
+    | GotSaveTaxProfile (Result Http.Error TaxProfile)
+    | Export Int
+    | GotExportDjp (Result Http.Error String)
 
 
 
@@ -193,6 +207,76 @@ update msg m =
         CsvMapperMsg _ ->
             ( m, Cmd.none )
 
+        GotTaxProfile (Ok maybeProfile) ->
+            ( { m | taxProfile = maybeProfile |> Maybe.withDefault TaxProfile.empty }, Cmd.none )
+
+        GotTaxProfile (Err _) ->
+            ( m, Cmd.none )
+
+        UpdateNpwp npwp ->
+            let
+                p =
+                    m.taxProfile
+
+                newP =
+                    { p | npwp = npwp }
+            in
+            ( { m | taxProfile = newP }, Cmd.none )
+
+        UpdateNik nik ->
+            let
+                p =
+                    m.taxProfile
+
+                newP =
+                    { p | nik = nik }
+            in
+            ( { m | taxProfile = newP }, Cmd.none )
+
+        UpdateAddress address ->
+            let
+                p =
+                    m.taxProfile
+
+                newP =
+                    { p | address = address }
+            in
+            ( { m | taxProfile = newP }, Cmd.none )
+
+        UpdateKluCode kluCode ->
+            let
+                p =
+                    m.taxProfile
+
+                newP =
+                    { p | kluCode = kluCode }
+            in
+            ( { m | taxProfile = newP }, Cmd.none )
+
+        SaveTaxProfile ->
+            ( { m | uploadStatus = "Saving profile..." }
+            , Api.saveTaxProfile m.token m.taxProfile GotSaveTaxProfile
+            )
+
+        GotSaveTaxProfile (Ok savedProfile) ->
+            ( { m | taxProfile = savedProfile, uploadStatus = "Profile saved!" }, Cmd.none )
+
+        GotSaveTaxProfile (Err _) ->
+            ( { m | uploadStatus = "Failed to save profile." }, Cmd.none )
+
+        Export year ->
+            ( { m | uploadStatus = "Exporting SPT..." }
+            , Api.exportDjp m.token year GotExportDjp
+            )
+
+        GotExportDjp (Ok csvContent) ->
+            ( { m | uploadStatus = "Export completed!" }
+            , downloadCsv { filename = "DJP_Coretax_Export_2026.csv", content = csvContent }
+            )
+
+        GotExportDjp (Err _) ->
+            ( { m | uploadStatus = "Export failed." }, Cmd.none )
+
 
 
 -- VIEW (Placeholder)
@@ -211,14 +295,26 @@ view m =
             Html.map CsvMapperMsg (CsvMapper.view (CsvMapper.init m.token headers))
 
         Ready data ->
+            let
+                handlers =
+                    { onSourceChange = UpdateSource
+                    , onVerify = Verify
+                    , onUpload = RequestCsvUpload
+                    , onNpwpChange = UpdateNpwp
+                    , onNikChange = UpdateNik
+                    , onAddressChange = UpdateAddress
+                    , onKluCodeChange = UpdateKluCode
+                    , onSaveProfile = SaveTaxProfile
+                    , onExport = Export 2026
+                    }
+            in
             D.view
                 (Ready data)
                 (m.kmk |> Maybe.andThen String.toInt |> Maybe.withDefault 0)
                 m.source
                 m.uploadStatus
-                UpdateSource
-                Verify
-                RequestCsvUpload
+                m.taxProfile
+                handlers
 
 
 
@@ -230,10 +326,19 @@ main =
     Browser.element
         { init =
             \flags ->
-                ( { state = Loading, compliance = defaultCompliance, t = epoch, kmk = Nothing, token = flags.token, source = "wise", uploadStatus = "" }
+                ( { state = Loading
+                  , compliance = defaultCompliance
+                  , t = epoch
+                  , kmk = Nothing
+                  , token = flags.token
+                  , source = "wise"
+                  , uploadStatus = ""
+                  , taxProfile = TaxProfile.empty
+                  }
                 , Cmd.batch
                     [ Api.fetchUnrealized flags.token GotUnrealized
                     , Api.fetchFxEfficiency flags.token GotFxEfficiency
+                    , Api.fetchTaxProfile flags.token GotTaxProfile
                     ]
                 )
         , update = update

@@ -11,8 +11,35 @@ import Money as M
 import TaxLogic as T
 
 
-view : State -> Int -> String -> String -> (String -> msg) -> (String -> msg) -> msg -> Html msg
-view state kmkVal source uploadStatus onSourceChange onVerify onUpload =
+isValidNpwp : String -> Bool
+isValidNpwp =
+    String.filter Char.isDigit >> String.length >> (\len -> len == 15 || len == 16)
+
+
+isValidNik : String -> Bool
+isValidNik =
+    String.filter Char.isDigit >> String.length >> (==) 16
+
+
+
+view :
+    State
+    -> Int
+    -> String
+    -> String
+    -> { npwp : String, nik : String, address : String, kluCode : String }
+    -> { onSourceChange : String -> msg
+       , onVerify : String -> msg
+       , onUpload : msg
+       , onNpwpChange : String -> msg
+       , onNikChange : String -> msg
+       , onAddressChange : String -> msg
+       , onKluCodeChange : String -> msg
+       , onSaveProfile : msg
+       , onExport : msg
+       }
+    -> Html msg
+view state kmkVal source uploadStatus profile handlers =
     case state of
         Loading ->
             div [ class "cards-grid" ]
@@ -37,11 +64,29 @@ view state kmkVal source uploadStatus onSourceChange onVerify onUpload =
                 ]
 
         Ready { txs, unrealized, fxLeakage } ->
-            renderReady txs unrealized fxLeakage kmkVal source uploadStatus onSourceChange onVerify onUpload
+            renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile handlers
 
 
-renderReady : List Transaction -> List Unrealized -> List FxEfficiencyData -> Int -> String -> String -> (String -> msg) -> (String -> msg) -> msg -> Html msg
-renderReady txs unrealized fxLeakage kmkVal source uploadStatus onSourceChange onVerify onUpload =
+renderReady :
+    List Transaction
+    -> List Unrealized
+    -> List FxEfficiencyData
+    -> Int
+    -> String
+    -> String
+    -> { npwp : String, nik : String, address : String, kluCode : String }
+    -> { onSourceChange : String -> msg
+       , onVerify : String -> msg
+       , onUpload : msg
+       , onNpwpChange : String -> msg
+       , onNikChange : String -> msg
+       , onAddressChange : String -> msg
+       , onKluCodeChange : String -> msg
+       , onSaveProfile : msg
+       , onExport : msg
+       }
+    -> Html msg
+renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile handlers =
     let
         annIdr =
             txs |> List.map .amountCents |> List.foldl M.add M.zero |> (\m -> M.multiply m kmkVal)
@@ -79,19 +124,55 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus onSourceChange o
                 , select
                     [ class "select"
                     , value source
-                    , onInput onSourceChange
+                    , onInput handlers.onSourceChange
                     ]
                     [ option [ value "wise" ] [ text "wise" ]
                     , option [ value "bank" ] [ text "bank" ]
                     ]
-                , button [ class "btn btn-outline mt-3", onClick onUpload ] [ text "Upload CSV" ]
+                , button [ class "btn btn-outline mt-3", onClick handlers.onUpload ] [ text "Upload CSV" ]
                 , if String.isEmpty uploadStatus then
                     text ""
 
                   else
                     div [ class "text-secondary mt-2 font-mono" ] [ text uploadStatus ]
                 ]
+            , div [ class "card card-default" ]
+                [ h3 [] [ text "TAX PROFILE (DJP)" ]
+                , div [ class "flex flex-col gap-2" ]
+                    [ div []
+                        [ label [ class "text-xs text-secondary font-semibold" ] [ text "NPWP" ]
+                        , input [ id "tax-npwp", class "input", value profile.npwp, onInput handlers.onNpwpChange ] []
+                        , if not (String.isEmpty profile.npwp) && not (isValidNpwp profile.npwp) then
+                            div [ class "validation-error" ] [ text "NPWP must be 15 or 16 digits" ]
+
+                          else
+                            text ""
+                        ]
+                    , div []
+                        [ label [ class "text-xs text-secondary font-semibold" ] [ text "NIK" ]
+                        , input [ id "tax-nik", class "input", value profile.nik, onInput handlers.onNikChange ] []
+                        , if not (String.isEmpty profile.nik) && not (isValidNik profile.nik) then
+                            div [ class "validation-error" ] [ text "NIK must be 16 digits" ]
+
+                          else
+                            text ""
+                        ]
+                    , div []
+                        [ label [ class "text-xs text-secondary font-semibold" ] [ text "Address" ]
+                        , input [ id "tax-address", class "input", value profile.address, onInput handlers.onAddressChange ] []
+                        ]
+                    , div []
+                        [ label [ class "text-xs text-secondary font-semibold" ] [ text "KLU Code" ]
+                        , input [ id "tax-klu", class "input", value profile.kluCode, onInput handlers.onKluCodeChange ] []
+                        ]
+                    , div [ class "flex gap-2 mt-2" ]
+                        [ button [ class "btn btn-primary flex-1", onClick handlers.onSaveProfile ] [ text "Save" ]
+                        , button [ class "btn btn-secondary flex-1", onClick handlers.onExport ] [ text "Export" ]
+                        ]
+                    ]
+                ]
             ]
+
         , div [ class "cards-grid" ]
             [ summaryCard "YTD GROSS" annIdr "card-teal"
             , summaryCard "FX LEAKAGE" fxLeakageIdr "card-default"
@@ -131,7 +212,7 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus onSourceChange o
                                                 span [ class "text-green flex items-center gap-1 font-mono" ] [ text "🛡️ Verified" ]
 
                                               else
-                                                button [ class "btn btn-outline text-secondary font-mono flex items-center gap-1", onClick (onVerify tx.id) ] [ text "🛡️ Verify" ]
+                                                button [ class "btn btn-outline text-secondary font-mono flex items-center gap-1", onClick (handlers.onVerify tx.id) ] [ text "🛡️ Verify" ]
                                             ]
                                         ]
                                 )

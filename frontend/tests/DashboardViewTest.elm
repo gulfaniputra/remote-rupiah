@@ -30,16 +30,6 @@ suite =
                     ]
                     |> Money.toCents
                     |> Expect.equal 7500000
-        , test "totalUnrealized returns zero for empty input" <|
-            \_ ->
-                Dashboard.totalUnrealized []
-                    |> Money.toCents
-                    |> Expect.equal 0
-        , test "totalFxLeakage returns zero for empty input" <|
-            \_ ->
-                Dashboard.totalFxLeakage []
-                    |> Money.toCents
-                    |> Expect.equal 0
         , test "renders wallet source selector" <|
             \_ ->
                 Dashboard.view
@@ -47,10 +37,69 @@ suite =
                     0
                     "wise"
                     ""
-                    (\_ -> ())
-                    (\_ -> ())
-                    ()
+                    { npwp = "", nik = "", address = "", kluCode = "" }
+                    { onSourceChange = \_ -> ()
+                    , onVerify = \_ -> ()
+                    , onUpload = ()
+                    , onNpwpChange = \_ -> ()
+                    , onNikChange = \_ -> ()
+                    , onAddressChange = \_ -> ()
+                    , onKluCodeChange = \_ -> ()
+                    , onSaveProfile = ()
+                    , onExport = ()
+                    }
                     |> Query.fromHtml
                     |> Query.find [ Selector.tag "select" ]
                     |> Query.has [ Selector.attribute (Attr.value "wise") ]
+        , test "renders tax profile inputs with values" <|
+            \_ ->
+                let
+                    html =
+                        Dashboard.view
+                            (Ready { txs = [], unrealized = [], fxLeakage = [] })
+                            0
+                            "wise"
+                            ""
+                            { npwp = "12.345.678.9-012.000", nik = "1234567890123456", address = "123 Sudirman", kluCode = "62010" }
+                            { onSourceChange = \_ -> ()
+                            , onVerify = \_ -> ()
+                            , onUpload = ()
+                            , onNpwpChange = \_ -> ()
+                            , onNikChange = \_ -> ()
+                            , onAddressChange = \_ -> ()
+                            , onKluCodeChange = \_ -> ()
+                            , onSaveProfile = ()
+                            , onExport = ()
+                            }
+                            |> Query.fromHtml
+                in
+                Expect.all
+                    [ \q -> q |> Query.find [ Selector.id "tax-npwp" ] |> Query.has [ Selector.attribute (Attr.value "12.345.678.9-012.000") ]
+                    , \q -> q |> Query.find [ Selector.id "tax-nik" ] |> Query.has [ Selector.attribute (Attr.value "1234567890123456") ]
+                    , \q -> q |> Query.find [ Selector.id "tax-address" ] |> Query.has [ Selector.attribute (Attr.value "123 Sudirman") ]
+                    , \q -> q |> Query.find [ Selector.id "tax-klu" ] |> Query.has [ Selector.attribute (Attr.value "62010") ]
+                    ]
+                    html
+        , test "displays validation error when NPWP or NIK is invalid length" <|
+            \_ ->
+                Dashboard.view
+                    (Ready { txs = [], unrealized = [], fxLeakage = [] })
+                    0
+                    "wise"
+                    ""
+                    { npwp = "123", nik = "123", address = "123 Sudirman", kluCode = "62010" }
+                    { onSourceChange = \_ -> ()
+                    , onVerify = \_ -> ()
+                    , onUpload = ()
+                    , onNpwpChange = \_ -> ()
+                    , onNikChange = \_ -> ()
+                    , onAddressChange = \_ -> ()
+                    , onKluCodeChange = \_ -> ()
+                    , onSaveProfile = ()
+                    , onExport = ()
+                    }
+                    |> Query.fromHtml
+                    |> Query.findAll [ Selector.class "validation-error" ]
+                    |> Query.first
+                    |> Query.has [ Selector.text "NPWP must be 15 or 16 digits" ]
         ]

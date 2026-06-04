@@ -40,3 +40,17 @@ CREATE TABLE field_mappings (
 ALTER TABLE field_mappings ENABLE ROW LEVEL SECURITY;
 CREATE POLICY field_mappings_isolation_policy ON field_mappings
 USING (user_id = auth.uid());
+
+CREATE TABLE user_tax_profiles (
+    user_id UUID PRIMARY KEY,
+    npwp TEXT NOT NULL,
+    nik TEXT NOT NULL,
+    address TEXT NOT NULL,
+    klu_code INT DEFAULT 62010,
+    CONSTRAINT user_id_not_empty CHECK (user_id::text <> '')
+);
+
+ALTER TABLE user_tax_profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY user_tax_profiles_isolation_policy ON user_tax_profiles
+USING (user_id = auth.uid());
+

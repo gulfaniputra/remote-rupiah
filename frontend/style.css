@@ -834,3 +834,21 @@ tr:hover td {
   padding-top: 1rem;
   border-top: 1px solid var(--border-color);
 }
+
+input.input {
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 0.5rem;
+  border-radius: 4px;
+  width: 100%;
+}
+input.input:focus {
+  outline: none;
+  border-color: var(--accent-teal);
+}
+.validation-error {
+  color: var(--accent-red);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}

@@ -83,6 +83,18 @@
             });
         });
       }
+
+      if (app.ports && app.ports.downloadCsv) {
+        app.ports.downloadCsv.subscribe(function (payload) {
+          var blob = new Blob([payload.content], { type: "text/csv" });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement("a");
+          a.href = url;
+          a.download = payload.filename;
+          a.click();
+          URL.revokeObjectURL(url);
+        });
+      }
     </script>
   </body>
 </html>

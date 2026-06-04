@@ -1,6 +1,7 @@
-module Api exposing (TransactionFetchError(..), decodeMappingRequired, fetchCsvMapping, fetchFxEfficiency, fetchTransactions, fetchUnrealized, saveCsvMapping, verify1042s)
+module Api exposing (TransactionFetchError(..), decodeMappingRequired, fetchCsvMapping, fetchFxEfficiency, fetchTransactions, fetchUnrealized, saveCsvMapping, verify1042s, fetchTaxProfile, saveTaxProfile, exportDjp)
 
 import Data.FxEfficiency as FxEfficiency exposing (FxEfficiencyData)
+import Data.TaxProfile as TaxProfile exposing (TaxProfile)
 import Data.Transaction as Transaction exposing (Transaction)
 import Data.Unrealized as Unrealized exposing (Unrealized)
 import Dict exposing (Dict)
@@ -141,3 +142,47 @@ fetchFxEfficiency token toMsg =
         , timeout = Just 10000
         , tracker = Nothing
         }
+
+
+fetchTaxProfile : String -> (Result Http.Error (Maybe TaxProfile) -> msg) -> Cmd msg
+fetchTaxProfile token toMsg =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
+        , url = "/api/tax-profile"
+        , body = Http.emptyBody
+        , expect =
+            Http.expectJson toMsg
+                (JD.field "data" (JD.nullable TaxProfile.decoder))
+        , timeout = Just 10000
+        , tracker = Nothing
+        }
+
+
+saveTaxProfile : String -> TaxProfile -> (Result Http.Error TaxProfile -> msg) -> Cmd msg
+saveTaxProfile token profile toMsg =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
+        , url = "/api/tax-profile"
+        , body = Http.jsonBody (TaxProfile.encoder profile)
+        , expect =
+            Http.expectJson toMsg
+                (JD.field "data" TaxProfile.decoder)
+        , timeout = Just 10000
+        , tracker = Nothing
+        }
+
+
+exportDjp : String -> Int -> (Result Http.Error String -> msg) -> Cmd msg
+exportDjp token year toMsg =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
+        , url = "/api/export/djp"
+        , body = Http.jsonBody (JE.object [ ( "year", JE.int year ) ])
+        , expect = Http.expectString toMsg
+        , timeout = Just 15000
+        , tracker = Nothing
+        }
+
