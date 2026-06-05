@@ -1,5 +1,6 @@
-module Api exposing (TransactionFetchError(..), decodeMappingRequired, fetchCsvMapping, fetchFxEfficiency, fetchTransactions, fetchUnrealized, saveCsvMapping, verify1042s, fetchTaxProfile, saveTaxProfile, exportDjp)
+module Api exposing (TransactionFetchError(..), decodeMappingRequired, fetchCsvMapping, fetchComplianceStatus, fetchFxEfficiency, fetchTransactions, fetchUnrealized, saveCsvMapping, verify1042s, fetchTaxProfile, saveTaxProfile, exportDjp)
 
+import Data.Compliance as Compliance
 import Data.FxEfficiency as FxEfficiency exposing (FxEfficiencyData)
 import Data.TaxProfile as TaxProfile exposing (TaxProfile)
 import Data.Transaction as Transaction exposing (Transaction)
@@ -186,3 +187,15 @@ exportDjp token year toMsg =
         , tracker = Nothing
         }
 
+
+fetchComplianceStatus : String -> (Result Http.Error Compliance.ComplianceStatusResponse -> msg) -> Cmd msg
+fetchComplianceStatus token toMsg =
+    Http.request
+        { method = "GET"
+        , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
+        , url = "/api/compliance/status"
+        , body = Http.emptyBody
+        , expect = Http.expectJson toMsg Compliance.complianceStatusDecoder
+        , timeout = Just 10000
+        , tracker = Nothing
+        }

@@ -38,6 +38,7 @@ suite =
                     "wise"
                     ""
                     { npwp = "", nik = "", address = "", kluCode = "" }
+                    Nothing
                     { onSourceChange = \_ -> ()
                     , onVerify = \_ -> ()
                     , onUpload = ()
@@ -61,6 +62,7 @@ suite =
                             "wise"
                             ""
                             { npwp = "12.345.678.9-012.000", nik = "1234567890123456", address = "123 Sudirman", kluCode = "62010" }
+                            Nothing
                             { onSourceChange = \_ -> ()
                             , onVerify = \_ -> ()
                             , onUpload = ()
@@ -88,6 +90,7 @@ suite =
                     "wise"
                     ""
                     { npwp = "123", nik = "123", address = "123 Sudirman", kluCode = "62010" }
+                    Nothing
                     { onSourceChange = \_ -> ()
                     , onVerify = \_ -> ()
                     , onUpload = ()

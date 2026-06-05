@@ -1,5 +1,6 @@
 module View.Dashboard exposing (totalFxLeakage, totalUnrealized, view)
 
+import Data.Compliance as C
 import Data.FxEfficiency exposing (FxEfficiencyData)
 import Data.State exposing (State(..))
 import Data.Transaction exposing (Transaction)
@@ -28,6 +29,7 @@ view :
     -> String
     -> String
     -> { npwp : String, nik : String, address : String, kluCode : String }
+    -> Maybe C.ComplianceStatusResponse
     -> { onSourceChange : String -> msg
        , onVerify : String -> msg
        , onUpload : msg
@@ -39,7 +41,7 @@ view :
        , onExport : msg
        }
     -> Html msg
-view state kmkVal source uploadStatus profile handlers =
+view state kmkVal source uploadStatus profile complianceStatus handlers =
     case state of
         Loading ->
             div [ class "cards-grid" ]
@@ -64,7 +66,7 @@ view state kmkVal source uploadStatus profile handlers =
                 ]
 
         Ready { txs, unrealized, fxLeakage } ->
-            renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile handlers
+            renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complianceStatus handlers
 
 
 renderReady :
@@ -75,6 +77,7 @@ renderReady :
     -> String
     -> String
     -> { npwp : String, nik : String, address : String, kluCode : String }
+    -> Maybe C.ComplianceStatusResponse
     -> { onSourceChange : String -> msg
        , onVerify : String -> msg
        , onUpload : msg
@@ -86,7 +89,7 @@ renderReady :
        , onExport : msg
        }
     -> Html msg
-renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile handlers =
+renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complianceStatus handlers =
     let
         annIdr =
             txs |> List.map .amountCents |> List.foldl M.add M.zero |> (\m -> M.multiply m kmkVal)
@@ -222,6 +225,7 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile handlers
                     ]
                 ]
             ]
+        , evidenceLockerPanel complianceStatus
         ]
 
 
@@ -249,3 +253,69 @@ totalFxLeakage =
             M.add acc position.spreadCents
         )
         M.zero
+
+
+w8BenBadge : C.W8BenStatus -> Html msg
+w8BenBadge status =
+    case status of
+        C.W8BenValid ->
+            span [ class "text-green font-mono" ] [ text "✅ Valid" ]
+
+        C.W8BenExpired ->
+            span [ class "text-danger font-mono" ] [ text "⚠️ Expired" ]
+
+        C.W8BenMissing ->
+            span [ class "text-secondary font-mono" ] [ text "— Missing" ]
+
+
+evidenceLockerPanel : Maybe C.ComplianceStatusResponse -> Html msg
+evidenceLockerPanel maybeStatus =
+    div [ class "cards-grid" ]
+        [ div [ class "card card-default" ]
+            [ h3 [] [ text "EVIDENCE LOCKER" ]
+            , case maybeStatus of
+                Nothing ->
+                    div [ class "text-secondary" ] [ text "Loading compliance status…" ]
+
+                Just status ->
+                    div [ class "flex flex-col gap-2" ]
+                        [ div []
+                            [ label [ class "text-xs text-secondary font-semibold" ] [ text "W-8BEN STATUS" ]
+                            , div [ class "mt-1" ] [ w8BenBadge status.w8benStatus ]
+                            , case status.w8benExpiryDate of
+                                Just d ->
+                                    div [ class "text-xs text-secondary font-mono mt-1" ] [ text ("Expiry: " ++ d) ]
+
+                                Nothing ->
+                                    text ""
+                            ]
+                        , div []
+                            [ label [ class "text-xs text-secondary font-semibold" ] [ text "1042-S DOCUMENTS" ]
+                            , if List.isEmpty status.documents then
+                                div [ class "text-secondary text-xs mt-1" ] [ text "No documents uploaded." ]
+
+                              else
+                                table [ class "table w-full mt-1" ]
+                                    [ thead [] [ tr [] [ th [] [ text "Type" ], th [] [ text "Year" ], th [] [ text "Verified" ] ] ]
+                                    , tbody []
+                                        (List.map
+                                            (\doc ->
+                                                tr []
+                                                    [ td [ class "font-mono" ] [ text doc.documentType ]
+                                                    , td [] [ text (String.fromInt doc.taxYear) ]
+                                                    , td []
+                                                        [ if doc.isVerified then
+                                                            span [ class "text-green" ] [ text "✅" ]
+
+                                                          else
+                                                            span [ class "text-secondary" ] [ text "—" ]
+                                                        ]
+                                                    ]
+                                            )
+                                            status.documents
+                                        )
+                                    ]
+                            ]
+                        ]
+            ]
+        ]

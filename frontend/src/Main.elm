@@ -44,6 +44,7 @@ port downloadCsv : { filename : String, content : String } -> Cmd msg
 type alias Model =
     { state : State
     , compliance : C.ComplianceStatus
+    , complianceStatus : Maybe C.ComplianceStatusResponse
     , t : Time.Posix
     , kmk : Maybe String
     , token : String
@@ -81,6 +82,7 @@ type Msg
     | FileSelected String
     | FileUploadCompleted String
     | GotTaxProfile (Result Http.Error (Maybe TaxProfile))
+    | GotComplianceStatus (Result Http.Error C.ComplianceStatusResponse)
     | UpdateNpwp String
     | UpdateNik String
     | UpdateAddress String
@@ -213,6 +215,12 @@ update msg m =
         GotTaxProfile (Err _) ->
             ( m, Cmd.none )
 
+        GotComplianceStatus (Ok status) ->
+            ( { m | complianceStatus = Just status }, Cmd.none )
+
+        GotComplianceStatus (Err _) ->
+            ( m, Cmd.none )
+
         UpdateNpwp npwp ->
             let
                 p =
@@ -314,6 +322,7 @@ view m =
                 m.source
                 m.uploadStatus
                 m.taxProfile
+                m.complianceStatus
                 handlers
 
 
@@ -328,6 +337,7 @@ main =
             \flags ->
                 ( { state = Loading
                   , compliance = defaultCompliance
+                  , complianceStatus = Nothing
                   , t = epoch
                   , kmk = Nothing
                   , token = flags.token
@@ -339,6 +349,7 @@ main =
                     [ Api.fetchUnrealized flags.token GotUnrealized
                     , Api.fetchFxEfficiency flags.token GotFxEfficiency
                     , Api.fetchTaxProfile flags.token GotTaxProfile
+                    , Api.fetchComplianceStatus flags.token GotComplianceStatus
                     ]
                 )
         , update = update

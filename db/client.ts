@@ -23,6 +23,7 @@ export const testMocks = {
     nik: string;
     address: string;
     klu_code: number;
+    w8ben_expiry_date?: string;
   }>,
   transactions: [] as Array<{
     user_id: string;
@@ -141,15 +142,22 @@ const mockSql = new Proxy(function () {}, {
       }
     }
     if (queryStr.includes("user_tax_profiles")) {
-      const currentUserId = extractUserId() || currentMockUserId || "default";
+      const currentUserId = extractUserId() || currentMockUserId;
       if (queryStr.includes("INSERT")) {
-        return [{ user_id: currentUserId }];
-      } else {
+        return [{ user_id: currentUserId || "default" }];
+      } else if (currentUserId) {
         const profile = testMocks.taxProfiles.find((p) =>
           p.user_id === currentUserId
         );
         return profile ? [profile] : [];
+      } else {
+        // Full-table scan (e.g. cron): return all profiles
+        return testMocks.taxProfiles;
       }
+    }
+    if (queryStr.includes("compliance_documents")) {
+      if (queryStr.includes("INSERT")) return [{ id: "mock-doc-id" }];
+      return [];
     }
     if (queryStr.includes("FROM transactions")) {
       const currentUserId = extractUserId() || currentMockUserId || "default";
