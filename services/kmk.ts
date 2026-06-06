@@ -1,5 +1,6 @@
 import { z } from "zod";
 import sql from "../db/client.ts";
+import { parseSafeRate } from "./math_utils.ts";
 
 // ---------------------------------------------------------------------------
 // 1. Zod schemas for the Kemenkeu Fiscal Portal API response
@@ -141,15 +142,11 @@ export async function upsertKmkRates(
       const sellRate = currencyEntry.kurs_jual;
       const midRate = currencyEntry.kurs_tengah;
 
-      // Basic sanity check to ensure these are actually numerical strings
-      if (!/^\d+(\.\d+)?$/.test(midRate)) {
-        result.errors.push(
-          `Invalid rate value for ${currency} in KMK ${period.no_kmk}: ${midRate}`,
-        );
-        continue;
-      }
-
       try {
+        const buyRateCents = parseSafeRate(buyRate);
+        const sellRateCents = parseSafeRate(sellRate);
+        const midRateCents = parseSafeRate(midRate);
+
         const rows = await sql`
           INSERT INTO kmk_rates (
             currency, kmk_number, valid_from, valid_until,
@@ -159,9 +156,9 @@ export async function upsertKmkRates(
             ${period.no_kmk},
             ${period.tgl_berlaku}::DATE,
             ${period.tgl_akhir}::DATE,
-            ${Math.round(parseFloat(buyRate) * 100)},
-            ${Math.round(parseFloat(sellRate) * 100)},
-            ${Math.round(parseFloat(midRate) * 100)}
+            ${String(buyRateCents)},
+            ${String(sellRateCents)},
+            ${String(midRateCents)}
           )
           ON CONFLICT ON CONSTRAINT uq_kmk_currency_period DO NOTHING
           RETURNING id
