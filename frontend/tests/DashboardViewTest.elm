@@ -1,5 +1,6 @@
 module DashboardViewTest exposing (suite)
 
+import Data.Compliance as C
 import Data.FxEfficiency as FxEfficiency
 import Data.State exposing (State(..))
 import Expect
@@ -105,4 +106,154 @@ suite =
                     |> Query.findAll [ Selector.class "validation-error" ]
                     |> Query.first
                     |> Query.has [ Selector.text "NPWP must be 15 or 16 digits" ]
+        , describe "NPPN alert"
+            [ test "Overdue + not notified → view contains 'deadline missed'" <|
+                \_ ->
+                    let
+                        nppnStatus =
+                            { notified = False
+                            , notifiedAt = Nothing
+                            , deadline = "2026-03-31"
+                            , daysRemaining = -5
+                            , isOverdue = True
+                            }
+
+                        complianceStatus =
+                            { w8benStatus = C.W8BenValid
+                            , w8benExpiryDate = Just "2099-12-31"
+                            , documents = []
+                            , nppnStatus = nppnStatus
+                            }
+                    in
+                    Dashboard.view
+                        (Ready { txs = [], unrealized = [], fxLeakage = [] })
+                        0
+                        "wise"
+                        ""
+                        { npwp = "", nik = "", address = "", kluCode = "" }
+                        (Just complianceStatus)
+                        { onSourceChange = \_ -> ()
+                        , onVerify = \_ -> ()
+                        , onUpload = ()
+                        , onNpwpChange = \_ -> ()
+                        , onNikChange = \_ -> ()
+                        , onAddressChange = \_ -> ()
+                        , onKluCodeChange = \_ -> ()
+                        , onSaveProfile = ()
+                        , onExport = ()
+                        }
+                        |> Query.fromHtml
+                        |> Query.has [ Selector.text "deadline missed" ]
+            , test "14 days remaining + not notified → view contains 'due in'" <|
+                \_ ->
+                    let
+                        nppnStatus =
+                            { notified = False
+                            , notifiedAt = Nothing
+                            , deadline = "2026-03-31"
+                            , daysRemaining = 14
+                            , isOverdue = False
+                            }
+
+                        complianceStatus =
+                            { w8benStatus = C.W8BenValid
+                            , w8benExpiryDate = Just "2099-12-31"
+                            , documents = []
+                            , nppnStatus = nppnStatus
+                            }
+                    in
+                    Dashboard.view
+                        (Ready { txs = [], unrealized = [], fxLeakage = [] })
+                        0
+                        "wise"
+                        ""
+                        { npwp = "", nik = "", address = "", kluCode = "" }
+                        (Just complianceStatus)
+                        { onSourceChange = \_ -> ()
+                        , onVerify = \_ -> ()
+                        , onUpload = ()
+                        , onNpwpChange = \_ -> ()
+                        , onNikChange = \_ -> ()
+                        , onAddressChange = \_ -> ()
+                        , onKluCodeChange = \_ -> ()
+                        , onSaveProfile = ()
+                        , onExport = ()
+                        }
+                        |> Query.fromHtml
+                        |> Query.has [ Selector.text "due in" ]
+            , test "Notified → view contains 'NPPN filed'" <|
+                \_ ->
+                    let
+                        nppnStatus =
+                            { notified = True
+                            , notifiedAt = Just "2026-03-15T10:00:00Z"
+                            , deadline = "2026-03-31"
+                            , daysRemaining = 0
+                            , isOverdue = False
+                            }
+
+                        complianceStatus =
+                            { w8benStatus = C.W8BenValid
+                            , w8benExpiryDate = Just "2099-12-31"
+                            , documents = []
+                            , nppnStatus = nppnStatus
+                            }
+                    in
+                    Dashboard.view
+                        (Ready { txs = [], unrealized = [], fxLeakage = [] })
+                        0
+                        "wise"
+                        ""
+                        { npwp = "", nik = "", address = "", kluCode = "" }
+                        (Just complianceStatus)
+                        { onSourceChange = \_ -> ()
+                        , onVerify = \_ -> ()
+                        , onUpload = ()
+                        , onNpwpChange = \_ -> ()
+                        , onNikChange = \_ -> ()
+                        , onAddressChange = \_ -> ()
+                        , onKluCodeChange = \_ -> ()
+                        , onSaveProfile = ()
+                        , onExport = ()
+                        }
+                        |> Query.fromHtml
+                        |> Query.has [ Selector.text "NPPN filed" ]
+            , test "Notified + past deadline → view shows 'NPPN filed' (no false overdue)" <|
+                \_ ->
+                    let
+                        nppnStatus =
+                            { notified = True
+                            , notifiedAt = Just "2026-03-15T10:00:00Z"
+                            , deadline = "2026-03-31"
+                            , daysRemaining = 0
+                            , isOverdue = False
+                            }
+
+                        complianceStatus =
+                            { w8benStatus = C.W8BenValid
+                            , w8benExpiryDate = Just "2099-12-31"
+                            , documents = []
+                            , nppnStatus = nppnStatus
+                            }
+                    in
+                    Dashboard.view
+                        (Ready { txs = [], unrealized = [], fxLeakage = [] })
+                        0
+                        "wise"
+                        ""
+                        { npwp = "", nik = "", address = "", kluCode = "" }
+                        (Just complianceStatus)
+                        { onSourceChange = \_ -> ()
+                        , onVerify = \_ -> ()
+                        , onUpload = ()
+                        , onNpwpChange = \_ -> ()
+                        , onNikChange = \_ -> ()
+                        , onAddressChange = \_ -> ()
+                        , onKluCodeChange = \_ -> ()
+                        , onSaveProfile = ()
+                        , onExport = ()
+                        }
+                        |> Query.fromHtml
+                        |> Query.has [ Selector.text "NPPN filed" ]
+            ]
         ]

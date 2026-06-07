@@ -1,42 +1,43 @@
 ---
-description: Conventional Commit
----
-
----
-
-trigger: "on_git_commit" description: "Enforces project-specific Conventional
-Commits and pre-commit safety checks."
-
+trigger: "on_git_commit"
+description: "Enforces project-specific Conventional Commits and pre-commit safety checks."
 ---
 
 # Workflow: Remote-Rupiah Commit Protocol
 
 **Context:** Every commit must maintain the integrity of our financial
-compliance engine.
+compliance engine. You act as the strict gatekeeper for these rules.
 
 ## 1. Pre-Commit Validation
 
-Before generating a message, you MUST verify:
+Before generating a message, you MUST execute and verify the following pipeline:
 
-- **The Float-Filter:** Scan the diff for the keyword `Float`. If `Float` is
-  found in a file touching `TaxLogic`, `Transactions`, or `Money`, **REJECT**
-  the commit.
-- **Safety Prompt:** If rejected, prompt the user: "This change introduces a
-  Float in a financial context, violating the Zero-Float protocol. Should I
-  refactor this to use the Money opaque type?"
-- **Float Check:**
-  ```bash
-  # Reject float math literals in compliance modules
-  grep -E "(\/|\*)\s*[0-9]*\.[0-9]+" frontend/src/TaxLogic.elm && { echo "CRITICAL: Float math leak"; exit 1; }
-  ```
-- **Logic Check:** If files in `frontend/src/TaxLogic.elm` or `services/` were
-  modified, you MUST run `deno test` and `elm-test` and ensure they pass.
-- **Integrity Check:** Run `deno lint` and `elm make`.
-- **Code Format Check:** Run `deno fmt`.
+1. **Code Format Check:** Run `deno fmt`.
+2. **Integrity Check:** Run `deno lint` and `elm make`.
+3. **Logic Check:** If files in `frontend/src/TaxLogic.elm` or `services/` were
+   modified, run `deno test` and `elm-test`. They MUST pass.
 
-## 2. Conventional Commit Schema
+## 2. The Zero-Float Protocol (CRITICAL)
+
+Financial precision is absolute. We do not use floats.
+
+- **The Diff Audit:** Semantically scan the _staged diff_ for any introduction
+  of the `Float` type, float literals (e.g., `0.11`), or floating-point math
+  operators in files touching `TaxLogic`, `Transactions`, or `Money`.
+- **The Rejection:** If a float is introduced, **REJECT** the commit
+  immediately.
+- **Safety Prompt:** Present this prompt to the developer: _"This change
+  introduces floating-point logic in a financial context, violating the
+  Zero-Float protocol. Should I refactor this to use the `Money` opaque type /
+  integers?"_
+
+## 3. Conventional Commit Schema
 
 Generate the message using this strict format: `<type>(<scope>): <description>`
+
+**Allowed Types:**
+
+- `feat`, `fix`, `refactor`, `chore`, `test`, `docs`.
 
 **Allowed Scopes:**
 
@@ -48,16 +49,19 @@ Generate the message using this strict format: `<type>(<scope>): <description>`
 
 **Example:** `feat(tax): implement PPh 24 credit cap formula`
 
-## 3. The "No-Slop" Description Rule
+## 4. The "No-Slop" Description Rule
 
 - Use the imperative mood ("add", not "added").
+- Keep it under 50 characters.
 - Do not repeat file names in the description.
-- If the change involves a tax law update, cite the specific UU (e.g., UU HPP).
+- **Compliance Link:** If the change involves a tax law update in the `tax`
+  scope, you MUST cite the specific UU (e.g., UU HPP) in the commit body.
 
-## 4. Execution
+## 5. Execution Steps
 
-1. **Analyze:** Examine the staged changes and identified affected scopes.
-2. **Audit:** Run all Pre-Commit Validation checks. Do not proceed if they fail.
-3. **Draft:** Generate a compliant message based on the audit results.
-4. **Final Approval:** Present the audit status and the proposed message to the
-   developer.
+1. **Analyze:** Examine the staged changes.
+2. **Audit:** Run the Pre-Commit Validation and Zero-Float checks. Stop and
+   alert the user if any fail.
+3. **Draft:** Generate a compliant `<type>(<scope>): <description>` message.
+4. **Present:** Show the audit status and the proposed message to the developer
+   for final approval.

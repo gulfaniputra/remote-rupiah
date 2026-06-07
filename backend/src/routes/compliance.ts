@@ -1,7 +1,8 @@
-import { Context, Hono } from "hono";
+import { Hono } from "hono";
 import { authMiddleware } from "../../../services/auth_middleware.ts";
 import {
   getComplianceStatus,
+  markNppnNotified,
   upsertDocument,
   type UpsertPayload,
 } from "../../../services/compliance.ts";
@@ -10,14 +11,15 @@ const app = new Hono();
 
 app.use("*", authMiddleware);
 
-const getUid = (c: Context): string => (c.get("userId") as string) ?? "";
-
 // ---------------------------------------------------------------------------
 // POST /compliance/upload
 // ---------------------------------------------------------------------------
 
+const userId = (c: { get: unknown }) =>
+  (c.get as (key: string) => unknown)("userId") as string | undefined;
+
 app.post("/upload", async (c) => {
-  const uid = getUid(c);
+  const uid = userId(c) ?? "";
   if (!uid) return c.json({ error: "Unauthorized" }, 401);
 
   let body: Record<string, unknown>;
@@ -52,22 +54,22 @@ app.post("/upload", async (c) => {
   try {
     return c.json({
       success: true,
-      id: (await upsertDocument(uid, {
-        documentType: documentType as UpsertPayload["documentType"],
-        taxYear,
-        storageKey,
-        mimeType,
-        sizeBytes: BigInt(Math.trunc(sizeBytes)),
-      })).id,
+      id: (
+        await upsertDocument(uid, {
+          documentType: documentType as UpsertPayload["documentType"],
+          taxYear,
+          storageKey,
+          mimeType,
+          sizeBytes: BigInt(Math.trunc(sizeBytes)),
+        })
+      ).id,
     });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Upload failed";
-    console.error("[compliance] upload failed:", msg);
+    const e = err instanceof Error ? err.message : "Upload failed";
+    console.error("[compliance] upload failed:", e);
     return c.json(
       { error: "Invalid upload payload" },
-      msg.startsWith("Invalid MIME") || msg.startsWith("File exceeds")
-        ? 400
-        : 500,
+      e.startsWith("Invalid MIME") || e.startsWith("File exceeds") ? 400 : 500,
     );
   }
 });
@@ -77,7 +79,7 @@ app.post("/upload", async (c) => {
 // ---------------------------------------------------------------------------
 
 app.get("/status", async (c) => {
-  const uid = getUid(c);
+  const uid = userId(c) ?? "";
   if (!uid) return c.json({ error: "Unauthorized" }, 401);
 
   try {
@@ -88,6 +90,26 @@ app.get("/status", async (c) => {
       err instanceof Error ? err.message : String(err),
     );
     return c.json({ error: "Status unavailable" }, 500);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /compliance/nppn/notify
+// ---------------------------------------------------------------------------
+
+app.post("/nppn/notify", async (c) => {
+  const uid = userId(c) ?? "";
+  if (!uid) return c.json({ error: "Unauthorized" }, 401);
+
+  try {
+    const nppnStatus = await markNppnNotified(uid);
+    return c.json({ nppnStatus });
+  } catch (err) {
+    console.error(
+      "[compliance] nppn notify failed:",
+      err instanceof Error ? err.message : String(err),
+    );
+    return c.json({ error: "NPPN notification failed" }, 500);
   }
 });
 

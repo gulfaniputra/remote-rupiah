@@ -29,6 +29,15 @@ export interface ComplianceStatus {
   w8benStatus: W8BenStatus;
   w8benExpiryDate: string | null;
   documents: { documentType: string; taxYear: number; isVerified: boolean }[];
+  nppnStatus: NppnStatus;
+}
+
+export interface NppnStatus {
+  notified: boolean;
+  notifiedAt: string | null;
+  deadline: string;
+  daysRemaining: number;
+  isOverdue: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -43,6 +52,24 @@ const ALLOWED_MIME_TYPES = new Set([
 ]);
 
 const MAX_SIZE_BYTES = 10_485_760n; // 10 MB
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const getTaxYearDeadline = (): { year: number; deadline: string } => {
+  const now = new Date();
+  const year = now.getMonth() < 2 ? now.getFullYear() - 1 : now.getFullYear();
+  const deadline = `${year}-03-31`;
+  return { year, deadline };
+};
+
+const computeDaysRemaining = (deadline: string): number => {
+  const now = new Date();
+  const deadlineDate = new Date(deadline);
+  const diffMs = deadlineDate.getTime() - now.getTime();
+  return Math.ceil(diffMs / 86_400_000);
+};
 
 // ---------------------------------------------------------------------------
 // Validation
@@ -78,7 +105,9 @@ export const upsertDocument = (
       VALUES
         (${userId}, ${payload.documentType}, ${payload.taxYear},
          ${payload.storageKey}, ${payload.mimeType}, ${
-        validatePayload(payload).toString()
+        validatePayload(
+          payload,
+        ).toString()
       })
       ON CONFLICT (user_id, document_type, tax_year)
       DO UPDATE SET
@@ -93,6 +122,44 @@ export const upsertDocument = (
     });
 
 // ---------------------------------------------------------------------------
+// Service: getNppnStatus
+// ---------------------------------------------------------------------------
+
+export const getNppnStatus = (userId: string): Promise<NppnStatus> =>
+  withAuth(userId, async (tx) => {
+    const { deadline } = getTaxYearDeadline();
+    const rows = await tx`
+      SELECT nppn_notified_at::text
+      FROM user_tax_profiles
+      LIMIT 1
+    `;
+
+    const notifiedAt: string | null = rows[0]?.nppn_notified_at ?? null;
+    const daysRemaining = computeDaysRemaining(deadline);
+
+    return {
+      notified: notifiedAt !== null,
+      notifiedAt,
+      deadline,
+      daysRemaining: notifiedAt !== null ? 0 : daysRemaining,
+      isOverdue: notifiedAt === null && daysRemaining < 0,
+    };
+  });
+
+// ---------------------------------------------------------------------------
+// Service: markNppnNotified
+// ---------------------------------------------------------------------------
+
+export const markNppnNotified = (userId: string): Promise<NppnStatus> =>
+  withAuth(userId, async (tx) => {
+    await tx`
+      UPDATE user_tax_profiles
+      SET nppn_notified_at = NOW()
+    `;
+    return getNppnStatus(userId);
+  });
+
+// ---------------------------------------------------------------------------
 // Service: getComplianceStatus
 // ---------------------------------------------------------------------------
 
@@ -102,7 +169,7 @@ export const getComplianceStatus = (
   withAuth(userId, async (tx) => {
     const [profileRows, docRows] = await Promise.all([
       tx`
-        SELECT w8ben_expiry_date
+        SELECT w8ben_expiry_date::text
         FROM user_tax_profiles
         LIMIT 1
       `,
@@ -127,5 +194,6 @@ export const getComplianceStatus = (
         taxYear: Number(r.tax_year),
         isVerified: Boolean(r.is_verified),
       })),
+      nppnStatus: await getNppnStatus(userId),
     };
   });

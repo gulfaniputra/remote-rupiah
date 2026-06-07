@@ -13,9 +13,11 @@ const dbUrl = (() => {
 })();
 
 export const testMocks = {
-  kmkRates: [] as Array<
-    { valid_from: string; mid_rate_cents: string; currency: string }
-  >,
+  kmkRates: [] as Array<{
+    valid_from: string;
+    mid_rate_cents: string;
+    currency: string;
+  }>,
   csvMappingsByUser: {} as Record<string, unknown>,
   taxProfiles: [] as Array<{
     user_id: string;
@@ -24,6 +26,7 @@ export const testMocks = {
     address: string;
     klu_code: number;
     w8ben_expiry_date?: string;
+    nppn_notified_at?: string;
   }>,
   transactions: [] as Array<{
     user_id: string;
@@ -111,14 +114,16 @@ const mockSql = new Proxy(function () {}, {
     if (queryStr.includes("kmk_rates") && queryStr.includes("valid_from")) {
       const dateVal = argumentsList[1];
       if (typeof dateVal === "string") {
-        const match = testMocks.kmkRates.find((r) =>
-          r.valid_from === dateVal && r.currency === "USD"
+        const match = testMocks.kmkRates.find(
+          (r) => r.valid_from === dateVal && r.currency === "USD",
         );
         if (match) {
-          return [{
-            valid_from: match.valid_from,
-            mid_rate_cents: match.mid_rate_cents,
-          }];
+          return [
+            {
+              valid_from: match.valid_from,
+              mid_rate_cents: match.mid_rate_cents,
+            },
+          ];
         }
       }
       return [];
@@ -128,7 +133,9 @@ const mockSql = new Proxy(function () {}, {
       if (queryStr.includes("INSERT")) {
         const rawMapping = argumentsList
           .map((value) => (typeof value === "string" ? value : ""))
-          .find((value) => value.startsWith("{")) || sqlValue(2) || sqlValue(1);
+          .find((value) => value.startsWith("{")) ||
+          sqlValue(2) ||
+          sqlValue(1);
         testMocks.csvMappingsByUser[currentUserId] = rawMapping
           ? JSON.parse(rawMapping)
           : {};
@@ -145,9 +152,18 @@ const mockSql = new Proxy(function () {}, {
       const currentUserId = extractUserId() || currentMockUserId;
       if (queryStr.includes("INSERT")) {
         return [{ user_id: currentUserId || "default" }];
+      } else if (queryStr.includes("UPDATE")) {
+        // Mock UPDATE nppn_notified_at = NOW()
+        const profile = testMocks.taxProfiles.find(
+          (p) => p.user_id === currentUserId,
+        );
+        if (profile) {
+          profile.nppn_notified_at = new Date().toISOString();
+        }
+        return [];
       } else if (currentUserId) {
-        const profile = testMocks.taxProfiles.find((p) =>
-          p.user_id === currentUserId
+        const profile = testMocks.taxProfiles.find(
+          (p) => p.user_id === currentUserId,
         );
         return profile ? [profile] : [];
       } else {
@@ -180,7 +196,8 @@ try {
 if (!useMock) {
   realSql`SELECT 1`.catch((err: Error & { code?: string }) => {
     if (
-      err.code === "28P01" || err.message?.includes("authentication failed") ||
+      err.code === "28P01" ||
+      err.message?.includes("authentication failed") ||
       err.message?.includes("connection")
     ) {
       useMock = true;
@@ -201,12 +218,32 @@ const sqlProxy = new Proxy(function () {}, {
             >,
           );
         }
-        return realSql.begin(async (tx) => {
-          try {
-            return await cb(
-              tx as unknown as postgres.TransactionSql<Record<string, unknown>>,
-            );
-          } catch (err: unknown) {
+        return realSql
+          .begin(async (tx) => {
+            try {
+              return await cb(
+                tx as unknown as postgres.TransactionSql<
+                  Record<string, unknown>
+                >,
+              );
+            } catch (err: unknown) {
+              const e = err as Error & { code?: string };
+              if (
+                e.code === "28P01" ||
+                e.message?.includes("authentication failed") ||
+                e.message?.includes("connection")
+              ) {
+                useMock = true;
+                return cb(
+                  mockSql as unknown as postgres.TransactionSql<
+                    Record<string, unknown>
+                  >,
+                );
+              }
+              throw err;
+            }
+          })
+          .catch((err) => {
             const e = err as Error & { code?: string };
             if (
               e.code === "28P01" ||
@@ -221,23 +258,7 @@ const sqlProxy = new Proxy(function () {}, {
               );
             }
             throw err;
-          }
-        }).catch((err) => {
-          const e = err as Error & { code?: string };
-          if (
-            e.code === "28P01" ||
-            e.message?.includes("authentication failed") ||
-            e.message?.includes("connection")
-          ) {
-            useMock = true;
-            return cb(
-              mockSql as unknown as postgres.TransactionSql<
-                Record<string, unknown>
-              >,
-            );
-          }
-          throw err;
-        });
+          });
       };
     }
     const target = useMock ? mockSql : realSql;
@@ -277,7 +298,8 @@ const sqlProxy = new Proxy(function () {}, {
     } catch (err: unknown) {
       const e = err as Error & { code?: string };
       if (
-        e.code === "28P01" || e.message?.includes("authentication failed") ||
+        e.code === "28P01" ||
+        e.message?.includes("authentication failed") ||
         e.message?.includes("connection")
       ) {
         useMock = true;

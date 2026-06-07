@@ -1,4 +1,4 @@
-port module Main exposing (Model, Msg(..), defaultCompliance, epoch, main, update)
+port module Main exposing (Model, Msg(..), epoch, main, update)
 
 import Api
 import Browser
@@ -43,7 +43,6 @@ port downloadCsv : { filename : String, content : String } -> Cmd msg
 
 type alias Model =
     { state : State
-    , compliance : C.ComplianceStatus
     , complianceStatus : Maybe C.ComplianceStatusResponse
     , t : Time.Posix
     , kmk : Maybe String
@@ -52,11 +51,6 @@ type alias Model =
     , uploadStatus : String
     , taxProfile : TaxProfile
     }
-
-
-defaultCompliance : C.ComplianceStatus
-defaultCompliance =
-    C.StandardRate
 
 
 epoch : Time.Posix
@@ -336,7 +330,6 @@ main =
         { init =
             \flags ->
                 ( { state = Loading
-                  , compliance = defaultCompliance
                   , complianceStatus = Nothing
                   , t = epoch
                   , kmk = Nothing

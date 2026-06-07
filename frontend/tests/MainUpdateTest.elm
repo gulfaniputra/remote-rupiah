@@ -28,7 +28,6 @@ mockTx =
 loadingModel : Main.Model
 loadingModel =
     { state = Loading
-    , compliance = Main.defaultCompliance
     , complianceStatus = Nothing
     , t = Main.epoch
     , kmk = Nothing

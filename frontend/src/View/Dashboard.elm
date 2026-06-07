@@ -22,7 +22,6 @@ isValidNik =
     String.filter Char.isDigit >> String.length >> (==) 16
 
 
-
 view :
     State
     -> Int
@@ -30,16 +29,17 @@ view :
     -> String
     -> { npwp : String, nik : String, address : String, kluCode : String }
     -> Maybe C.ComplianceStatusResponse
-    -> { onSourceChange : String -> msg
-       , onVerify : String -> msg
-       , onUpload : msg
-       , onNpwpChange : String -> msg
-       , onNikChange : String -> msg
-       , onAddressChange : String -> msg
-       , onKluCodeChange : String -> msg
-       , onSaveProfile : msg
-       , onExport : msg
-       }
+    ->
+        { onSourceChange : String -> msg
+        , onVerify : String -> msg
+        , onUpload : msg
+        , onNpwpChange : String -> msg
+        , onNikChange : String -> msg
+        , onAddressChange : String -> msg
+        , onKluCodeChange : String -> msg
+        , onSaveProfile : msg
+        , onExport : msg
+        }
     -> Html msg
 view state kmkVal source uploadStatus profile complianceStatus handlers =
     case state of
@@ -78,16 +78,17 @@ renderReady :
     -> String
     -> { npwp : String, nik : String, address : String, kluCode : String }
     -> Maybe C.ComplianceStatusResponse
-    -> { onSourceChange : String -> msg
-       , onVerify : String -> msg
-       , onUpload : msg
-       , onNpwpChange : String -> msg
-       , onNikChange : String -> msg
-       , onAddressChange : String -> msg
-       , onKluCodeChange : String -> msg
-       , onSaveProfile : msg
-       , onExport : msg
-       }
+    ->
+        { onSourceChange : String -> msg
+        , onVerify : String -> msg
+        , onUpload : msg
+        , onNpwpChange : String -> msg
+        , onNikChange : String -> msg
+        , onAddressChange : String -> msg
+        , onKluCodeChange : String -> msg
+        , onSaveProfile : msg
+        , onExport : msg
+        }
     -> Html msg
 renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complianceStatus handlers =
     let
@@ -121,7 +122,8 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
             "Rp " ++ M.toString m
     in
     div []
-        [ div [ class "cards-grid" ]
+        [ viewNppnAlert complianceStatus
+        , div [ class "cards-grid" ]
             [ div [ class "card card-default" ]
                 [ h3 [] [ text "WALLET SOURCE" ]
                 , select
@@ -175,7 +177,6 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
                     ]
                 ]
             ]
-
         , div [ class "cards-grid" ]
             [ summaryCard "YTD GROSS" annIdr "card-teal"
             , summaryCard "FX LEAKAGE" fxLeakageIdr "card-default"
@@ -266,6 +267,29 @@ w8BenBadge status =
 
         C.W8BenMissing ->
             span [ class "text-secondary font-mono" ] [ text "— Missing" ]
+
+
+viewNppnAlert : Maybe C.ComplianceStatusResponse -> Html msg
+viewNppnAlert maybeStatus =
+    case maybeStatus of
+        Nothing ->
+            text ""
+
+        Just { nppnStatus } ->
+            if nppnStatus.notified then
+                div [ class "alert alert-success" ]
+                    [ span [ class "font-mono" ] [ text "✅ NPPN filed" ] ]
+
+            else if nppnStatus.isOverdue then
+                div [ class "alert alert-danger" ]
+                    [ span [ class "font-mono" ] [ text "⚠️ NPPN notification deadline missed — file immediately" ] ]
+
+            else if nppnStatus.daysRemaining <= 14 then
+                div [ class "alert alert-warning" ]
+                    [ span [ class "font-mono" ] [ text ("⏰ NPPN notification due in " ++ String.fromInt nppnStatus.daysRemaining ++ " days") ] ]
+
+            else
+                text ""
 
 
 evidenceLockerPanel : Maybe C.ComplianceStatusResponse -> Html msg

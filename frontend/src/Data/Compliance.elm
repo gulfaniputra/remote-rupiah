@@ -1,47 +1,16 @@
 module Data.Compliance exposing
-    ( ComplianceStatus(..)
-    , ComplianceStatusResponse
+    ( ComplianceStatusResponse
     , DocumentRecord
-    , Urgency(..)
+    , NppnStatus
     , W8BenStatus(..)
-    , calculateStatus
     , complianceStatusDecoder
     , documentRecordDecoder
+    , nppnStatusDecoder
     , w8BenStatusDecoder
     )
 
 import Json.Decode as JD
-import Time
 
-
--- ---------------------------------------------------------------------------
--- Domain types (existing)
--- ---------------------------------------------------------------------------
-
-
-type ComplianceStatus
-    = StandardRate
-    | NppnFiled { receiptId : String, filedAt : Time.Posix }
-    | ActionRequired { urgency : Urgency, daysRemaining : Int }
-
-
-type Urgency
-    = Normal
-    | Urgent
-    | Overdue
-
-
-type alias Config =
-    { deadlineYear : Int, deadlineMonth : Time.Month }
-
-
-calculateStatus : Config -> Time.Posix -> Time.Zone -> ComplianceStatus
-calculateStatus config t z =
-    if Time.toYear z t == config.deadlineYear && Time.toMonth z t == config.deadlineMonth then
-        ActionRequired { urgency = Urgent, daysRemaining = 31 - Time.toDay z t }
-
-    else
-        StandardRate
 
 
 -- ---------------------------------------------------------------------------
@@ -62,11 +31,22 @@ type alias DocumentRecord =
     }
 
 
+type alias NppnStatus =
+    { notified : Bool
+    , notifiedAt : Maybe String
+    , deadline : String
+    , daysRemaining : Int
+    , isOverdue : Bool
+    }
+
+
 type alias ComplianceStatusResponse =
     { w8benStatus : W8BenStatus
     , w8benExpiryDate : Maybe String
     , documents : List DocumentRecord
+    , nppnStatus : NppnStatus
     }
+
 
 
 -- ---------------------------------------------------------------------------
@@ -102,9 +82,20 @@ documentRecordDecoder =
         (JD.field "isVerified" JD.bool)
 
 
+nppnStatusDecoder : JD.Decoder NppnStatus
+nppnStatusDecoder =
+    JD.map5 NppnStatus
+        (JD.field "notified" JD.bool)
+        (JD.field "notifiedAt" (JD.nullable JD.string))
+        (JD.field "deadline" JD.string)
+        (JD.field "daysRemaining" JD.int)
+        (JD.field "isOverdue" JD.bool)
+
+
 complianceStatusDecoder : JD.Decoder ComplianceStatusResponse
 complianceStatusDecoder =
-    JD.map3 ComplianceStatusResponse
+    JD.map4 ComplianceStatusResponse
         (JD.field "w8benStatus" w8BenStatusDecoder)
         (JD.field "w8benExpiryDate" (JD.nullable JD.string))
         (JD.field "documents" (JD.list documentRecordDecoder))
+        (JD.field "nppnStatus" nppnStatusDecoder)

@@ -1,6 +1,7 @@
 import { assertEquals } from "@std/assert";
 import app from "./compliance.ts";
 import { sign } from "hono/jwt";
+import { testMocks } from "../../../db/client.ts";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -22,10 +23,7 @@ async function makeToken(overrides = {}) {
   );
 }
 
-const makeUploadReq = (
-  token: string,
-  body: Record<string, unknown>,
-) =>
+const makeUploadReq = (token: string, body: Record<string, unknown>) =>
   new Request("http://localhost/upload", {
     method: "POST",
     headers: {
@@ -52,9 +50,7 @@ Deno.test("POST /compliance/upload — 401 without token", async () => {
 });
 
 Deno.test("GET /compliance/status — 401 without token", async () => {
-  const res = await app.fetch(
-    new Request("http://localhost/status", {}),
-  );
+  const res = await app.fetch(new Request("http://localhost/status", {}));
   assertEquals(res.status, 401);
 });
 
@@ -123,4 +119,65 @@ Deno.test("GET /compliance/status — 200 with w8benStatus field", async () => {
   assertEquals(res.status, 200);
   const body = await res.json();
   assertEquals(typeof body.w8benStatus, "string");
+});
+
+// ---------------------------------------------------------------------------
+// NPPN Deadline Routes
+// ---------------------------------------------------------------------------
+
+Deno.test(
+  "GET /compliance/status → response body contains nppnStatus with notified + daysRemaining",
+  async () => {
+    testMocks.clear();
+    testMocks.taxProfiles.push(
+      {
+        user_id: "user-1",
+        npwp: "",
+        nik: "",
+        address: "",
+        klu_code: 62010,
+      } as Parameters<typeof testMocks.taxProfiles.push>[0],
+    );
+
+    const res = await app.fetch(makeStatusReq(await makeToken()));
+    assertEquals(res.status, 200);
+    const body = await res.json();
+    assertEquals(typeof body.nppnStatus, "object");
+    assertEquals(typeof body.nppnStatus.notified, "boolean");
+    assertEquals(typeof body.nppnStatus.daysRemaining, "number");
+  },
+);
+
+Deno.test(
+  "POST /compliance/nppn/notify with token → 200, nppnStatus.notified: true",
+  async () => {
+    testMocks.clear();
+    testMocks.taxProfiles.push(
+      {
+        user_id: "user-1",
+        npwp: "",
+        nik: "",
+        address: "",
+        klu_code: 62010,
+      } as Parameters<typeof testMocks.taxProfiles.push>[0],
+    );
+
+    const token = await makeToken();
+    const res = await app.fetch(
+      new Request("http://localhost/nppn/notify", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+    );
+    assertEquals(res.status, 200);
+    const body = await res.json();
+    assertEquals(body.nppnStatus.notified, true);
+  },
+);
+
+Deno.test("POST /compliance/nppn/notify without token → 401", async () => {
+  const res = await app.fetch(
+    new Request("http://localhost/nppn/notify", { method: "POST" }),
+  );
+  assertEquals(res.status, 401);
 });
