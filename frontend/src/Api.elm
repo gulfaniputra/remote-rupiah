@@ -1,4 +1,4 @@
-module Api exposing (TransactionFetchError(..), decodeMappingRequired, fetchCsvMapping, fetchComplianceStatus, fetchFxEfficiency, fetchTransactions, fetchUnrealized, saveCsvMapping, verify1042s, fetchTaxProfile, saveTaxProfile, exportDjp)
+module Api exposing (TransactionFetchError(..), decodeMappingRequired, exportDjp, fetchComplianceStatus, fetchCsvMapping, fetchFxEfficiency, fetchTaxProfile, fetchTransactions, fetchUnrealized, notifyNppn, saveCsvMapping, saveTaxProfile, verify1042s)
 
 import Data.Compliance as Compliance
 import Data.FxEfficiency as FxEfficiency exposing (FxEfficiencyData)
@@ -184,6 +184,19 @@ exportDjp token year toMsg =
         , body = Http.jsonBody (JE.object [ ( "year", JE.int year ) ])
         , expect = Http.expectString toMsg
         , timeout = Just 15000
+        , tracker = Nothing
+        }
+
+
+notifyNppn : String -> (Result Http.Error Compliance.ComplianceStatusResponse -> msg) -> Cmd msg
+notifyNppn token toMsg =
+    Http.request
+        { method = "POST"
+        , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
+        , url = "/api/compliance/nppn/notify"
+        , body = Http.jsonBody (JE.object [])
+        , expect = Http.expectJson toMsg Compliance.complianceStatusDecoder
+        , timeout = Just 10000
         , tracker = Nothing
         }
 

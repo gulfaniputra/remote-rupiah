@@ -26,23 +26,23 @@ taxLogicTests =
 
 npwnTests : Test
 npwnTests =
-    describe "calculateNPPN"
+    describe "calculateNppn"
         [ test "calculates 50% profit correctly" <|
             \_ ->
                 Money.fromCents 100000
-                    |> TaxLogic.calculateNPPN
+                    |> TaxLogic.calculateNppn
                     |> Money.toCents
                     |> Expect.equal 50000
         , test "zero gross produces zero taxable" <|
             \_ ->
                 Money.fromCents 0
-                    |> TaxLogic.calculateNPPN
+                    |> TaxLogic.calculateNppn
                     |> Money.toCents
                     |> Expect.equal 0
         , test "odd amount rounds down (integer division)" <|
             \_ ->
                 Money.fromCents 99999
-                    |> TaxLogic.calculateNPPN
+                    |> TaxLogic.calculateNppn
                     |> Money.toCents
                     |> Expect.equal 49999
         ]
@@ -442,7 +442,7 @@ pph24CreditTests =
                             Money.fromCents (870480000 * 100)
 
                         taxableIncome =
-                            TaxLogic.calculateNPPN grossIdr
+                            TaxLogic.calculateNppn grossIdr
 
                         indoTax =
                             TaxLogic.calculateIndoTax taxableIncome
@@ -492,7 +492,7 @@ pph24CreditTests =
                             Money.fromCents (483600000 * 100)
 
                         taxableIncome =
-                            TaxLogic.calculateNPPN grossIdr
+                            TaxLogic.calculateNppn grossIdr
 
                         indoTax =
                             TaxLogic.calculateIndoTax taxableIncome

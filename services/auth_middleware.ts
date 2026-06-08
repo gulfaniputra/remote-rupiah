@@ -9,7 +9,14 @@ export type AuthToken = {
 };
 
 const TEST_JWT_SECRET = "test-jwt-secret-12345678901234567890";
-const isTesting = !Deno.mainModule.endsWith("main.ts");
+const isTesting: boolean = (() => {
+  try {
+    if (Deno.env.get("DENO_ENV") === "test") return true;
+    return !Deno.mainModule.endsWith("main.ts");
+  } catch {
+    return false;
+  }
+})();
 
 function isAuthToken(x: unknown): x is AuthToken {
   if (typeof x !== "object" || x === null) return false;

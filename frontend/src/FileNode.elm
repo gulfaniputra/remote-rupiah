@@ -1,12 +1,11 @@
 module FileNode exposing
-    ( FileNode
+    ( Document
+    , FileNode
+    , document
     , fileNode
     , render
-    , Document
-    , document
     , renderDocument
     )
-
 
 -- FILE NODE
 
@@ -32,6 +31,7 @@ render (FileNode input) =
         ++ "]]></file>"
 
 
+
 -- DOCUMENT
 
 
@@ -49,6 +49,7 @@ renderDocument (Document nodes) =
     "<files>"
         ++ String.concat (List.map render nodes)
         ++ "</files>"
+
 
 
 -- INTERNAL HELPERS

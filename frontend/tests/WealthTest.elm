@@ -2,9 +2,10 @@ module WealthTest exposing (suite)
 
 import Data.Wealth exposing (calculateGain)
 import Expect
-import Money exposing (IDR, Money, USD)
-import Test exposing (Test, describe, test, fuzz)
 import Fuzz
+import Money exposing (IDR, Money, USD)
+import Test exposing (Test, describe, fuzz, test)
+
 
 suite : Test
 suite =

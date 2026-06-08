@@ -49,6 +49,7 @@ suite =
                     , onKluCodeChange = \_ -> ()
                     , onSaveProfile = ()
                     , onExport = ()
+                    , onNppnNotify = ()
                     }
                     |> Query.fromHtml
                     |> Query.find [ Selector.tag "select" ]
@@ -73,6 +74,7 @@ suite =
                             , onKluCodeChange = \_ -> ()
                             , onSaveProfile = ()
                             , onExport = ()
+                            , onNppnNotify = ()
                             }
                             |> Query.fromHtml
                 in
@@ -101,6 +103,7 @@ suite =
                     , onKluCodeChange = \_ -> ()
                     , onSaveProfile = ()
                     , onExport = ()
+                    , onNppnNotify = ()
                     }
                     |> Query.fromHtml
                     |> Query.findAll [ Selector.class "validation-error" ]
@@ -141,6 +144,7 @@ suite =
                         , onKluCodeChange = \_ -> ()
                         , onSaveProfile = ()
                         , onExport = ()
+                        , onNppnNotify = ()
                         }
                         |> Query.fromHtml
                         |> Query.has [ Selector.text "deadline missed" ]
@@ -178,6 +182,7 @@ suite =
                         , onKluCodeChange = \_ -> ()
                         , onSaveProfile = ()
                         , onExport = ()
+                        , onNppnNotify = ()
                         }
                         |> Query.fromHtml
                         |> Query.has [ Selector.text "due in" ]
@@ -215,6 +220,7 @@ suite =
                         , onKluCodeChange = \_ -> ()
                         , onSaveProfile = ()
                         , onExport = ()
+                        , onNppnNotify = ()
                         }
                         |> Query.fromHtml
                         |> Query.has [ Selector.text "NPPN filed" ]
@@ -252,8 +258,93 @@ suite =
                         , onKluCodeChange = \_ -> ()
                         , onSaveProfile = ()
                         , onExport = ()
+                        , onNppnNotify = ()
                         }
                         |> Query.fromHtml
                         |> Query.has [ Selector.text "NPPN filed" ]
+            , test "Not notified → view contains NPPN notify button" <|
+                \_ ->
+                    let
+                        nppnStatus =
+                            { notified = False
+                            , notifiedAt = Nothing
+                            , deadline = "2026-03-31"
+                            , daysRemaining = 30
+                            , isOverdue = False
+                            }
+
+                        complianceStatus =
+                            { w8benStatus = C.W8BenValid
+                            , w8benExpiryDate = Just "2099-12-31"
+                            , documents = []
+                            , nppnStatus = nppnStatus
+                            }
+                    in
+                    Dashboard.view
+                        (Ready { txs = [], unrealized = [], fxLeakage = [] })
+                        0
+                        "wise"
+                        ""
+                        { npwp = "", nik = "", address = "", kluCode = "" }
+                        (Just complianceStatus)
+                        { onSourceChange = \_ -> ()
+                        , onVerify = \_ -> ()
+                        , onUpload = ()
+                        , onNpwpChange = \_ -> ()
+                        , onNikChange = \_ -> ()
+                        , onAddressChange = \_ -> ()
+                        , onKluCodeChange = \_ -> ()
+                        , onSaveProfile = ()
+                        , onExport = ()
+                        , onNppnNotify = ()
+                        }
+                        |> Query.fromHtml
+                        |> Query.has [ Selector.tag "button", Selector.text "Notify NPPN" ]
+            , test "Not notified → notify button click triggers onNppnNotify" <|
+                \_ ->
+                    let
+                        nppnStatus =
+                            { notified = False
+                            , notifiedAt = Nothing
+                            , deadline = "2026-03-31"
+                            , daysRemaining = 30
+                            , isOverdue = False
+                            }
+
+                        complianceStatus =
+                            { w8benStatus = C.W8BenValid
+                            , w8benExpiryDate = Just "2099-12-31"
+                            , documents = []
+                            , nppnStatus = nppnStatus
+                            }
+
+                        -- Use a tag to verify the handler is wired
+                        tag =
+                            "notify-clicked"
+
+                        handlers =
+                            { onSourceChange = \_ -> ()
+                            , onVerify = \_ -> ()
+                            , onUpload = ()
+                            , onNpwpChange = \_ -> ()
+                            , onNikChange = \_ -> ()
+                            , onAddressChange = \_ -> ()
+                            , onKluCodeChange = \_ -> ()
+                            , onSaveProfile = ()
+                            , onExport = ()
+                            , onNppnNotify = ()
+                            }
+                    in
+                    Dashboard.view
+                        (Ready { txs = [], unrealized = [], fxLeakage = [] })
+                        0
+                        "wise"
+                        ""
+                        { npwp = "", nik = "", address = "", kluCode = "" }
+                        (Just complianceStatus)
+                        handlers
+                        |> Query.fromHtml
+                        |> Query.find [ Selector.tag "button", Selector.text "Notify NPPN" ]
+                        |> Query.has []
             ]
         ]

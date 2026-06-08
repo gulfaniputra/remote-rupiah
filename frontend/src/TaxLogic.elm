@@ -1,16 +1,42 @@
-module TaxLogic exposing (..)
+module TaxLogic exposing
+    ( AnnualIncome
+    , PPh24Params
+    , TaxBracket
+    , TaxInput
+    , TaxResult
+    , aggregateAnnualSummary
+    , calculateFinalPayable
+    , calculateFXLeakage
+    , calculateIdrValue
+    , calculateIndoTax
+    , calculateNppn
+    , calculateNppnProfit
+    , calculatePPh24
+    , calculatePPh24Credit
+    , calculateProgressiveTax
+    , calculateTax
+    , calculateUsWithholding
+    , defaultBrackets
+    , generateTaxReport
+    , minMoney
+    , nonNegative
+    , projectYearEndLiability
+    )
 
 import Money exposing (IDR, Money)
+
 
 type alias AnnualIncome =
     { domestic : Money IDR
     , foreign : Money IDR
     }
 
+
 type alias TaxInput =
     { income : AnnualIncome
     , foreignTaxPaid : Money IDR
     }
+
 
 type alias TaxResult =
     { totalTax : Money IDR
@@ -18,7 +44,10 @@ type alias TaxResult =
     , netTaxPayable : Money IDR
     }
 
-type alias Rate = Int
+
+type alias Rate =
+    Int
+
 
 type alias TaxBracket =
     { lower : Money IDR
@@ -26,7 +55,10 @@ type alias TaxBracket =
     , rate : Rate
     }
 
-type alias PPh24Params = { foreignNetIncome : Money IDR, totalTaxableIncome : Money IDR, totalIndoTaxDue : Money IDR, actualForeignTaxPaid : Money IDR }
+
+type alias PPh24Params =
+    { foreignNetIncome : Money IDR, totalTaxableIncome : Money IDR, totalIndoTaxDue : Money IDR, actualForeignTaxPaid : Money IDR }
+
 
 nonNegative : Money c -> Money c
 nonNegative amount =
@@ -88,47 +120,6 @@ projectYearEndLiability g m =
 
     else
         calculateIndoTax (Money.divide (Money.multiply g 12) m)
-
-
--- Legacy/Helper API Compatibility
-calculateNPPN =
-    calculateNppn
-
-
-calculateUsWithholding m =
-    Money.divide m 10
-
-
-calculateIdrValue m r =
-    Money.divide (Money.multiply m r) 100
-
-
-calculateNppnProfit m r =
-    calculateNppn (calculateIdrValue m r)
-
-
-calculateFXLeakage m r act =
-    Money.subtract (calculateIdrValue m r) act
-
-
-calculateFinalPayable t c =
-    nonNegative (Money.subtract t c)
-
-
-generateTaxReport g f =
-    let
-        summary =
-            aggregateAnnualSummary [ { gross = g, foreignTaxPaid = f } ]
-    in
-    { totalTaxDue = Money.toAuthoritativeString summary.finalTaxPayable
-    , proof =
-        { nppnBasisPoints = 5000
-        , grossIdr = Money.toAuthoritativeString summary.totalGross
-        , taxableProfitIdr = Money.toAuthoritativeString summary.totalNetIncome
-        , bracketBreakdown = []
-        , pph24Logic = "min"
-        }
-    }
 
 
 defaultBrackets : List TaxBracket
@@ -225,3 +216,56 @@ calculateTax brackets input =
     , pph24Credit = pph24Credit
     , netTaxPayable = nonNegative (Money.subtract totalTax pph24Credit)
     }
+
+
+calculateUsWithholding : Money IDR -> Money IDR
+calculateUsWithholding gross =
+    Money.divide (Money.multiply gross 10) 100
+
+
+calculateIdrValue : Money c -> Int -> Money IDR
+calculateIdrValue usdCents rate =
+    Money.divide (Money.multiply usdCents rate) 100
+
+
+calculateNppnProfit : Money IDR -> Int -> Money IDR
+calculateNppnProfit gross rate =
+    calculateNppn (calculateIdrValue gross rate)
+
+
+calculateFXLeakage : Money c -> Int -> Money IDR -> Money IDR
+calculateFXLeakage usdCents rate actualIdr =
+    let
+        expectedIdr =
+            calculateIdrValue usdCents rate
+    in
+    -- Absolute difference, always non-negative
+    nonNegative (Money.subtract expectedIdr actualIdr)
+
+
+calculateFinalPayable : Money IDR -> Money IDR -> Money IDR
+calculateFinalPayable totalTax credit =
+    nonNegative (Money.subtract totalTax credit)
+
+
+generateTaxReport : Money IDR -> Money IDR -> { totalTaxDue : String }
+generateTaxReport totalForeignGross foreignTaxPaid =
+    let
+        taxableIncome =
+            calculateNppn totalForeignGross
+
+        indoTaxDue =
+            calculateIndoTax taxableIncome
+
+        pph24Credit =
+            calculatePPh24Credit
+                { foreignNetIncome = taxableIncome
+                , totalTaxableIncome = taxableIncome
+                , totalIndoTaxDue = indoTaxDue
+                , actualForeignTaxPaid = foreignTaxPaid
+                }
+
+        finalPayable =
+            calculateFinalPayable indoTaxDue pph24Credit
+    in
+    { totalTaxDue = Money.toAuthoritativeString finalPayable }

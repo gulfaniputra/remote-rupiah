@@ -1,4 +1,4 @@
-module Data.TaxProfile exposing (TaxProfile, decoder, decodeKluCode, encoder, empty)
+module Data.TaxProfile exposing (TaxProfile, decodeKluCode, decoder, empty, encoder)
 
 import Json.Decode as JD
 import Json.Encode as JE

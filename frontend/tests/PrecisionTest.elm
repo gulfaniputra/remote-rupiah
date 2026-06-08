@@ -4,6 +4,7 @@ import Expect
 import Money
 import Test exposing (..)
 
+
 precisionTests : Test
 precisionTests =
     describe "Precision Tests"

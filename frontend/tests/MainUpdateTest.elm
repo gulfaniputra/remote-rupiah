@@ -1,12 +1,14 @@
 module MainUpdateTest exposing (..)
 
 import Api
+import Data.Compliance as C
 import Data.FxEfficiency as FxEfficiency
 import Data.State exposing (State(..))
 import Data.TaxProfile as TaxProfile
 import Data.Transaction exposing (Transaction)
 import Data.Unrealized as Unrealized
 import Expect
+import Http
 import Main
 import Money
 import Test exposing (..)
@@ -119,4 +121,41 @@ suite =
                     |> Tuple.first
                     |> .uploadStatus
                     |> Expect.equal "Exporting SPT..."
+        , describe "NPPN Notify"
+            [ test "NppnNotify sets uploadStatus to 'Notifying NPPN...'" <|
+                \_ ->
+                    Main.update Main.NppnNotify loadingModel
+                        |> Tuple.first
+                        |> .uploadStatus
+                        |> Expect.equal "Notifying NPPN..."
+            , test "GotNppnNotify Ok updates complianceStatus" <|
+                \_ ->
+                    let
+                        nppnStatus =
+                            { notified = True
+                            , notifiedAt = Just "2026-03-15T10:00:00Z"
+                            , deadline = "2026-03-31"
+                            , daysRemaining = 0
+                            , isOverdue = False
+                            }
+
+                        complianceResponse : C.ComplianceStatusResponse
+                        complianceResponse =
+                            { w8benStatus = C.W8BenValid
+                            , w8benExpiryDate = Just "2099-12-31"
+                            , documents = []
+                            , nppnStatus = nppnStatus
+                            }
+                    in
+                    Main.update (Main.GotNppnNotify (Ok complianceResponse)) loadingModel
+                        |> Tuple.first
+                        |> .uploadStatus
+                        |> Expect.equal "NPPN notified!"
+            , test "GotNppnNotify Err sets uploadStatus to error message" <|
+                \_ ->
+                    Main.update (Main.GotNppnNotify (Err Http.NetworkError)) loadingModel
+                        |> Tuple.first
+                        |> .uploadStatus
+                        |> Expect.equal "NPPN notification failed"
+            ]
         ]

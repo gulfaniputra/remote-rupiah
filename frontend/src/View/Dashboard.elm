@@ -39,6 +39,7 @@ view :
         , onKluCodeChange : String -> msg
         , onSaveProfile : msg
         , onExport : msg
+        , onNppnNotify : msg
         }
     -> Html msg
 view state kmkVal source uploadStatus profile complianceStatus handlers =
@@ -88,6 +89,7 @@ renderReady :
         , onKluCodeChange : String -> msg
         , onSaveProfile : msg
         , onExport : msg
+        , onNppnNotify : msg
         }
     -> Html msg
 renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complianceStatus handlers =
@@ -122,7 +124,7 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
             "Rp " ++ M.toString m
     in
     div []
-        [ viewNppnAlert complianceStatus
+        [ viewNppnAlert { onNppnNotify = handlers.onNppnNotify } complianceStatus
         , div [ class "cards-grid" ]
             [ div [ class "card card-default" ]
                 [ h3 [] [ text "WALLET SOURCE" ]
@@ -269,8 +271,8 @@ w8BenBadge status =
             span [ class "text-secondary font-mono" ] [ text "— Missing" ]
 
 
-viewNppnAlert : Maybe C.ComplianceStatusResponse -> Html msg
-viewNppnAlert maybeStatus =
+viewNppnAlert : { onNppnNotify : msg } -> Maybe C.ComplianceStatusResponse -> Html msg
+viewNppnAlert handlers maybeStatus =
     case maybeStatus of
         Nothing ->
             text ""
@@ -282,14 +284,21 @@ viewNppnAlert maybeStatus =
 
             else if nppnStatus.isOverdue then
                 div [ class "alert alert-danger" ]
-                    [ span [ class "font-mono" ] [ text "⚠️ NPPN notification deadline missed — file immediately" ] ]
+                    [ span [ class "font-mono" ] [ text "⚠️ NPPN notification deadline missed — file immediately" ]
+                    , button [ class "btn btn-outline ml-3", onClick handlers.onNppnNotify ] [ text "Notify NPPN" ]
+                    ]
 
             else if nppnStatus.daysRemaining <= 14 then
                 div [ class "alert alert-warning" ]
-                    [ span [ class "font-mono" ] [ text ("⏰ NPPN notification due in " ++ String.fromInt nppnStatus.daysRemaining ++ " days") ] ]
+                    [ span [ class "font-mono" ] [ text ("⏰ NPPN notification due in " ++ String.fromInt nppnStatus.daysRemaining ++ " days") ]
+                    , button [ class "btn btn-outline ml-3", onClick handlers.onNppnNotify ] [ text "Notify NPPN" ]
+                    ]
 
             else
-                text ""
+                div [ class "alert alert-info" ]
+                    [ span [ class "font-mono" ] [ text ("📋 NPPN notification due in " ++ String.fromInt nppnStatus.daysRemaining ++ " days") ]
+                    , button [ class "btn btn-outline ml-3", onClick handlers.onNppnNotify ] [ text "Notify NPPN" ]
+                    ]
 
 
 evidenceLockerPanel : Maybe C.ComplianceStatusResponse -> Html msg

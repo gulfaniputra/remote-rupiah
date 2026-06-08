@@ -9,9 +9,10 @@ This document establishes the absolute architectural boundaries, safety invarian
 ### Minimalist Functionalism & Dependency Management
 
 - **Native-First Policy:** Always exhaust the capabilities of the Elm and Deno Standard Libraries before introducing any third-party package.
-- **The 50-Line Threshold:** Any new external dependency requires justification proving it avoids structural complexity that cannot be replicated cleanly in under 50 lines of native code.
+- **The 50-Line Threshold:** Any new external dependency requires justification proving it avoids structural complexity that cannot be replicated cleanly in under 50 lines of native code. The native replacement must remain legible and maintainable; do not obfuscate, compress, or "code-golf" logic simply to slip under the 50-line count.
 - **Cryptographic Exception:** Never design or implement custom security, tokenization, or cryptographic primitives. Use proven, peer-reviewed solutions like Deno's `WebCrypto` API or `noble-hashes`.
 - **CSV Parsing Exception:** Standard, robust streaming CSV parsers (such as Deno's standard `csv` module) are explicitly exempt from the 50-line rule to safely handle unescaped commas, line breaks, and quotation marks inside financial descriptions without risking data corruption.
+- **Sequential File Modifications:** When making changes across multiple files, execute the tool modifications sequentially—one single file at a time—and wait for my manual save/approval confirmation before proceeding to queue the next file edit.
 
 ### Point-Free and Pipelining Style
 
@@ -48,7 +49,7 @@ const processDataProcedural = (data: Raw[]) => {
 
 ### BigInt Serialization Gate
 
-- Because `JSON.stringify()` natively throws a `TypeError` when encountering `BigInt` values, all backend boundary API routes and Hono middleware must explicitly intercept, transform, or format `bigint` cent values into stringified fields prior to network transmission.
+- Because `JSON.stringify()` natively throws a `TypeError` when encountering `BigInt` values, all backend boundary API responses must be serialized via a centralized BigInt replacer function or automated Hono middleware that intercepts and transforms `bigint` values into raw string fields globally. Do not write manual inline type-mapping logic inside individual route handlers.
 
 ```typescript
 export interface CanonicalTx {
@@ -68,7 +69,7 @@ export interface CanonicalTx {
 - **The Net Income Standard:** The effective business overhead norm is defined at a 50% ratio. Net Income calculations must be modeled precisely as:
 
 ```
-$$\text{Netto IDR} = (\text{Bruto IDR} \times 50) / 100$$
+$$\text{Netto IDR} = \frac{\text{Bruto IDR} \times 50}{100}$$
 ```
 
 ### PPh Pasal 24 Foreign Tax Credit Rules
@@ -87,7 +88,7 @@ $$\text{Netto IDR} = (\text{Bruto IDR} \times 50) / 100$$
 - **No UI Framework Footprint:** Do not install `elm-ui`, Tailwind CSS, or Bootstrap components. Rely completely on semantic HTML paired directly with custom definitions written inside `frontend/style.css`.
 - **Icon Graphics:** Use localized, functional inline SVG components. Do not call external font CDNs or raster assets.
 - **Robust Decoders:** JSON decoder entities must defensively manage type variations (e.g., handling numeric KLU codes gracefully whether passed as standard integers or raw strings from JSON structures).
-- **IDR Cent Bound Guard:** Because IDR currency cent totals quickly scale past safe integer thresholds, all monetary cent values must be decoded from JSON Strings into custom Elm representations or safe bounded types, never parsed as raw JSON integers.
+- **IDR Cent Bound Guard:** Because IDR currency cent totals quickly scale past Elm's native 32-bit signed integer limits (`2,147,483,647`), decoding raw JSON numeric integers for financial values is forbidden. All monetary cents must be ingested from JSON strictly as `Strings` and managed using opaque string types or a designated, whitelisted BigInt library configuration.
 
 ---
 

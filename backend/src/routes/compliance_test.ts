@@ -38,6 +38,16 @@ const makeStatusReq = (token: string) =>
     headers: { Authorization: `Bearer ${token}` },
   });
 
+const makeNppnNotifyReq = (token: string, body?: Record<string, unknown>) =>
+  new Request("http://localhost/nppn/notify", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+
 // ---------------------------------------------------------------------------
 // Auth guard
 // ---------------------------------------------------------------------------
@@ -166,12 +176,14 @@ Deno.test(
     const res = await app.fetch(
       new Request("http://localhost/nppn/notify", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: true }),
       }),
     );
     assertEquals(res.status, 200);
     const body = await res.json();
     assertEquals(body.nppnStatus.notified, true);
+    assertEquals(typeof body.w8benStatus, "string");
   },
 );
 
@@ -181,3 +193,36 @@ Deno.test("POST /compliance/nppn/notify without token → 401", async () => {
   );
   assertEquals(res.status, 401);
 });
+
+// ---------------------------------------------------------------------------
+// NPPN Notify — Zod validation (RED: these tests should fail initially)
+// ---------------------------------------------------------------------------
+
+Deno.test(
+  "POST /compliance/nppn/notify — 400 when body contains invalid fields",
+  async () => {
+    const token = await makeToken();
+    const res = await app.fetch(
+      makeNppnNotifyReq(token, { invalidField: "should-not-be-here" }),
+    );
+    assertEquals(res.status, 400);
+    const body = await res.json();
+    assertEquals(body.success, false);
+  },
+);
+
+Deno.test(
+  "POST /compliance/nppn/notify — 400 when body contains non-object value",
+  async () => {
+    const token = await makeToken();
+    const res = await app.fetch(
+      makeNppnNotifyReq(
+        token,
+        "not-an-object" as unknown as Record<string, unknown>,
+      ),
+    );
+    assertEquals(res.status, 400);
+    const body = await res.json();
+    assertEquals(body.success, false);
+  },
+);

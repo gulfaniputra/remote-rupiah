@@ -85,6 +85,8 @@ type Msg
     | GotSaveTaxProfile (Result Http.Error TaxProfile)
     | Export Int
     | GotExportDjp (Result Http.Error String)
+    | NppnNotify
+    | GotNppnNotify (Result Http.Error C.ComplianceStatusResponse)
 
 
 
@@ -219,41 +221,29 @@ update msg m =
             let
                 p =
                     m.taxProfile
-
-                newP =
-                    { p | npwp = npwp }
             in
-            ( { m | taxProfile = newP }, Cmd.none )
+            ( { m | taxProfile = { p | npwp = npwp } }, Cmd.none )
 
         UpdateNik nik ->
             let
                 p =
                     m.taxProfile
-
-                newP =
-                    { p | nik = nik }
             in
-            ( { m | taxProfile = newP }, Cmd.none )
+            ( { m | taxProfile = { p | nik = nik } }, Cmd.none )
 
         UpdateAddress address ->
             let
                 p =
                     m.taxProfile
-
-                newP =
-                    { p | address = address }
             in
-            ( { m | taxProfile = newP }, Cmd.none )
+            ( { m | taxProfile = { p | address = address } }, Cmd.none )
 
         UpdateKluCode kluCode ->
             let
                 p =
                     m.taxProfile
-
-                newP =
-                    { p | kluCode = kluCode }
             in
-            ( { m | taxProfile = newP }, Cmd.none )
+            ( { m | taxProfile = { p | kluCode = kluCode } }, Cmd.none )
 
         SaveTaxProfile ->
             ( { m | uploadStatus = "Saving profile..." }
@@ -278,6 +268,17 @@ update msg m =
 
         GotExportDjp (Err _) ->
             ( { m | uploadStatus = "Export failed." }, Cmd.none )
+
+        NppnNotify ->
+            ( { m | uploadStatus = "Notifying NPPN..." }
+            , Api.notifyNppn m.token GotNppnNotify
+            )
+
+        GotNppnNotify (Ok status) ->
+            ( { m | complianceStatus = Just status, uploadStatus = "NPPN notified!" }, Cmd.none )
+
+        GotNppnNotify (Err _) ->
+            ( { m | uploadStatus = "NPPN notification failed" }, Cmd.none )
 
 
 
@@ -308,6 +309,7 @@ view m =
                     , onKluCodeChange = UpdateKluCode
                     , onSaveProfile = SaveTaxProfile
                     , onExport = Export 2026
+                    , onNppnNotify = NppnNotify
                     }
             in
             D.view

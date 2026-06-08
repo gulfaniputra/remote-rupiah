@@ -97,13 +97,32 @@ app.get("/status", async (c) => {
 // POST /compliance/nppn/notify
 // ---------------------------------------------------------------------------
 
+const validateNppnBody = (body: unknown): boolean => {
+  if (typeof body !== "object" || body === null) return false;
+  const keys = Object.keys(body as Record<string, unknown>);
+  if (keys.length === 0) return false;
+  if (keys.length > 1) return false;
+  if ((body as Record<string, unknown>).confirm !== true) return false;
+  return true;
+};
+
 app.post("/nppn/notify", async (c) => {
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    body = {};
+  }
+  if (!validateNppnBody(body)) {
+    return c.json({ success: false, error: "Validation failed" }, 400);
+  }
   const uid = userId(c) ?? "";
   if (!uid) return c.json({ error: "Unauthorized" }, 401);
 
   try {
-    const nppnStatus = await markNppnNotified(uid);
-    return c.json({ nppnStatus });
+    await markNppnNotified(uid);
+    const status = await getComplianceStatus(uid);
+    return c.json(status);
   } catch (err) {
     console.error(
       "[compliance] nppn notify failed:",

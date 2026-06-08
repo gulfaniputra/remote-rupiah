@@ -106,7 +106,17 @@ viewRow mapping header =
                 , value (Dict.get header mapping |> Maybe.withDefault "")
                 ]
                 (List.map
-                    (\t -> option [ value t ] [ text (if t == "" then "— skip —" else t) ])
+                    (\t ->
+                        option [ value t ]
+                            [ text
+                                (if t == "" then
+                                    "— skip —"
+
+                                 else
+                                    t
+                                )
+                            ]
+                    )
                     canonicalTargets
                 )
             ]
@@ -119,7 +129,14 @@ viewRow mapping header =
                     "mapper-confidence conf-low"
                 )
             ]
-            [ text (if Dict.member header mapping then "✓" else "–") ]
+            [ text
+                (if Dict.member header mapping then
+                    "✓"
+
+                 else
+                    "–"
+                )
+            ]
         ]
 
 

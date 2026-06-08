@@ -1,9 +1,26 @@
 module Money exposing
-    ( Money, IDR, USD
-    , add, subtract, multiply, divide, divideRoundUp, proportion, compare
-    , zero, fromCents, fromCentsStr, fromBigInt, fromStr
-    , toBigInt, toCents, toAuthoritativeString, toString, toDjpString
-    , encode, decoder
+    ( IDR
+    , Money
+    , USD
+    , add
+    , compare
+    , decoder
+    , divide
+    , divideRoundUp
+    , encode
+    , fromBigInt
+    , fromCents
+    , fromCentsStr
+    , fromStr
+    , multiply
+    , proportion
+    , subtract
+    , toAuthoritativeString
+    , toBigInt
+    , toCents
+    , toDjpString
+    , toString
+    , zero
     )
 
 import BigInt exposing (BigInt)
@@ -43,7 +60,8 @@ toBigInt (Money b) =
     b
 
 
-{-| @deprecated High-value transactions exceed 32-bit bounds. Use toAuthoritativeString. -}
+{-| @deprecated High-value transactions exceed 32-bit bounds. Use toAuthoritativeString.
+-}
 toCents : Money c -> Int
 toCents =
     toAuthoritativeString >> String.toInt >> Maybe.withDefault -1
