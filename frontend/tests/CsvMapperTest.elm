@@ -14,7 +14,7 @@ import Test exposing (..)
 
 baseModel : Model
 baseModel =
-    init "test-token" [ "Date", "Amount", "Currency" ]
+    init "http://localhost:8080" "test-token" [ "Date", "Amount", "Currency" ]
 
 
 

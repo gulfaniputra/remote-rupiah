@@ -14,6 +14,7 @@ import Http
 
 type alias Model =
     { token : String
+    , apiUrl : String
     , mapping : Dict String String
     , sourceHeaders : List String
     , status : Status
@@ -27,9 +28,10 @@ type Status
     | Failed String
 
 
-init : String -> List String -> Model
-init token headers =
+init : String -> String -> List String -> Model
+init apiUrl token headers =
     { token = token
+    , apiUrl = apiUrl
     , mapping = Dict.empty
     , sourceHeaders = headers
     , status = Idle
@@ -57,7 +59,7 @@ update msg model =
     case msg of
         FetchMapping ->
             ( { model | status = Loading }
-            , Api.fetchCsvMapping model.token GotMapping
+            , Api.fetchCsvMapping model.apiUrl model.token GotMapping
             )
 
         GotMapping (Ok (Just m)) ->
@@ -76,7 +78,7 @@ update msg model =
 
         SaveMapping ->
             ( { model | status = Loading }
-            , Api.saveCsvMapping model.token model.mapping MappingSaved
+            , Api.saveCsvMapping model.apiUrl model.token model.mapping MappingSaved
             )
 
         MappingSaved (Ok _) ->

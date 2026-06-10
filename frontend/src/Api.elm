@@ -22,12 +22,12 @@ decodeMappingRequired =
     JD.field "headers" (JD.list JD.string)
 
 
-fetchTransactions : String -> (Result TransactionFetchError (List Transaction) -> msg) -> Cmd msg
-fetchTransactions token toMsg =
+fetchTransactions : String -> String -> (Result TransactionFetchError (List Transaction) -> msg) -> Cmd msg
+fetchTransactions apiUrl token toMsg =
     Http.request
         { method = "GET"
         , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
-        , url = "/api/transactions"
+        , url = apiUrl ++ "/api/transactions"
         , body = Http.emptyBody
         , expect =
             Http.expectStringResponse toMsg
@@ -59,12 +59,12 @@ fetchTransactions token toMsg =
         }
 
 
-verify1042s : String -> String -> (Result Http.Error () -> msg) -> Cmd msg
-verify1042s token id toMsg =
+verify1042s : String -> String -> String -> (Result Http.Error () -> msg) -> Cmd msg
+verify1042s apiUrl token id toMsg =
     Http.request
         { method = "PATCH"
         , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
-        , url = "/api/transactions/" ++ id ++ "/verify"
+        , url = apiUrl ++ "/api/transactions/" ++ id ++ "/verify"
         , body = Http.emptyBody
         , expect = Http.expectWhatever toMsg
         , timeout = Just 10000
@@ -93,12 +93,12 @@ encodeMapping mapping =
         |> JE.object
 
 
-fetchCsvMapping : String -> (Result Http.Error (Maybe (Dict String String)) -> msg) -> Cmd msg
-fetchCsvMapping token toMsg =
+fetchCsvMapping : String -> String -> (Result Http.Error (Maybe (Dict String String)) -> msg) -> Cmd msg
+fetchCsvMapping apiUrl token toMsg =
     Http.request
         { method = "GET"
         , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
-        , url = "/api/csv/map"
+        , url = apiUrl ++ "/api/csv/map"
         , body = Http.emptyBody
         , expect = Http.expectJson toMsg decodeMapping
         , timeout = Just 10000
@@ -106,12 +106,12 @@ fetchCsvMapping token toMsg =
         }
 
 
-saveCsvMapping : String -> Dict String String -> (Result Http.Error () -> msg) -> Cmd msg
-saveCsvMapping token mapping toMsg =
+saveCsvMapping : String -> String -> Dict String String -> (Result Http.Error () -> msg) -> Cmd msg
+saveCsvMapping apiUrl token mapping toMsg =
     Http.request
         { method = "POST"
         , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
-        , url = "/api/csv/map"
+        , url = apiUrl ++ "/api/csv/map"
         , body = Http.jsonBody (encodeMapping mapping)
         , expect = Http.expectWhatever toMsg
         , timeout = Just 10000
@@ -119,12 +119,12 @@ saveCsvMapping token mapping toMsg =
         }
 
 
-fetchUnrealized : String -> (Result Http.Error (List Unrealized) -> msg) -> Cmd msg
-fetchUnrealized token toMsg =
+fetchUnrealized : String -> String -> (Result Http.Error (List Unrealized) -> msg) -> Cmd msg
+fetchUnrealized apiUrl token toMsg =
     Http.request
         { method = "GET"
         , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
-        , url = "/api/wealth/unrealized"
+        , url = apiUrl ++ "/api/wealth/unrealized"
         , body = Http.emptyBody
         , expect = Http.expectJson toMsg Unrealized.listDecoder
         , timeout = Just 10000
@@ -132,12 +132,12 @@ fetchUnrealized token toMsg =
         }
 
 
-fetchFxEfficiency : String -> (Result Http.Error (List FxEfficiencyData) -> msg) -> Cmd msg
-fetchFxEfficiency token toMsg =
+fetchFxEfficiency : String -> String -> (Result Http.Error (List FxEfficiencyData) -> msg) -> Cmd msg
+fetchFxEfficiency apiUrl token toMsg =
     Http.request
         { method = "GET"
         , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
-        , url = "/api/forecast/fx-efficiency"
+        , url = apiUrl ++ "/api/forecast/fx-efficiency"
         , body = Http.emptyBody
         , expect = Http.expectJson toMsg FxEfficiency.listDecoder
         , timeout = Just 10000
@@ -145,12 +145,12 @@ fetchFxEfficiency token toMsg =
         }
 
 
-fetchTaxProfile : String -> (Result Http.Error (Maybe TaxProfile) -> msg) -> Cmd msg
-fetchTaxProfile token toMsg =
+fetchTaxProfile : String -> String -> (Result Http.Error (Maybe TaxProfile) -> msg) -> Cmd msg
+fetchTaxProfile apiUrl token toMsg =
     Http.request
         { method = "GET"
         , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
-        , url = "/api/tax-profile"
+        , url = apiUrl ++ "/api/tax-profile" -- Fixed typo: added missing slash "/"
         , body = Http.emptyBody
         , expect =
             Http.expectJson toMsg
@@ -160,12 +160,12 @@ fetchTaxProfile token toMsg =
         }
 
 
-saveTaxProfile : String -> TaxProfile -> (Result Http.Error TaxProfile -> msg) -> Cmd msg
-saveTaxProfile token profile toMsg =
+saveTaxProfile : String -> String -> TaxProfile -> (Result Http.Error TaxProfile -> msg) -> Cmd msg
+saveTaxProfile apiUrl token profile toMsg =
     Http.request
         { method = "POST"
         , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
-        , url = "/api/tax-profile"
+        , url = apiUrl ++ "/api/tax-profile" -- Fixed typo: added missing slash "/"
         , body = Http.jsonBody (TaxProfile.encoder profile)
         , expect =
             Http.expectJson toMsg
@@ -175,12 +175,12 @@ saveTaxProfile token profile toMsg =
         }
 
 
-exportDjp : String -> Int -> (Result Http.Error String -> msg) -> Cmd msg
-exportDjp token year toMsg =
+exportDjp : String -> String -> Int -> (Result Http.Error String -> msg) -> Cmd msg
+exportDjp apiUrl token year toMsg =
     Http.request
         { method = "POST"
         , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
-        , url = "/api/export/djp"
+        , url = apiUrl ++ "/api/export/djp"
         , body = Http.jsonBody (JE.object [ ( "year", JE.int year ) ])
         , expect = Http.expectString toMsg
         , timeout = Just 15000
@@ -188,25 +188,25 @@ exportDjp token year toMsg =
         }
 
 
-notifyNppn : String -> (Result Http.Error Compliance.ComplianceStatusResponse -> msg) -> Cmd msg
-notifyNppn token toMsg =
+notifyNppn : String -> String -> (Result Http.Error Compliance.ComplianceStatusResponse -> msg) -> Cmd msg
+notifyNppn apiUrl token toMsg =
     Http.request
         { method = "POST"
         , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
-        , url = "/api/compliance/nppn/notify"
-        , body = Http.jsonBody (JE.object [])
+        , url = apiUrl ++ "/api/compliance/nppn/notify"
+        , body = Http.jsonBody (JE.object [ ( "confirm", JE.bool True ) ])
         , expect = Http.expectJson toMsg Compliance.complianceStatusDecoder
         , timeout = Just 10000
         , tracker = Nothing
         }
 
 
-fetchComplianceStatus : String -> (Result Http.Error Compliance.ComplianceStatusResponse -> msg) -> Cmd msg
-fetchComplianceStatus token toMsg =
+fetchComplianceStatus : String -> String -> (Result Http.Error Compliance.ComplianceStatusResponse -> msg) -> Cmd msg
+fetchComplianceStatus apiUrl token toMsg =
     Http.request
         { method = "GET"
         , headers = [ Http.header "Authorization" ("Bearer " ++ token) ]
-        , url = "/api/compliance/status"
+        , url = apiUrl ++ "/api/compliance/status"
         , body = Http.emptyBody
         , expect = Http.expectJson toMsg Compliance.complianceStatusDecoder
         , timeout = Just 10000

@@ -1,5 +1,5 @@
 import { Context, Next } from "hono";
-import { verify } from "hono/jwt";
+import { sign, verify } from "hono/jwt";
 
 export type AuthToken = {
   sub: string;
@@ -9,10 +9,19 @@ export type AuthToken = {
 };
 
 const TEST_JWT_SECRET = "test-jwt-secret-12345678901234567890";
+const DEV_JWT_SECRET = "dev-jwt-secret-abcdef1234567890abcdef";
+
 const isTesting: boolean = (() => {
   try {
-    if (Deno.env.get("DENO_ENV") === "test") return true;
     return !Deno.mainModule.endsWith("main.ts");
+  } catch {
+    return false;
+  }
+})();
+
+const isProduction: boolean = (() => {
+  try {
+    return Deno.env.get("DENO_ENV") === "production";
   } catch {
     return false;
   }
@@ -33,15 +42,39 @@ const unauthorized = () =>
     headers: { "Content-Type": "application/json" },
   });
 
-const getJwtSecret = () => {
+export const getJwtSecret = (): string | undefined => {
   try {
     const secret =
       (Deno.env.get("JWT_SECRET") || Deno.env.get("SUPABASE_JWT_SECRET"))
         ?.trim();
-    return secret || (isTesting ? TEST_JWT_SECRET : undefined);
+    if (secret) return secret;
   } catch {
-    return isTesting ? TEST_JWT_SECRET : undefined;
+    // ignore
   }
+  if (isTesting) return TEST_JWT_SECRET;
+  // Dev fallback: allow dev environment without explicit env vars
+  return isProduction ? undefined : DEV_JWT_SECRET;
+};
+
+/**
+ * Generate a dev-mode JWT token.
+ * Throws if called in production.
+ */
+export const generateDevToken = async (userId: string): Promise<string> => {
+  const secret = getJwtSecret();
+  if (!secret) {
+    throw new Error("Cannot generate dev token: no JWT secret configured");
+  }
+  return await sign(
+    {
+      sub: userId,
+      iss: "your-app",
+      aud: "your-users",
+      exp: Math.floor(Date.now() / 1000) + 86400 * 7, // 7 days
+    },
+    secret,
+    "HS256",
+  );
 };
 
 export const authMiddleware = async (c: Context, next: Next) => {

@@ -1,99 +1,135 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Remote-Rupiah Dashboard</title>
     <meta
       name="description"
       content="Personal finance and tax dashboard for Indonesian remote developers — NPPN, PPh 24, and FX tracking."
-    >
+    />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
-    >
-    <link rel="stylesheet" href="style.css">
+    />
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div id="elm-app"></div>
     <script src="elm.js"></script>
     <script>
-      var app = Elm.Main.init({
-        node: document.getElementById("elm-app"),
-        flags: { token: localStorage.getItem("rr_token") || "" },
-      });
+      // Dev-mode token bootstrap: auto-obtain a JWT if none is stored
+      var apiUrl = "http://localhost:8000";
+      var storedToken = localStorage.getItem("rr_token");
 
-      if (app.ports && app.ports.clearCredentials) {
-        app.ports.clearCredentials.subscribe(function () {
-          localStorage.removeItem("rr_token");
-          window.location.reload();
+      function bootstrapApp(token) {
+        var app = Elm.Main.init({
+          node: document.getElementById("elm-app"),
+          flags: {
+            token: token,
+            apiUrl: apiUrl,
+          },
         });
-      }
 
-      var fileInput = document.createElement("input");
-      fileInput.type = "file";
-      fileInput.accept = ".csv,text/csv";
-      fileInput.style.display = "none";
-      document.body.appendChild(fileInput);
+        // Clear Session Hook
+        if (app.ports && app.ports.clearCredentials) {
+          app.ports.clearCredentials.subscribe(function () {
+            localStorage.removeItem("rr_token");
+            window.location.reload();
+          });
+        }
 
-      if (app.ports && app.ports.requestCsvFile) {
-        app.ports.requestCsvFile.subscribe(function () {
-          fileInput.value = "";
-          fileInput.click();
+        // Invisible File Input for CSV processing
+        var fileInput = document.createElement("input");
+        fileInput.type = "file";
+        fileInput.accept = ".csv,text/csv";
+        fileInput.style.display = "none";
+        document.body.appendChild(fileInput);
+
+        // Listen for UI request to open system file dialog
+        if (app.ports && app.ports.requestCsvFile) {
+          app.ports.requestCsvFile.subscribe(function () {
+            fileInput.value = "";
+            fileInput.click();
+          });
+        }
+
+        // Read selected CSV file as text and pass back to Elm
+        fileInput.addEventListener("change", function () {
+          var file = fileInput.files && fileInput.files[0];
+          if (!file || !app.ports || !app.ports.csvSelected) return;
+
+          file.text().then(function (csv) {
+            app.ports.csvSelected.send(csv);
+          });
         });
-      }
 
-      fileInput.addEventListener("change", function () {
-        var file = fileInput.files && fileInput.files[0];
-        if (!file || !app.ports || !app.ports.csvSelected) return;
-
-        file.text().then(function (csv) {
-          app.ports.csvSelected.send(csv);
-        });
-      });
-
-      if (app.ports && app.ports.uploadCsv) {
-        app.ports.uploadCsv.subscribe(function (payload) {
-          fetch("/api/v1/ingest", {
-            method: "POST",
-            headers: {
-              "Authorization": "Bearer " + payload.token,
-              "Content-Type": "text/csv",
-            },
-            body: payload.csv,
-          })
-            .then(function (response) {
-              return response.text().then(function (text) {
+        // Handle the manual multi-part transaction ingest request via ports
+        if (app.ports && app.ports.uploadCsv) {
+          app.ports.uploadCsv.subscribe(function (payload) {
+            fetch("http://localhost:8000/api/v1/ingest", {
+              method: "POST",
+              headers: {
+                Authorization: "Bearer " + payload.token,
+                "Content-Type": "text/csv",
+              },
+              body: payload.csv,
+            })
+              .then(function (response) {
+                return response.text().then(function (text) {
+                  if (app.ports && app.ports.uploadCompleted) {
+                    app.ports.uploadCompleted.send(
+                      response.ok
+                        ? "Upload complete"
+                        : "Upload failed: " + response.status + " " + text,
+                    );
+                  }
+                });
+              })
+              .catch(function (err) {
                 if (app.ports && app.ports.uploadCompleted) {
                   app.ports.uploadCompleted.send(
-                    response.ok
-                      ? "Upload complete"
-                      : "Upload failed: " + response.status + " " +
-                        text,
+                    "Upload failed: " + err.message,
                   );
                 }
               });
-            })
-            .catch(function (err) {
-              if (app.ports && app.ports.uploadCompleted) {
-                app.ports.uploadCompleted.send(
-                  "Upload failed: " + err.message,
-                );
-              }
-            });
-        });
+          });
+        }
+
+        // Local browser compilation to download processed data back down as clean CSV
+        if (app.ports && app.ports.downloadCsv) {
+          app.ports.downloadCsv.subscribe(function (payload) {
+            var blob = new Blob([payload.content], { type: "text/csv" });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement("a");
+            a.href = url;
+            a.download = payload.filename;
+            a.click();
+            URL.revokeObjectURL(url);
+          });
+        }
       }
 
-      if (app.ports && app.ports.downloadCsv) {
-        app.ports.downloadCsv.subscribe(function (payload) {
-          var blob = new Blob([payload.content], { type: "text/csv" });
-          var url = URL.createObjectURL(blob);
-          var a = document.createElement("a");
-          a.href = url;
-          a.download = payload.filename;
-          a.click();
-          URL.revokeObjectURL(url);
-        });
+      // If we already have a stored token, use it; otherwise fetch a dev token
+      if (storedToken) {
+        bootstrapApp(storedToken);
+      } else {
+        fetch(apiUrl + "/api/auth/token")
+          .then(function (res) {
+            return res.json();
+          })
+          .then(function (data) {
+            if (data.token) {
+              localStorage.setItem("rr_token", data.token);
+              bootstrapApp(data.token);
+            } else {
+              // Fallback: bootstrap empty
+              bootstrapApp("");
+            }
+          })
+          .catch(function () {
+            bootstrapApp("");
+          });
       }
     </script>
   </body>

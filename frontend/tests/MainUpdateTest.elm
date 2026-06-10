@@ -34,6 +34,7 @@ loadingModel =
     , t = Main.epoch
     , kmk = Nothing
     , token = "test-token"
+    , apiUrl = "http://localhost:8080"
     , source = "wise"
     , uploadStatus = ""
     , taxProfile = TaxProfile.empty

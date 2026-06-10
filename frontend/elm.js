@@ -6275,8 +6275,8 @@ var $elm$http$Http$request = function (r) {
 		$elm$http$Http$Request(
 			{allowCookiesFromOtherDomains: false, body: r.body, expect: r.expect, headers: r.headers, method: r.method, timeout: r.timeout, tracker: r.tracker, url: r.url}));
 };
-var $author$project$Api$fetchComplianceStatus = F2(
-	function (token, toMsg) {
+var $author$project$Api$fetchComplianceStatus = F3(
+	function (apiUrl, token, toMsg) {
 		return $elm$http$Http$request(
 			{
 				body: $elm$http$Http$emptyBody,
@@ -6288,7 +6288,7 @@ var $author$project$Api$fetchComplianceStatus = F2(
 				method: 'GET',
 				timeout: $elm$core$Maybe$Just(10000),
 				tracker: $elm$core$Maybe$Nothing,
-				url: '/api/compliance/status'
+				url: apiUrl + '/api/compliance/status'
 			});
 	});
 var $author$project$Data$FxEfficiency$FxEfficiencyData = F6(
@@ -6688,8 +6688,8 @@ var $author$project$Data$FxEfficiency$listDecoder = A2(
 	$elm$json$Json$Decode$field,
 	'fxData',
 	$elm$json$Json$Decode$list($author$project$Data$FxEfficiency$decoder));
-var $author$project$Api$fetchFxEfficiency = F2(
-	function (token, toMsg) {
+var $author$project$Api$fetchFxEfficiency = F3(
+	function (apiUrl, token, toMsg) {
 		return $elm$http$Http$request(
 			{
 				body: $elm$http$Http$emptyBody,
@@ -6701,7 +6701,7 @@ var $author$project$Api$fetchFxEfficiency = F2(
 				method: 'GET',
 				timeout: $elm$core$Maybe$Just(10000),
 				tracker: $elm$core$Maybe$Nothing,
-				url: '/api/forecast/fx-efficiency'
+				url: apiUrl + '/api/forecast/fx-efficiency'
 			});
 	});
 var $author$project$Data$TaxProfile$TaxProfile = F4(
@@ -6721,8 +6721,8 @@ var $author$project$Data$TaxProfile$decoder = A5(
 	A2($elm$json$Json$Decode$field, 'nik', $elm$json$Json$Decode$string),
 	A2($elm$json$Json$Decode$field, 'address', $elm$json$Json$Decode$string),
 	A2($elm$json$Json$Decode$field, 'klu_code', $author$project$Data$TaxProfile$decodeKluCode));
-var $author$project$Api$fetchTaxProfile = F2(
-	function (token, toMsg) {
+var $author$project$Api$fetchTaxProfile = F3(
+	function (apiUrl, token, toMsg) {
 		return $elm$http$Http$request(
 			{
 				body: $elm$http$Http$emptyBody,
@@ -6740,7 +6740,7 @@ var $author$project$Api$fetchTaxProfile = F2(
 				method: 'GET',
 				timeout: $elm$core$Maybe$Just(10000),
 				tracker: $elm$core$Maybe$Nothing,
-				url: '/api/tax-profile'
+				url: apiUrl + '/api/tax-profile'
 			});
 	});
 var $author$project$Data$Unrealized$Unrealized = F2(
@@ -6756,8 +6756,8 @@ var $author$project$Data$Unrealized$listDecoder = A2(
 	$elm$json$Json$Decode$field,
 	'positions',
 	$elm$json$Json$Decode$list($author$project$Data$Unrealized$decoder));
-var $author$project$Api$fetchUnrealized = F2(
-	function (token, toMsg) {
+var $author$project$Api$fetchUnrealized = F3(
+	function (apiUrl, token, toMsg) {
 		return $elm$http$Http$request(
 			{
 				body: $elm$http$Http$emptyBody,
@@ -6769,7 +6769,7 @@ var $author$project$Api$fetchUnrealized = F2(
 				method: 'GET',
 				timeout: $elm$core$Maybe$Just(10000),
 				tracker: $elm$core$Maybe$Nothing,
-				url: '/api/wealth/unrealized'
+				url: apiUrl + '/api/wealth/unrealized'
 			});
 	});
 var $author$project$Data$State$Failure = function (a) {
@@ -6777,6 +6777,9 @@ var $author$project$Data$State$Failure = function (a) {
 };
 var $author$project$Main$GotExportDjp = function (a) {
 	return {$: 'GotExportDjp', a: a};
+};
+var $author$project$Main$GotNppnNotify = function (a) {
+	return {$: 'GotNppnNotify', a: a};
 };
 var $author$project$Main$GotSaveTaxProfile = function (a) {
 	return {$: 'GotSaveTaxProfile', a: a};
@@ -6838,8 +6841,8 @@ var $elm$http$Http$jsonBody = function (value) {
 		'application/json',
 		A2($elm$json$Json$Encode$encode, 0, value));
 };
-var $author$project$Api$exportDjp = F3(
-	function (token, year, toMsg) {
+var $author$project$Api$exportDjp = F4(
+	function (apiUrl, token, year, toMsg) {
 		return $elm$http$Http$request(
 			{
 				body: $elm$http$Http$jsonBody(
@@ -6858,10 +6861,27 @@ var $author$project$Api$exportDjp = F3(
 				method: 'POST',
 				timeout: $elm$core$Maybe$Just(15000),
 				tracker: $elm$core$Maybe$Nothing,
-				url: '/api/export/djp'
+				url: apiUrl + '/api/export/djp'
 			});
 	});
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
+var $author$project$Api$notifyNppn = F3(
+	function (apiUrl, token, toMsg) {
+		return $elm$http$Http$request(
+			{
+				body: $elm$http$Http$jsonBody(
+					$elm$json$Json$Encode$object(_List_Nil)),
+				expect: A2($elm$http$Http$expectJson, toMsg, $author$project$Data$Compliance$complianceStatusDecoder),
+				headers: _List_fromArray(
+					[
+						A2($elm$http$Http$header, 'Authorization', 'Bearer ' + token)
+					]),
+				method: 'POST',
+				timeout: $elm$core$Maybe$Just(10000),
+				tracker: $elm$core$Maybe$Nothing,
+				url: apiUrl + '/api/compliance/nppn/notify'
+			});
+	});
 var $author$project$Main$requestCsvFile = _Platform_outgoingPort(
 	'requestCsvFile',
 	function ($) {
@@ -6885,8 +6905,8 @@ var $author$project$Data$TaxProfile$encoder = function (profile) {
 				$elm$json$Json$Encode$string(profile.kluCode))
 			]));
 };
-var $author$project$Api$saveTaxProfile = F3(
-	function (token, profile, toMsg) {
+var $author$project$Api$saveTaxProfile = F4(
+	function (apiUrl, token, profile, toMsg) {
 		return $elm$http$Http$request(
 			{
 				body: $elm$http$Http$jsonBody(
@@ -6902,7 +6922,7 @@ var $author$project$Api$saveTaxProfile = F3(
 				method: 'POST',
 				timeout: $elm$core$Maybe$Just(10000),
 				tracker: $elm$core$Maybe$Nothing,
-				url: '/api/tax-profile'
+				url: apiUrl + '/api/tax-profile'
 			});
 	});
 var $author$project$Main$uploadCsv = _Platform_outgoingPort(
@@ -6936,8 +6956,8 @@ var $elm$http$Http$expectWhatever = function (toMsg) {
 				return $elm$core$Result$Ok(_Utils_Tuple0);
 			}));
 };
-var $author$project$Api$verify1042s = F3(
-	function (token, id, toMsg) {
+var $author$project$Api$verify1042s = F4(
+	function (apiUrl, token, id, toMsg) {
 		return $elm$http$Http$request(
 			{
 				body: $elm$http$Http$emptyBody,
@@ -6949,7 +6969,7 @@ var $author$project$Api$verify1042s = F3(
 				method: 'PATCH',
 				timeout: $elm$core$Maybe$Just(10000),
 				tracker: $elm$core$Maybe$Nothing,
-				url: '/api/transactions/' + (id + '/verify')
+				url: apiUrl + ('/api/transactions/' + (id + '/verify'))
 			});
 	});
 var $author$project$Main$update = F2(
@@ -7089,8 +7109,9 @@ var $author$project$Main$update = F2(
 				var id = msg.a;
 				return _Utils_Tuple2(
 					m,
-					A3(
+					A4(
 						$author$project$Api$verify1042s,
+						m.apiUrl,
 						m.token,
 						id,
 						$author$project$Main$Verified(id)));
@@ -7160,53 +7181,57 @@ var $author$project$Main$update = F2(
 			case 'UpdateNpwp':
 				var npwp = msg.a;
 				var p = m.taxProfile;
-				var newP = _Utils_update(
-					p,
-					{npwp: npwp});
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{taxProfile: newP}),
+						{
+							taxProfile: _Utils_update(
+								p,
+								{npwp: npwp})
+						}),
 					$elm$core$Platform$Cmd$none);
 			case 'UpdateNik':
 				var nik = msg.a;
 				var p = m.taxProfile;
-				var newP = _Utils_update(
-					p,
-					{nik: nik});
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{taxProfile: newP}),
+						{
+							taxProfile: _Utils_update(
+								p,
+								{nik: nik})
+						}),
 					$elm$core$Platform$Cmd$none);
 			case 'UpdateAddress':
 				var address = msg.a;
 				var p = m.taxProfile;
-				var newP = _Utils_update(
-					p,
-					{address: address});
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{taxProfile: newP}),
+						{
+							taxProfile: _Utils_update(
+								p,
+								{address: address})
+						}),
 					$elm$core$Platform$Cmd$none);
 			case 'UpdateKluCode':
 				var kluCode = msg.a;
 				var p = m.taxProfile;
-				var newP = _Utils_update(
-					p,
-					{kluCode: kluCode});
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
-						{taxProfile: newP}),
+						{
+							taxProfile: _Utils_update(
+								p,
+								{kluCode: kluCode})
+						}),
 					$elm$core$Platform$Cmd$none);
 			case 'SaveTaxProfile':
 				return _Utils_Tuple2(
 					_Utils_update(
 						m,
 						{uploadStatus: 'Saving profile...'}),
-					A3($author$project$Api$saveTaxProfile, m.token, m.taxProfile, $author$project$Main$GotSaveTaxProfile));
+					A4($author$project$Api$saveTaxProfile, m.apiUrl, m.token, m.taxProfile, $author$project$Main$GotSaveTaxProfile));
 			case 'GotSaveTaxProfile':
 				if (msg.a.$ === 'Ok') {
 					var savedProfile = msg.a.a;
@@ -7228,8 +7253,8 @@ var $author$project$Main$update = F2(
 					_Utils_update(
 						m,
 						{uploadStatus: 'Exporting SPT...'}),
-					A3($author$project$Api$exportDjp, m.token, year, $author$project$Main$GotExportDjp));
-			default:
+					A4($author$project$Api$exportDjp, m.apiUrl, m.token, year, $author$project$Main$GotExportDjp));
+			case 'GotExportDjp':
 				if (msg.a.$ === 'Ok') {
 					var csvContent = msg.a.a;
 					return _Utils_Tuple2(
@@ -7245,6 +7270,30 @@ var $author$project$Main$update = F2(
 							{uploadStatus: 'Export failed.'}),
 						$elm$core$Platform$Cmd$none);
 				}
+			case 'NppnNotify':
+				return _Utils_Tuple2(
+					_Utils_update(
+						m,
+						{uploadStatus: 'Notifying NPPN...'}),
+					A3($author$project$Api$notifyNppn, m.apiUrl, m.token, $author$project$Main$GotNppnNotify));
+			default:
+				if (msg.a.$ === 'Ok') {
+					var status = msg.a.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							m,
+							{
+								complianceStatus: $elm$core$Maybe$Just(status),
+								uploadStatus: 'NPPN notified!'
+							}),
+						$elm$core$Platform$Cmd$none);
+				} else {
+					return _Utils_Tuple2(
+						_Utils_update(
+							m,
+							{uploadStatus: 'NPPN notification failed'}),
+						$elm$core$Platform$Cmd$none);
+				}
 		}
 	});
 var $author$project$Main$uploadCompleted = _Platform_incomingPort('uploadCompleted', $elm$json$Json$Decode$string);
@@ -7254,6 +7303,7 @@ var $author$project$Main$CsvMapperMsg = function (a) {
 var $author$project$Main$Export = function (a) {
 	return {$: 'Export', a: a};
 };
+var $author$project$Main$NppnNotify = {$: 'NppnNotify'};
 var $author$project$Main$RequestCsvUpload = {$: 'RequestCsvUpload'};
 var $author$project$Main$SaveTaxProfile = {$: 'SaveTaxProfile'};
 var $author$project$Main$UpdateAddress = function (a) {
@@ -7285,9 +7335,9 @@ var $elm$core$Maybe$andThen = F2(
 	});
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$CsvMapper$Idle = {$: 'Idle'};
-var $author$project$CsvMapper$init = F2(
-	function (token, headers) {
-		return {mapping: $elm$core$Dict$empty, sourceHeaders: headers, status: $author$project$CsvMapper$Idle, token: token};
+var $author$project$CsvMapper$init = F3(
+	function (apiUrl, token, headers) {
+		return {apiUrl: apiUrl, mapping: $elm$core$Dict$empty, sourceHeaders: headers, status: $author$project$CsvMapper$Idle, token: token};
 	});
 var $elm$virtual_dom$VirtualDom$map = _VirtualDom_map;
 var $elm$html$Html$map = $elm$virtual_dom$VirtualDom$map;
@@ -8699,69 +8749,122 @@ var $author$project$View$Dashboard$totalUnrealized = A2(
 			return A2($author$project$Money$add, acc, position.unrealizedIdrCents);
 		}),
 	$author$project$Money$zero);
-var $author$project$View$Dashboard$viewNppnAlert = function (maybeStatus) {
-	if (maybeStatus.$ === 'Nothing') {
-		return $elm$html$Html$text('');
-	} else {
-		var nppnStatus = maybeStatus.a.nppnStatus;
-		return nppnStatus.notified ? A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('alert alert-success')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$span,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('font-mono')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('✅ NPPN filed')
-						]))
-				])) : (nppnStatus.isOverdue ? A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('alert alert-danger')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$span,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('font-mono')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text('⚠️ NPPN notification deadline missed — file immediately')
-						]))
-				])) : ((nppnStatus.daysRemaining <= 14) ? A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('alert alert-warning')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$span,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('font-mono')
-						]),
-					_List_fromArray(
-						[
-							$elm$html$Html$text(
-							'⏰ NPPN notification due in ' + ($elm$core$String$fromInt(nppnStatus.daysRemaining) + ' days'))
-						]))
-				])) : $elm$html$Html$text('')));
-	}
-};
+var $author$project$View$Dashboard$viewNppnAlert = F2(
+	function (handlers, maybeStatus) {
+		if (maybeStatus.$ === 'Nothing') {
+			return $elm$html$Html$text('');
+		} else {
+			var nppnStatus = maybeStatus.a.nppnStatus;
+			return nppnStatus.notified ? A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('alert alert-success')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$span,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('font-mono')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('✅ NPPN filed')
+							]))
+					])) : (nppnStatus.isOverdue ? A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('alert alert-danger')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$span,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('font-mono')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('⚠️ NPPN notification deadline missed — file immediately')
+							])),
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('btn btn-outline ml-3'),
+								$elm$html$Html$Events$onClick(handlers.onNppnNotify)
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Notify NPPN')
+							]))
+					])) : ((nppnStatus.daysRemaining <= 14) ? A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('alert alert-warning')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$span,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('font-mono')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(
+								'⏰ NPPN notification due in ' + ($elm$core$String$fromInt(nppnStatus.daysRemaining) + ' days'))
+							])),
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('btn btn-outline ml-3'),
+								$elm$html$Html$Events$onClick(handlers.onNppnNotify)
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Notify NPPN')
+							]))
+					])) : A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('alert alert-info')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$span,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('font-mono')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(
+								'📋 NPPN notification due in ' + ($elm$core$String$fromInt(nppnStatus.daysRemaining) + ' days'))
+							])),
+						A2(
+						$elm$html$Html$button,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('btn btn-outline ml-3'),
+								$elm$html$Html$Events$onClick(handlers.onNppnNotify)
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('Notify NPPN')
+							]))
+					]))));
+		}
+	});
 var $author$project$View$Dashboard$renderReady = F9(
 	function (txs, unrealized, fxLeakage, kmkVal, source, uploadStatus, profile, complianceStatus, handlers) {
 		var whtIdr = function (m) {
@@ -8804,7 +8907,10 @@ var $author$project$View$Dashboard$renderReady = F9(
 			_List_Nil,
 			_List_fromArray(
 				[
-					$author$project$View$Dashboard$viewNppnAlert(complianceStatus),
+					A2(
+					$author$project$View$Dashboard$viewNppnAlert,
+					{onNppnNotify: handlers.onNppnNotify},
+					complianceStatus),
 					A2(
 					$elm$html$Html$div,
 					_List_fromArray(
@@ -9438,7 +9544,7 @@ var $author$project$Main$view = function (m) {
 				$elm$html$Html$map,
 				$author$project$Main$CsvMapperMsg,
 				$author$project$CsvMapper$view(
-					A2($author$project$CsvMapper$init, m.token, headers)));
+					A3($author$project$CsvMapper$init, m.apiUrl, m.token, headers)));
 		default:
 			var data = _v0.a;
 			var handlers = {
@@ -9446,6 +9552,7 @@ var $author$project$Main$view = function (m) {
 				onExport: $author$project$Main$Export(2026),
 				onKluCodeChange: $author$project$Main$UpdateKluCode,
 				onNikChange: $author$project$Main$UpdateNik,
+				onNppnNotify: $author$project$Main$NppnNotify,
 				onNpwpChange: $author$project$Main$UpdateNpwp,
 				onSaveProfile: $author$project$Main$SaveTaxProfile,
 				onSourceChange: $author$project$Main$UpdateSource,
@@ -9470,14 +9577,14 @@ var $author$project$Main$main = $elm$browser$Browser$element(
 	{
 		init: function (flags) {
 			return _Utils_Tuple2(
-				{complianceStatus: $elm$core$Maybe$Nothing, kmk: $elm$core$Maybe$Nothing, source: 'wise', state: $author$project$Data$State$Loading, t: $author$project$Main$epoch, taxProfile: $author$project$Data$TaxProfile$empty, token: flags.token, uploadStatus: ''},
+				{apiUrl: flags.apiUrl, complianceStatus: $elm$core$Maybe$Nothing, kmk: $elm$core$Maybe$Nothing, source: 'wise', state: $author$project$Data$State$Loading, t: $author$project$Main$epoch, taxProfile: $author$project$Data$TaxProfile$empty, token: flags.token, uploadStatus: ''},
 				$elm$core$Platform$Cmd$batch(
 					_List_fromArray(
 						[
-							A2($author$project$Api$fetchUnrealized, flags.token, $author$project$Main$GotUnrealized),
-							A2($author$project$Api$fetchFxEfficiency, flags.token, $author$project$Main$GotFxEfficiency),
-							A2($author$project$Api$fetchTaxProfile, flags.token, $author$project$Main$GotTaxProfile),
-							A2($author$project$Api$fetchComplianceStatus, flags.token, $author$project$Main$GotComplianceStatus)
+							A3($author$project$Api$fetchUnrealized, flags.apiUrl, flags.token, $author$project$Main$GotUnrealized),
+							A3($author$project$Api$fetchFxEfficiency, flags.apiUrl, flags.token, $author$project$Main$GotFxEfficiency),
+							A3($author$project$Api$fetchTaxProfile, flags.apiUrl, flags.token, $author$project$Main$GotTaxProfile),
+							A3($author$project$Api$fetchComplianceStatus, flags.apiUrl, flags.token, $author$project$Main$GotComplianceStatus)
 						])));
 		},
 		subscriptions: function (_v0) {
@@ -9495,7 +9602,12 @@ _Platform_export({'Main':{'init':$author$project$Main$main(
 	A2(
 		$elm$json$Json$Decode$andThen,
 		function (token) {
-			return $elm$json$Json$Decode$succeed(
-				{token: token});
+			return A2(
+				$elm$json$Json$Decode$andThen,
+				function (apiUrl) {
+					return $elm$json$Json$Decode$succeed(
+						{apiUrl: apiUrl, token: token});
+				},
+				A2($elm$json$Json$Decode$field, 'apiUrl', $elm$json$Json$Decode$string));
 		},
 		A2($elm$json$Json$Decode$field, 'token', $elm$json$Json$Decode$string)))(0)}});}(this));

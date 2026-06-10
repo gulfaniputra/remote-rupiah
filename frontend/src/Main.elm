@@ -47,6 +47,7 @@ type alias Model =
     , t : Time.Posix
     , kmk : Maybe String
     , token : String
+    , apiUrl : String
     , source : String
     , uploadStatus : String
     , taxProfile : TaxProfile
@@ -165,7 +166,7 @@ update msg m =
                     ( { m | state = Failure "Network error" }, Cmd.none )
 
         Verify id ->
-            ( m, Api.verify1042s m.token id (Verified id) )
+            ( m, Api.verify1042s m.apiUrl m.token id (Verified id) )
 
         Verified id (Ok _) ->
             case m.state of
@@ -247,7 +248,7 @@ update msg m =
 
         SaveTaxProfile ->
             ( { m | uploadStatus = "Saving profile..." }
-            , Api.saveTaxProfile m.token m.taxProfile GotSaveTaxProfile
+            , Api.saveTaxProfile m.apiUrl m.token m.taxProfile GotSaveTaxProfile
             )
 
         GotSaveTaxProfile (Ok savedProfile) ->
@@ -258,7 +259,7 @@ update msg m =
 
         Export year ->
             ( { m | uploadStatus = "Exporting SPT..." }
-            , Api.exportDjp m.token year GotExportDjp
+            , Api.exportDjp m.apiUrl m.token year GotExportDjp
             )
 
         GotExportDjp (Ok csvContent) ->
@@ -271,7 +272,7 @@ update msg m =
 
         NppnNotify ->
             ( { m | uploadStatus = "Notifying NPPN..." }
-            , Api.notifyNppn m.token GotNppnNotify
+            , Api.notifyNppn m.apiUrl m.token GotNppnNotify
             )
 
         GotNppnNotify (Ok status) ->
@@ -295,7 +296,7 @@ view m =
             div [] [ text ("Error: " ++ err) ]
 
         MappingRequired { headers } ->
-            Html.map CsvMapperMsg (CsvMapper.view (CsvMapper.init m.token headers))
+            Html.map CsvMapperMsg (CsvMapper.view (CsvMapper.init m.apiUrl m.token headers))
 
         Ready data ->
             let
@@ -326,7 +327,7 @@ view m =
 -- MAIN
 
 
-main : Program { token : String } Model Msg
+main : Program { token : String, apiUrl : String } Model Msg
 main =
     Browser.element
         { init =
@@ -336,15 +337,16 @@ main =
                   , t = epoch
                   , kmk = Nothing
                   , token = flags.token
+                  , apiUrl = flags.apiUrl
                   , source = "wise"
                   , uploadStatus = ""
                   , taxProfile = TaxProfile.empty
                   }
                 , Cmd.batch
-                    [ Api.fetchUnrealized flags.token GotUnrealized
-                    , Api.fetchFxEfficiency flags.token GotFxEfficiency
-                    , Api.fetchTaxProfile flags.token GotTaxProfile
-                    , Api.fetchComplianceStatus flags.token GotComplianceStatus
+                    [ Api.fetchUnrealized flags.apiUrl flags.token GotUnrealized
+                    , Api.fetchFxEfficiency flags.apiUrl flags.token GotFxEfficiency
+                    , Api.fetchTaxProfile flags.apiUrl flags.token GotTaxProfile
+                    , Api.fetchComplianceStatus flags.apiUrl flags.token GotComplianceStatus
                     ]
                 )
         , update = update

@@ -1,4 +1,5 @@
 import { Context, Hono } from "hono";
+import { cors } from "hono/cors";
 import transactions from "./routes/transactions.ts";
 import kmk from "./routes/kmk.ts";
 import ingest from "./routes/ingest.ts";
@@ -8,18 +9,38 @@ import taxProfile from "./routes/tax_profile.ts";
 import forecast from "./routes/forecast.ts";
 import wealth from "./routes/wealth.ts";
 import fieldMapping from "./routes/field_mapping.ts";
+import csv from "./backend/src/routes/csv.ts";
+import compliance from "./backend/src/routes/compliance.ts";
 import { registerKmkCron } from "./services/kmk_cron.ts";
 import { registerComplianceCron } from "./services/compliance_cron.ts";
 import { getKmkRateByDate } from "./services/kmk_resolver.ts";
-import csv from "./backend/src/routes/csv.ts";
-import compliance from "./backend/src/routes/compliance.ts";
+import { generateDevToken, getJwtSecret } from "./services/auth_middleware.ts";
 
 export const app = new Hono();
 
+// Base health check endpoint
 app.get("/", (c: Context) => {
   return c.text("Remote Rupiah API");
 });
 
+// Dev-mode token endpoint (enables the frontend to bootstrap auth in dev)
+app.get("/api/auth/token", async (c: Context) => {
+  const secret = getJwtSecret();
+  if (!secret) {
+    return c.json({ error: "No JWT secret configured" }, 500);
+  }
+  try {
+    const token = await generateDevToken("dev-user-id");
+    return c.json({ token });
+  } catch (err: unknown) {
+    return c.json(
+      { error: err instanceof Error ? err.message : String(err) },
+      500,
+    );
+  }
+});
+
+// Exchange rate lookup endpoint
 app.get("/kmk-rate", async (c: Context) => {
   const dateParam = c.req.query("date");
   if (!dateParam) return c.json({ error: "Missing date parameter" }, 400);
@@ -37,23 +58,36 @@ app.get("/kmk-rate", async (c: Context) => {
   }
 });
 
+// Global CORS Middleware applied strictly to API boundaries
+app.use(
+  "/api/*",
+  cors({
+    origin: Deno.env.get("DENO_ENV") === "production"
+      ? "https://your-production-frontend.pages.dev"
+      : "http://localhost:8010",
+    allowHeaders: ["Content-Type", "Authorization", "x-api-key"],
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    exposeHeaders: ["Content-Length"],
+    maxAge: 600,
+    credentials: true,
+  }),
+);
+
+// Route mount assignments
 app.route("/api/transactions", transactions);
 app.route("/api/kmk", kmk);
 app.route("/api/v1/ingest", ingest);
 app.route("/api/export", exportSpt);
 app.route("/api/export/djp", exportDjp);
-
 app.route("/api/tax-profile", taxProfile);
-
 app.route("/api/forecast", forecast);
 app.route("/api/wealth", wealth);
 app.route("/api/v1/field-mapping", fieldMapping);
 app.route("/api/csv", csv);
 app.route("/api/compliance", compliance);
 
+// Runtime self-execution configuration check
 if (import.meta.main) {
-  // Register Deno.cron jobs for automated KMK rate sync
-  // Requires --unstable-cron flag or Deno Deploy runtime
   registerKmkCron();
   registerComplianceCron();
   Deno.serve(app.fetch);

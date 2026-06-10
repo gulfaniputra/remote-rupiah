@@ -176,7 +176,10 @@ Deno.test(
     const res = await app.fetch(
       new Request("http://localhost/nppn/notify", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ confirm: true }),
       }),
     );
