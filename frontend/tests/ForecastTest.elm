@@ -8,7 +8,7 @@ import Test exposing (..)
 
 
 p =
-    TaxLogic.projectYearEndLiability
+    TaxLogic.projectYearEndLiability TaxLogic.defaultBrackets
 
 
 suite : Test
@@ -27,7 +27,7 @@ suite =
                     v =
                         Money.fromCentsStr "1000000000"
                 in
-                Money.compare (p v 7) (calculateIndoTax (Money.divide (Money.multiply v 12) 7)) |> Expect.notEqual LT
+                Money.compare (p v 7) (calculateIndoTax TaxLogic.defaultBrackets (Money.divide (Money.multiply v 12) 7)) |> Expect.notEqual LT
         , fuzz (Fuzz.intRange 0 500000000000) ">=0" <| \c -> Money.fromCents c |> (\m -> p m 6) |> (\r -> Money.compare r Money.zero) |> Expect.notEqual LT
         , fuzz (Fuzz.intRange 1 12) "mo>=0" <| \m -> p (Money.fromCentsStr "5000000000") m |> (\r -> Money.compare r Money.zero) |> Expect.notEqual LT
         , fuzz (Fuzz.intRange 0 100000000000) "<=35%" <|

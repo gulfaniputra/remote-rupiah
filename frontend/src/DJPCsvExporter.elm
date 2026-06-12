@@ -8,4 +8,4 @@ calculateNetIncome =
 
 
 calculateTax =
-    TaxLogic.calculateIndoTax
+    TaxLogic.calculateIndoTax TaxLogic.defaultBrackets

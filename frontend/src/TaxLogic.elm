@@ -79,12 +79,13 @@ calculatePPh24Credit p =
     calculatePPh24 p.totalIndoTaxDue p.foreignNetIncome p.totalTaxableIncome p.actualForeignTaxPaid
 
 
-calculateIndoTax : Money IDR -> Money IDR
-calculateIndoTax =
-    calculateProgressiveTax defaultBrackets
+calculateIndoTax : List TaxBracket -> Money IDR -> Money IDR
+calculateIndoTax brackets =
+    calculateProgressiveTax brackets
 
 
-aggregateAnnualSummary txs =
+aggregateAnnualSummary : List TaxBracket -> List { gross : Money IDR, foreignTaxPaid : Money IDR } -> { totalGross : Money IDR, totalNetIncome : Money IDR, totalPPh24Credit : Money IDR, totalIndoTaxDue : Money IDR, finalTaxPayable : Money IDR }
+aggregateAnnualSummary brackets txs =
     let
         gross =
             List.foldl (\tx acc -> Money.add tx.gross acc) Money.zero txs
@@ -93,7 +94,7 @@ aggregateAnnualSummary txs =
             calculateNppn gross
 
         indoTaxDue =
-            calculateIndoTax netIncome
+            calculateIndoTax brackets netIncome
 
         foreignTaxPaid =
             List.foldl (\tx acc -> Money.add tx.foreignTaxPaid acc) Money.zero txs
@@ -114,12 +115,13 @@ aggregateAnnualSummary txs =
     }
 
 
-projectYearEndLiability g m =
+projectYearEndLiability : List TaxBracket -> Money IDR -> Int -> Money IDR
+projectYearEndLiability brackets g m =
     if m <= 0 then
         Money.zero
 
     else
-        calculateIndoTax (Money.divide (Money.multiply g 12) m)
+        calculateIndoTax brackets (Money.divide (Money.multiply g 12) m)
 
 
 defaultBrackets : List TaxBracket
@@ -248,14 +250,14 @@ calculateFinalPayable totalTax credit =
     nonNegative (Money.subtract totalTax credit)
 
 
-generateTaxReport : Money IDR -> Money IDR -> { totalTaxDue : String }
-generateTaxReport totalForeignGross foreignTaxPaid =
+generateTaxReport : List TaxBracket -> Money IDR -> Money IDR -> { totalTaxDue : String }
+generateTaxReport brackets totalForeignGross foreignTaxPaid =
     let
         taxableIncome =
             calculateNppn totalForeignGross
 
         indoTaxDue =
-            calculateIndoTax taxableIncome
+            calculateIndoTax brackets taxableIncome
 
         pph24Credit =
             calculatePPh24Credit

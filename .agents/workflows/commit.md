@@ -1,67 +1,75 @@
 ---
-trigger: "on_git_commit"
-description: "Enforces project-specific Conventional Commits and pre-commit safety checks."
+trigger: "manual"
+description: "High-integrity, token-disciplined Git commit builder and compliance auditor."
 ---
 
 # Workflow: Remote-Rupiah Commit Protocol
 
-**Context:** Every commit must maintain the integrity of our financial
-compliance engine. You act as the strict gatekeeper for these rules.
+**Context:** Every commit must preserve the integrity of our edge financial
+engine without consuming excess API tokens. You act as a text-only compliance
+auditor and formatter.
 
-## 1. Pre-Commit Validation
+## 1. Human Pre-Flight Guardrail (Token-Saver)
 
-Before generating a message, you MUST execute and verify the following pipeline:
+Before initiating this workflow, the **Human** must run these checks locally in
+their own VS Code terminal:
 
-1. **Code Format Check:** Run `deno fmt`.
-2. **Integrity Check:** Run `deno lint` and `elm make`.
-3. **Logic Check:** If files in `frontend/src/TaxLogic.elm` or `services/` were
-   modified, run `deno test` and `elm-test`. They MUST pass.
+1. Code Quality: `deno fmt` and `deno lint`
+2. Compilation: `elm make`
+3. Core Validation: `deno test` and `elm-test` if tax/service components changed
 
-## 2. The Zero-Float Protocol (CRITICAL)
+_Do not initiate this agent workflow if local terminal verification fails._
 
-Financial precision is absolute. We do not use floats.
+## 2. The Zero-Float Diff Audit (CRITICAL)
 
-- **The Diff Audit:** Semantically scan the _staged diff_ for any introduction
-  of the `Float` type, float literals (e.g., `0.11`), or floating-point math
-  operators in files touching `TaxLogic`, `Transactions`, or `Money`.
-- **The Rejection:** If a float is introduced, **REJECT** the commit
-  immediately.
-- **Safety Prompt:** Present this prompt to the developer: _"This change
-  introduces floating-point logic in a financial context, violating the
-  Zero-Float protocol. Should I refactor this to use the `Money` opaque type /
-  integers?"_
+When the developer requests a commit message, scan the provided staged git diff
+text meticulously.
 
-## 3. Conventional Commit Schema
+- **The Invariant:** We do not use floating-point types for currency
+  calculation.
+- **Scan Targets:** Look closely at lines added (`+`) in files belonging to or
+  importing from `TaxLogic.elm`, `Transactions.ts`, or `Money.elm`.
+- **Rejection Conditions:** If you detect the introduction of the literal string
+  `Float`, explicit float decimals (e.g., `0.11`), or fractional numeric
+  divisions where an integer was expected, **ABORT** immediately.
+- **Safety Prompt:** If rejected, output exactly this message and stop:
+  _"CRITICAL BLOCK: This change introduces floating-point properties in a
+  financial context, violating the Zero-Float protocol. Please refactor to use
+  the opaque `Money` integer cents pattern."_
 
-Generate the message using this strict format: `<type>(<scope>): <description>`
+## 3. Conventional Commit Formatting
+
+If the diff passes audit, draft a highly dense single-line commit message
+following this precise schema: `<type>(<scope>): <description>`
 
 **Allowed Types:**
 
-- `feat`, `fix`, `refactor`, `chore`, `test`, `docs`.
+- `feat`, `fix`, `refactor`, `chore`, `test`, `docs`
 
 **Allowed Scopes:**
 
-- `frontend`: Changes to Elm files or `index.html`.
-- `backend`: Changes to Deno/Hono routes or services.
-- `tax`: Changes to `TaxLogic.elm` or DJP compliance formulas.
-- `db`: Changes to PostgreSQL 17 schemas or RLS policies.
-- `infra`: Changes to `deno.json` or `.agents/` rules.
+- `frontend`: Modifications to Elm files or asset templates.
+- `backend`: Modifications to Deno/Hono source infrastructure.
+- `tax`: Changes targeting `TaxLogic.elm` or specific DJP rules.
+- `db`: Structural adjustments to PostgreSQL 17 schemas or RLS rules.
+- `infra`: Alterations to configuration charts, maps, or `.agents/` rules.
 
-**Example:** `feat(tax): implement PPh 24 credit cap formula`
+## 4. Operational "No-Slop" Constraints
 
-## 4. The "No-Slop" Description Rule
+- Use strict lowercase, imperative mood ("add", not "added" or "adds").
+- Keep the title segment strictly under 50 characters.
+- Do not reference or repeat literal file names or code extensions in the title.
+- **DJP Statutory Link:** If the scope is `tax`, you must include a concise,
+  single-sentence reference citing the specific legal authority (e.g.,
+  `Compliance Reference: UU HPP Pasal 24`) in the body block below the title
+  header.
 
-- Use the imperative mood ("add", not "added").
-- Keep it under 50 characters.
-- Do not repeat file names in the description.
-- **Compliance Link:** If the change involves a tax law update in the `tax`
-  scope, you MUST cite the specific UU (e.g., UU HPP) in the commit body.
+## 5. Execution Routine
 
-## 5. Execution Steps
-
-1. **Analyze:** Examine the staged changes.
-2. **Audit:** Run the Pre-Commit Validation and Zero-Float checks. Stop and
-   alert the user if any fail.
-3. **Draft:** Generate a compliant `<type>(<scope>): <description>` message.
-4. **Present:** Show the audit status and the proposed message to the developer
-   for final approval.
+1. Prompt the human to provide the staged diff text if not already loaded into
+   context.
+2. Complete the token-free Zero-Float text audit.
+3. Generate the compliant commit string within a copy-pasteable markdown code
+   block.
+4. Output a brief checklist confirmation summary (e.g., _Audit: Pass | Scope:
+   tax_). Stop there.

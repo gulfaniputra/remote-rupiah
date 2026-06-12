@@ -2,7 +2,7 @@ module TaxTests exposing (..)
 
 import Expect
 import Money
-import TaxLogic
+import TaxLogic exposing (defaultBrackets)
 import Test exposing (..)
 
 
@@ -60,22 +60,19 @@ indoTaxBracketTests =
         [ test "0 - 60M bracket (5%)" <|
             \_ ->
                 -- 10M profit -> 500k tax
-                Money.fromCents (10000000 * 100)
-                    |> TaxLogic.calculateIndoTax
+                TaxLogic.calculateIndoTax defaultBrackets (Money.fromCents (10000000 * 100))
                     |> Money.toCents
                     |> Expect.equal (500000 * 100)
         , test "exactly 60M boundary (5%)" <|
             \_ ->
                 -- 60M * 5% = 3M
-                Money.fromCents (60000000 * 100)
-                    |> TaxLogic.calculateIndoTax
+                TaxLogic.calculateIndoTax defaultBrackets (Money.fromCents (60000000 * 100))
                     |> Money.toCents
                     |> Expect.equal (3000000 * 100)
         , test "60M - 250M bracket (15%)" <|
             \_ ->
                 -- 100M profit: (60M * 5%) + (40M * 15%) = 3M + 6M = 9M
-                Money.fromCents (100000000 * 100)
-                    |> TaxLogic.calculateIndoTax
+                TaxLogic.calculateIndoTax defaultBrackets (Money.fromCents (100000000 * 100))
                     |> Money.toCents
                     |> Expect.equal (9000000 * 100)
         , test "250M - 500M bracket (25%)" <|
@@ -83,14 +80,12 @@ indoTaxBracketTests =
                 -- 433.6M profit (from Main.elm case):
                 -- (60M * 5%) + (190M * 15%) + (183.6M * 25%)
                 -- = 3M + 28.5M + 45.9M = 77.4M
-                Money.fromCents (433600000 * 100)
-                    |> TaxLogic.calculateIndoTax
+                TaxLogic.calculateIndoTax defaultBrackets (Money.fromCents (433600000 * 100))
                     |> Money.toCents
                     |> Expect.equal (77400000 * 100)
         , test "zero taxable income produces zero tax" <|
             \_ ->
-                Money.fromCents 0
-                    |> TaxLogic.calculateIndoTax
+                TaxLogic.calculateIndoTax defaultBrackets (Money.fromCents 0)
                     |> Money.toCents
                     |> Expect.equal 0
         ]
@@ -445,7 +440,7 @@ pph24CreditTests =
                             TaxLogic.calculateNppn grossIdr
 
                         indoTax =
-                            TaxLogic.calculateIndoTax taxableIncome
+                            TaxLogic.calculateIndoTax defaultBrackets taxableIncome
 
                         usWithholding =
                             TaxLogic.calculateUsWithholding grossIdr
@@ -495,7 +490,7 @@ pph24CreditTests =
                             TaxLogic.calculateNppn grossIdr
 
                         indoTax =
-                            TaxLogic.calculateIndoTax taxableIncome
+                            TaxLogic.calculateIndoTax defaultBrackets taxableIncome
 
                         usWithholding =
                             TaxLogic.calculateUsWithholding grossIdr

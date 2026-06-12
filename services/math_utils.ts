@@ -1,7 +1,15 @@
 export type Currency = bigint;
 
 export const parseAmount = (s: string): Currency => {
-  const [i, f = ""] = s.replace(/,/g, "").split(".");
+  // Detect format by checking which separator comes last (that's the decimal)
+  const lastComma = s.lastIndexOf(",");
+  const lastDot = s.lastIndexOf(".");
+  const normalized = lastComma > lastDot
+    // European: . is thousands sep, , is decimal → remove ., replace , with .
+    ? s.replace(/\./g, "").replace(",", ".")
+    // US or plain: , is thousands sep (or absent) → just remove commas
+    : s.replace(/,/g, "");
+  const [i, f = ""] = normalized.split(".");
   return BigInt((i || "0") + f.padEnd(2, "0").slice(0, 2));
 };
 

@@ -61,6 +61,9 @@ export const getJwtSecret = (): string | undefined => {
  * Throws if called in production.
  */
 export const generateDevToken = async (userId: string): Promise<string> => {
+  if (!userId) {
+    throw new Error("Cannot generate dev token: userId must be non-empty");
+  }
   const secret = getJwtSecret();
   if (!secret) {
     throw new Error("Cannot generate dev token: no JWT secret configured");

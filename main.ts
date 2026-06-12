@@ -59,12 +59,19 @@ app.get("/kmk-rate", async (c: Context) => {
 });
 
 // Global CORS Middleware applied strictly to API boundaries
+const corsOrigin = (() => {
+  try {
+    return Deno.env.get("DENO_ENV") === "production"
+      ? "https://your-production-frontend.pages.dev"
+      : "http://localhost:8010";
+  } catch {
+    return "http://localhost:8010";
+  }
+})();
 app.use(
   "/api/*",
   cors({
-    origin: Deno.env.get("DENO_ENV") === "production"
-      ? "https://your-production-frontend.pages.dev"
-      : "http://localhost:8010",
+    origin: corsOrigin,
     allowHeaders: ["Content-Type", "Authorization", "x-api-key"],
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],

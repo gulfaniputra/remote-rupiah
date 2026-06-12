@@ -107,7 +107,7 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
             T.calculateNppn annIdr
 
         indo =
-            T.calculateIndoTax profit
+            T.calculateIndoTax T.defaultBrackets profit
 
         whtIdr =
             txs |> List.map .withholdingCents |> List.foldl M.add M.zero |> (\m -> M.multiply m kmkVal)
@@ -182,7 +182,7 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
         , div [ class "cards-grid" ]
             [ summaryCard "YTD GROSS" annIdr "card-teal"
             , summaryCard "FX LEAKAGE" fxLeakageIdr "card-default"
-            , summaryCard "PROJECTED TAX" (T.projectYearEndLiability profit 5) "card-default"
+            , summaryCard "PROJECTED TAX" (T.projectYearEndLiability T.defaultBrackets profit 5) "card-default"
             , div [ class "card card-default" ]
                 [ h3 [] [ text "UNREALIZED FX GAIN/LOSS" ]
                 , div [ class "big-value font-mono text-secondary" ] [ text ("Rp " ++ M.toString unrealizedIdr) ]

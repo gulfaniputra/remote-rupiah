@@ -3,7 +3,7 @@ module TaxLogicFuzzTest exposing (..)
 import Expect
 import Fuzz
 import Money
-import TaxLogic exposing (..)
+import TaxLogic exposing (defaultBrackets)
 import Test exposing (..)
 
 
@@ -34,10 +34,10 @@ suite =
                 Money.fromCents c |> TaxLogic.calculateNppn |> Money.toCents |> Expect.equal (c // 2)
         , fuzz (Fuzz.intRange 0 500000000000) "tax >= 0" <|
             \c ->
-                Money.fromCents c |> TaxLogic.calculateIndoTax |> Money.toCents |> Expect.atLeast 0
+                Money.fromCents c |> TaxLogic.calculateIndoTax defaultBrackets |> Money.toCents |> Expect.atLeast 0
         , fuzz (Fuzz.intRange 0 500000000000) "tax <= income" <|
             \c ->
-                Money.fromCents c |> TaxLogic.calculateIndoTax |> Money.toCents |> Expect.atMost c
+                Money.fromCents c |> TaxLogic.calculateIndoTax defaultBrackets |> Money.toCents |> Expect.atMost c
         , fuzz (Fuzz.intRange 1 1000000) "zero leak when actual=expected" <|
             \c ->
                 let
@@ -49,10 +49,10 @@ suite =
             \ytd ->
                 let
                     projected =
-                        TaxLogic.projectYearEndLiability (Money.fromCents ytd) 12
+                        TaxLogic.projectYearEndLiability defaultBrackets (Money.fromCents ytd) 12
 
                     actual =
-                        TaxLogic.calculateIndoTax (Money.fromCents ytd)
+                        TaxLogic.calculateIndoTax defaultBrackets (Money.fromCents ytd)
                 in
                 Money.toCents projected |> Expect.equal (Money.toCents actual)
         ]

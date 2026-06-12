@@ -83,6 +83,7 @@ decoder =
         |> Decode.andThen (BigInt.fromIntString >> Maybe.map (Money >> Decode.succeed) >> Maybe.withDefault (Decode.fail "Invalid authoritative money string"))
 
 
+toString : Money c -> String
 toString (Money b) =
     let
         raw =
@@ -111,6 +112,7 @@ toString (Money b) =
         ++ body
 
 
+zero : Money c
 zero =
     Money (BigInt.fromInt 0)
 

@@ -1,0 +1,18 @@
+# Dependencies
+.git/
+.env
+node_modules/
+package-lock.json
+dist/
+build/
+
+# Elm & Deno
+elm-stuff/
+frontend/elm.js
+deno.lock
+.deno/
+
+# Tests
+**/tests/
+**/*_test.ts
+**/*Test.elm
