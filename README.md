@@ -71,16 +71,14 @@ graph TD
 # Setup environment variables
 cp .env.example .env
 
-# KMK_ACCESS_TOKEN must be obtained from https://fiskal.kemenkeu.go.id
-
 # Create database
 createdb remote_rupiah
 
-# Initialize database (Schema & RLS)
-psql -d remote_rupiah -f db/schema.sql
+# Apply the database tables
+psql -h localhost -U YOUR_ACTUAL_DB_USER -d remote_rupiah -f db/schema.sql
 
-# Seed with mock US 1042-S transaction data
-psql -d remote_rupiah -f db/seed.sql
+# Seed the database with initial/mock data
+psql -h localhost -U YOUR_ACTUAL_DB_USER -d remote_rupiah -f db/seed.sql
 ```
 
 ### Running the App
