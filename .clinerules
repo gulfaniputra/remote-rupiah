@@ -4,7 +4,16 @@ This document establishes the absolute architectural boundaries, safety invarian
 
 ---
 
-## 1. Core Architectural Axioms
+## 1. Core Architectural & Cognitive Axioms
+
+### Cognitive Pre-Thought Phase (DeepSeek Native Protocol)
+
+Before executing ANY file manipulation tool (`write_to_file`, `apply_diff`) or terminal execution, the agent must output a structured internal assessment block in its response containing exactly these four elements:
+
+1. **Current Hypothesis:** What is the precise logical or architectural issue we are solving right now?
+2. **Impact Boundary:** Which files or types (specifically across the Elm frontend / Hono backend boundary) will be touched by this single action?
+3. **Execution Steps:** A bulleted, linear breakdown of the single file change sequence.
+4. **Verification Strategy:** How will we immediately test that this individual change worked before moving to any other task?
 
 ### Minimalist Functionalism & Dependency Management
 
@@ -67,10 +76,9 @@ export interface CanonicalTx {
 
 - Data calculations must respect Indonesian individual tax filing rules under the Norm Penghitungan Penghasilan Netto (NPPN) paradigm for software development.
 - **The Net Income Standard:** The effective business overhead norm is defined at a 50% ratio. Net Income calculations must be modeled precisely as:
-
-```
-$$\text{Netto IDR} = \frac{\text{Bruto IDR} \times 50}{100}$$
-```
+  ```
+  $$\text{Netto IDR} = \frac{\text{Bruto IDR} \times 50}{100}$$
+  ```
 
 ### PPh Pasal 24 Foreign Tax Credit Rules
 
@@ -125,3 +133,12 @@ $$\text{Netto IDR} = \frac{\text{Bruto IDR} \times 50}{100}$$
 
 - Live, remote network API assertions are strictly banned inside local testing suites.
 - External dependency responses (such as Ministry of Finance exchange rate providers) must always pass through isolated, mock boundary classes. Use `jsr:@std/assert@1` for structural test tracking.
+
+---
+
+## 8. Crash-Halt Invariant (Error Loop Prevention)
+
+- If a terminal execution output returns a compilation error, a failed `jsr:@std/assert` test, or an Elm compiler type mismatch, the agent must **IMMEDIATELY HALT**.
+- **Forbidden Action:** Do not attempt to write a new file mutation or guess a second fix on top of a failing state. This prevents logical spiraling.
+- **Mandatory Action:** Execute an implicit rollback step. Re-read the modified file, analyze why the previous hypothesis failed inside a new 'Pre-Thought Phase', explain the failure clearly to the user, and wait for manual confirmation before attempting an adjusted fix.
+- Treat compiler outputs as strict environmental state walls, not as suggestions to iterate over blindly.
