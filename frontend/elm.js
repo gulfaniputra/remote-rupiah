@@ -6865,12 +6865,19 @@ var $author$project$Api$exportDjp = F4(
 			});
 	});
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
+var $elm$json$Json$Encode$bool = _Json_wrap;
 var $author$project$Api$notifyNppn = F3(
 	function (apiUrl, token, toMsg) {
 		return $elm$http$Http$request(
 			{
 				body: $elm$http$Http$jsonBody(
-					$elm$json$Json$Encode$object(_List_Nil)),
+					$elm$json$Json$Encode$object(
+						_List_fromArray(
+							[
+								_Utils_Tuple2(
+								'confirm',
+								$elm$json$Json$Encode$bool(true))
+							]))),
 				expect: A2($elm$http$Http$expectJson, toMsg, $author$project$Data$Compliance$complianceStatusDecoder),
 				headers: _List_fromArray(
 					[
@@ -8248,6 +8255,45 @@ var $author$project$TaxLogic$calculateProgressiveTax = F2(
 			$author$project$Money$zero,
 			$author$project$TaxLogic$sortBrackets(brackets));
 	});
+var $author$project$TaxLogic$calculateIndoTax = function (brackets) {
+	return $author$project$TaxLogic$calculateProgressiveTax(brackets);
+};
+var $author$project$TaxLogic$calculateNppn = function (m) {
+	return A2(
+		$author$project$Money$divide,
+		A2($author$project$Money$multiply, m, 50),
+		100);
+};
+var $author$project$Money$proportion = F3(
+	function (_v0, _v1, _v2) {
+		var b = _v0.a;
+		var n = _v1.a;
+		var d = _v2.a;
+		return _Utils_eq(
+			A2(
+				$cmditch$elm_bigint$BigInt$compare,
+				d,
+				$cmditch$elm_bigint$BigInt$fromInt(0)),
+			$elm$core$Basics$EQ) ? $author$project$Money$zero : $author$project$Money$Money(
+			A2(
+				$cmditch$elm_bigint$BigInt$div,
+				A2($cmditch$elm_bigint$BigInt$mul, b, n),
+				d));
+	});
+var $author$project$TaxLogic$calculatePPh24 = F4(
+	function (totalTax, foreignIncome, totalIncome, foreignTaxPaid) {
+		return (_Utils_eq(
+			A2($author$project$Money$compare, totalIncome, $author$project$Money$zero),
+			$elm$core$Basics$EQ) || _Utils_eq(
+			A2($author$project$Money$compare, foreignIncome, $author$project$Money$zero),
+			$elm$core$Basics$EQ)) ? $author$project$Money$zero : A2(
+			$author$project$TaxLogic$minMoney,
+			foreignTaxPaid,
+			A3($author$project$Money$proportion, totalTax, foreignIncome, totalIncome));
+	});
+var $author$project$TaxLogic$calculatePPh24Credit = function (p) {
+	return A4($author$project$TaxLogic$calculatePPh24, p.totalIndoTaxDue, p.foreignNetIncome, p.totalTaxableIncome, p.actualForeignTaxPaid);
+};
 var $author$project$Money$fromCentsStr = A2(
 	$elm$core$Basics$composeR,
 	$cmditch$elm_bigint$BigInt$fromIntString,
@@ -8288,43 +8334,6 @@ var $author$project$TaxLogic$defaultBrackets = _List_fromArray(
 		upper: $elm$core$Maybe$Nothing
 	}
 	]);
-var $author$project$TaxLogic$calculateIndoTax = $author$project$TaxLogic$calculateProgressiveTax($author$project$TaxLogic$defaultBrackets);
-var $author$project$TaxLogic$calculateNppn = function (m) {
-	return A2(
-		$author$project$Money$divide,
-		A2($author$project$Money$multiply, m, 50),
-		100);
-};
-var $author$project$Money$proportion = F3(
-	function (_v0, _v1, _v2) {
-		var b = _v0.a;
-		var n = _v1.a;
-		var d = _v2.a;
-		return _Utils_eq(
-			A2(
-				$cmditch$elm_bigint$BigInt$compare,
-				d,
-				$cmditch$elm_bigint$BigInt$fromInt(0)),
-			$elm$core$Basics$EQ) ? $author$project$Money$zero : $author$project$Money$Money(
-			A2(
-				$cmditch$elm_bigint$BigInt$div,
-				A2($cmditch$elm_bigint$BigInt$mul, b, n),
-				d));
-	});
-var $author$project$TaxLogic$calculatePPh24 = F4(
-	function (totalTax, foreignIncome, totalIncome, foreignTaxPaid) {
-		return (_Utils_eq(
-			A2($author$project$Money$compare, totalIncome, $author$project$Money$zero),
-			$elm$core$Basics$EQ) || _Utils_eq(
-			A2($author$project$Money$compare, foreignIncome, $author$project$Money$zero),
-			$elm$core$Basics$EQ)) ? $author$project$Money$zero : A2(
-			$author$project$TaxLogic$minMoney,
-			foreignTaxPaid,
-			A3($author$project$Money$proportion, totalTax, foreignIncome, totalIncome));
-	});
-var $author$project$TaxLogic$calculatePPh24Credit = function (p) {
-	return A4($author$project$TaxLogic$calculatePPh24, p.totalIndoTaxDue, p.foreignNetIncome, p.totalTaxableIncome, p.actualForeignTaxPaid);
-};
 var $elm$html$Html$label = _VirtualDom_node('label');
 var $elm$html$Html$table = _VirtualDom_node('table');
 var $elm$html$Html$tbody = _VirtualDom_node('tbody');
@@ -8608,9 +8617,11 @@ var $author$project$View$Dashboard$isValidNpwp = A2(
 		function (len) {
 			return (len === 15) || (len === 16);
 		}));
-var $author$project$TaxLogic$projectYearEndLiability = F2(
-	function (g, m) {
-		return (m <= 0) ? $author$project$Money$zero : $author$project$TaxLogic$calculateIndoTax(
+var $author$project$TaxLogic$projectYearEndLiability = F3(
+	function (brackets, g, m) {
+		return (m <= 0) ? $author$project$Money$zero : A2(
+			$author$project$TaxLogic$calculateIndoTax,
+			brackets,
 			A2(
 				$author$project$Money$divide,
 				A2($author$project$Money$multiply, g, 12),
@@ -8899,7 +8910,7 @@ var $author$project$View$Dashboard$renderReady = F9(
 					},
 					txs)));
 		var profit = $author$project$TaxLogic$calculateNppn(annIdr);
-		var indo = $author$project$TaxLogic$calculateIndoTax(profit);
+		var indo = A2($author$project$TaxLogic$calculateIndoTax, $author$project$TaxLogic$defaultBrackets, profit);
 		var credit = $author$project$TaxLogic$calculatePPh24Credit(
 			{actualForeignTaxPaid: whtIdr, foreignNetIncome: profit, totalIndoTaxDue: indo, totalTaxableIncome: profit});
 		return A2(
@@ -9181,7 +9192,7 @@ var $author$project$View$Dashboard$renderReady = F9(
 							A3(
 							$author$project$View$Dashboard$summaryCard,
 							'PROJECTED TAX',
-							A2($author$project$TaxLogic$projectYearEndLiability, profit, 5),
+							A3($author$project$TaxLogic$projectYearEndLiability, $author$project$TaxLogic$defaultBrackets, profit, 5),
 							'card-default'),
 							A2(
 							$elm$html$Html$div,

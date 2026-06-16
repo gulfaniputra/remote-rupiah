@@ -31,7 +31,7 @@ export function registerKmkCron(): void {
 
   // Robustness: Sunday 17:00 UTC = Monday 00:00 WIB
   // Perform a 4-week backfill to ensure no gaps from portal downtime or network issues.
-  Deno.cron("kmk-rate-backfill", "0 17 * * 0", async () => {
+  Deno.cron("kmk-rate-backfill", "0 17 * * 7", async () => {
     console.log(
       "[KMK Cron] Periodic backfill triggered (Sun 17:00 UTC / Mon 00:00 WIB)",
     );
