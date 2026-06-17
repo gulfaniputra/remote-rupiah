@@ -1,6 +1,6 @@
 # Senior Principal Engineer Rules (`.clinerules`)
 
-This document establishes the absolute architectural boundaries, safety invariants, and implementation protocols for working within this codebase. These guidelines must be interpreted by AI agents as strict compile-time constraints.
+This document defines absolute architectural boundaries and safety invariants for AI agent execution. Interpret all rules as strict compile-time constraints.
 
 ---
 
@@ -8,65 +8,42 @@ This document establishes the absolute architectural boundaries, safety invarian
 
 ### Cognitive Pre-Thought Phase (DeepSeek Native Protocol)
 
-Before executing ANY file manipulation tool (`write_to_file`, `apply_diff`) or terminal execution, the agent must output a structured internal assessment block in its response containing exactly these four elements:
+Before executing any file manipulation tool (`write_to_file`, `apply_diff`) or terminal command, output a structured internal assessment containing exactly these four keys:
 
-1. **Current Hypothesis:** What is the precise logical or architectural issue we are solving right now?
-2. **Impact Boundary:** Which files or types (specifically across the Elm frontend / Hono backend boundary) will be touched by this single action?
-3. **Execution Steps:** A bulleted, linear breakdown of the single file change sequence.
-4. **Verification Strategy:** How will we immediately test that this individual change worked before moving to any other task?
+1. **Hypothesis:** Precise logical/architectural issue being solved.
+2. **Impact Boundary:** Specific files and types modified across the Elm/Hono boundary.
+3. **Execution Steps:** Bulleted, linear sequence of the intended file changes.
+4. **Verification Strategy:** Immediate verification test command for this single action.
 
-### Minimalist Functionalism & Dependency Management
+### Dependency Management, File Operations & Search
 
-- **Native-First Policy:** Always exhaust the capabilities of the Elm and Deno Standard Libraries before introducing any third-party package.
-- **The 50-Line Threshold:** Any new external dependency requires justification proving it avoids structural complexity that cannot be replicated cleanly in under 50 lines of native code. The native replacement must remain legible and maintainable; do not obfuscate, compress, or "code-golf" logic simply to slip under the 50-line count.
-- **Cryptographic Exception:** Never design or implement custom security, tokenization, or cryptographic primitives. Use proven, peer-reviewed solutions like Deno's `WebCrypto` API or `noble-hashes`.
-- **CSV Parsing Exception:** Standard, robust streaming CSV parsers (such as Deno's standard `csv` module) are explicitly exempt from the 50-line rule to safely handle unescaped commas, line breaks, and quotation marks inside financial descriptions without risking data corruption.
-- **Sequential File Modifications:** When making changes across multiple files, execute the tool modifications sequentially—one single file at a time—and wait for my manual save/approval confirmation before proceeding to queue the next file edit.
+- **Native-First Policy:** Exhaust Elm and Deno Standard Libraries before introducing third-party packages.
+- **50-Line Threshold:** External dependencies require justification proving they avoid structural complexity that cannot be replicated cleanly under 50 lines of native code. Do not compress or obfuscate logic to bypass this.
+- **Security Guardrail:** Never implement custom crypto, hashing, or session token generation. Use Deno `WebCrypto` or `noble-hashes`.
+- **Parsing Exception:** Deno standard `@std/csv` module is exempt from the 50-line rule to prevent ledger data corruption.
+- **Sequential Writes:** Modify files one at a time. Wait for manual user save/approval before queuing the next file edit.
+- **Search Tool Constraint:** Use the search tool (`exa`) exclusively to fetch official API documentation updates or verify cutting-edge library features. Never execute a web search for general programming logic, algorithmic puzzles, or baseline language syntax.
 
-### Point-Free and Pipelining Style
+### Elm-Hono Boundary Rule
 
-- Favor function composition, pipelines, and higher-order functions (`List.map`, `Array.reduce`) over transient, intermediate single-use variables and procedural wrappers.
-- Maximize visual density and expression purity to optimize context analysis and limit cognitive noise.
+On any database schema, API route, or payload type change:
 
-```typescript
-// PREFER: Direct composition / pipelining
-const processData = (data: Raw[]) =>
-  data.filter((d) => d.active).map((d) => d.value);
+1. Trace data mapping end-to-end across the stack via Sequential Thinking.
+2. Synchronously modify Hono types/routes AND corresponding Elm Types, Msgs, Decoders, and Encoders in a single task loop.
 
-// AVOID: Pointless variable assignments and steps
-const processDataProcedural = (data: Raw[]) => {
-  const filtered = data.filter((d) => d.active);
-  const mapped = filtered.map((d) => d.value);
-  return mapped;
-};
-```
+### Programming Style
+
+- Favor point-free function composition, pipelines, and pure higher-order functions (`List.map`, `Array.reduce`) over procedural loops and transient intermediate variables. Maximize visual density and expression purity.
 
 ---
 
 ## 2. Financial Safety & Zero-Float Invariants
 
-### The Multi-Currency Ingestion Engine
+### Ingestion & Data Formats
 
-- All ingested transaction pipelines (Wise, Revolut, PayPal) must immediately map incoming fields down to the strict, schema-validated `CanonicalTx` boundary format.
-- Input checking must remain deterministic. Detect file layouts strictly using explicit structural field row identifiers.
-
-### Fixed-Point Integer Rule
-
-- Floating-point representations for ledger values are completely forbidden.
-- All monetary values must be parsed and stored as `BIGINT` representing currency cents (`amount_cents`, `withholding_cents`, `actual_idr_received_cents`).
-- Fractional currency processing (such as internal conversion calculations) must rely explicitly on stringified representation patterns at boundaries before conversion to bigint format.
-
-### BigInt Serialization Gate
-
-- Because `JSON.stringify()` natively throws a `TypeError` when encountering `BigInt` values, all backend boundary API responses must be serialized via a centralized BigInt replacer function or automated Hono middleware that intercepts and transforms `bigint` values into raw string fields globally. Do not write manual inline type-mapping logic inside individual route handlers.
-
-```typescript
-export interface CanonicalTx {
-  date: Date;
-  amount: bigint; // Standardized integer cent representation
-  currency: string; // ISO 3-letter uppercase format
-}
-```
+- Map all multi-currency ingestion pipelines (Wise, Revolut, PayPal) down to a unified `CanonicalTx` boundary format. Identify file layouts using explicit structural row markers.
+- **Fixed-Point Rule:** Floating-point ledger values are strictly forbidden. Store all monetary fields as `BIGINT` currency cents (`amount_cents`, `withholding_cents`, `actual_idr_received_cents`).
+- **BigInt Serialization Gate:** All backend API boundaries must serialize BigInts via global Hono middleware or a central JSON replacer function transforming `bigint` types into string fields. No manual inline type-mapping in route handlers.
 
 ---
 
@@ -74,71 +51,49 @@ export interface CanonicalTx {
 
 ### Freelance Software Engineering Framework (KLU 62010)
 
-- Data calculations must respect Indonesian individual tax filing rules under the Norm Penghitungan Penghasilan Netto (NPPN) paradigm for software development.
-- **The Net Income Standard:** The effective business overhead norm is defined at a 50% ratio. Net Income calculations must be modeled precisely as:
-  ```
-  $$\text{Netto IDR} = \frac{\text{Bruto IDR} \times 50}{100}$$
-  ```
-
-### PPh Pasal 24 Foreign Tax Credit Rules
-
-- Withholding amounts deducted by foreign entities (such as US 1042-S formats) are only deductible against regional Indonesian liabilities if explicitly marked as verified.
-- **The Mitigation Safeguard:** If `is_1042s_verified` evaluates to `FALSE`, the credit limit rule applies, forcing the resulting `PPh_24_Kredit_IDR` value output for that record to evaluate strictly to `0n`.
+- Compute individual tax models under the Norm Penghitungan Penghasilan Netto (NPPN) paradigm for software developers.
+- **Net Income Standard:** Apply a fixed 50% business overhead norm. Netto IDR = (Bruto IDR × 50) / 100.
+- **PPh Pasal 24 Foreign Credit:** Foreign withholding tax credits (e.g., US 1042-S) are only deductible against Indonesian liabilities if `is_1042s_verified` is true. If false, force the resulting credit allocation strictly to `0n`.
 
 ---
 
 ## 4. Frontend Implementation Rules (Elm)
 
-```elm
--- Directory Scope: frontend/src/**/*
-```
-
-- **No UI Framework Footprint:** Do not install `elm-ui`, Tailwind CSS, or Bootstrap components. Rely completely on semantic HTML paired directly with custom definitions written inside `frontend/style.css`.
-- **Icon Graphics:** Use localized, functional inline SVG components. Do not call external font CDNs or raster assets.
-- **Robust Decoders:** JSON decoder entities must defensively manage type variations (e.g., handling numeric KLU codes gracefully whether passed as standard integers or raw strings from JSON structures).
-- **IDR Cent Bound Guard:** Because IDR currency cent totals quickly scale past Elm's native 32-bit signed integer limits (`2,147,483,647`), decoding raw JSON numeric integers for financial values is forbidden. All monetary cents must be ingested from JSON strictly as `Strings` and managed using opaque string types or a designated, whitelisted BigInt library configuration.
+- **Scope:** `frontend/src/**/*`
+- **Zero UI Frameworks:** No `elm-ui`, Tailwind CSS, or Bootstrap. Use semantic HTML styled exclusively within `frontend/style.css`.
+- **Assets:** Use localized, pure inline SVG components. External font CDNs or raster assets are prohibited.
+- **IDR Cent Bound Guard:** IDR currency totals easily exceed Elm's native 32-bit signed integer limits. Financial operations on the frontend MUST exclusively utilize the custom opaque `Money` type and functions defined in `frontend/src/Money.elm`. Never use raw `Int` or `String.toInt` for monetary values.
 
 ---
 
 ## 5. Backend Implementation Rules (Deno 2.2 + Hono)
 
-```typescript
-// Directory Scope: backend/src/**/*, routes/**/*
-```
-
-- **Memory Guardrails for Data Exports:** Data generators transmitting high-volume CSV outputs (such as the DJP Coretax export system) must stream files sequentially using `ReadableStream` chunked generators to guarantee stable memory boundaries.
-- **Route Isolation / Token Authentication:** Application routes must remain gated behind explicit middleware checking mechanisms that populate thread-safe local identifiers (`userId`), throwing structured `401 Unauthorized` responses immediately on execution anomalies.
+- **Scope:** `backend/src/**/*`, `routes/**/*`
+- **Memory Guardrails:** High-volume data exports (e.g., DJP Coretax export loops) must stream outputs sequentially using `ReadableStream` chunked generators to maintain stable memory limits.
+- **Route Access Isolation:** Gate all functional routes behind explicit authentication middleware populating thread-safe context identifiers (`userId`). Reject anomalies instantly with structured `401 Unauthorized` payloads.
 
 ---
 
 ## 6. Database Governance & Migration Rules
 
-```sql
--- Directory Scope: db/**/*
-```
-
-- **Append-Only Architecture:** Modifying existing, historic migration files is structurally prohibited. Alterations to state models must occur inside sequential, distinct `.sql` delta records.
-- **Row-Level Security (RLS) Invariant:** Every operational schema declaration must explicitly declare and invoke `ENABLE ROW LEVEL SECURITY`. Dropping tenant isolation security parameters under any condition is an unresolvable failure block.
+- **Scope:** `db/**/*`
+- **Append-Only Architecture:** Modifying historic migration files is structurally prohibited. Alter states using sequential, distinct `.sql` delta updates.
+- **RLS Invariant:** Every operational schema declaration must explicitly execute `ENABLE ROW LEVEL SECURITY`. Dropping tenant isolation is a non-negotiable failure.
+- **Read-Only MCP Workflow:** The database MCP server connection is strictly **READ-ONLY**. Use it to inspect tables, structural layouts, and RLS policies.
+- **Migration Generation Policy:** Never attempt DDL actions (`CREATE`, `ALTER`, `DROP`) or mutations directly through tools. Generate a sequential migration file under `db/migrations/` for manual terminal execution by the user.
 
 ---
 
 ## 7. Testing Requirements
 
-### Functional Bounds (Elm)
-
-- Any function written inside mathematical or financial tracking modules (`TaxLogic.elm`, `Money.elm`) must be backed by exhaustive property-based `Fuzz` testing scenarios.
-- Property checks must explicitly prove lower limits, verifying that positive transaction quantities never compute a negative tax debt outcome.
-
-### Service Verification Mocks (Deno)
-
-- Live, remote network API assertions are strictly banned inside local testing suites.
-- External dependency responses (such as Ministry of Finance exchange rate providers) must always pass through isolated, mock boundary classes. Use `jsr:@std/assert@1` for structural test tracking.
+- **Elm Assets:** Back financial or mathematical processing modules (`TaxLogic.elm`, `Money.elm`) with exhaustive property-based `Fuzz` testing proving lower boundaries (e.g., positive transactions never yield negative debt outcomes).
+- **Deno Assets:** Remote live network calls inside test suites are strictly banned. Isolate third-party interactions (e.g., currency rate syncs) behind boundary mock classes. Track assertions with `jsr:@std/assert@1`.
 
 ---
 
-## 8. Crash-Halt Invariant (Error Loop Prevention)
+## 8. Compilation & Validation Loop (Verify-Before-Yield)
 
-- If a terminal execution output returns a compilation error, a failed `jsr:@std/assert` test, or an Elm compiler type mismatch, the agent must **IMMEDIATELY HALT**.
-- **Forbidden Action:** Do not attempt to write a new file mutation or guess a second fix on top of a failing state. This prevents logical spiraling.
-- **Mandatory Action:** Execute an implicit rollback step. Re-read the modified file, analyze why the previous hypothesis failed inside a new 'Pre-Thought Phase', explain the failure clearly to the user, and wait for manual confirmation before attempting an adjusted fix.
-- Treat compiler outputs as strict environmental state walls, not as suggestions to iterate over blindly.
+Execute `deno task validate` via terminal prior to declaring any task complete or prompting for feedback.
+
+- **Autonomous Correction:** On Elm compiler or Deno lint type/syntax mismatches, autonomously evaluate the error string, locate the boundary trace, and apply corrections without yielding context.
+- **Crash-Halt Invariant:** On a `jsr:@std/assert` functional test failure, **IMMEDIATELY HALT**. Do not guess logical fixes. Analyze the component, explain the failure pattern clearly, and wait for manual user intervention.

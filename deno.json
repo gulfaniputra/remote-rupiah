@@ -1,13 +1,14 @@
 {
   "tasks": {
-    "dev": "deno run --allow-env --allow-net --allow-read --unstable-kv --unstable-cron --watch main.ts"
+    "dev": "deno run --allow-env --allow-net --allow-read --watch main.ts",
+    "validate": "deno lint && deno test && cd frontend && elm make src/Main.elm --output=/dev/null"
   },
   "unstable": ["kv", "cron"],
   "lint": {
-    "exclude": ["frontend/elm.js", "frontend/elm-stuff/"]
+    "exclude": ["frontend/"]
   },
   "fmt": {
-    "exclude": ["frontend/elm.js", "frontend/elm-stuff/"]
+    "exclude": ["frontend/"]
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1",

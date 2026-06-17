@@ -11,7 +11,7 @@ public/elm.js
 
 # Deno
 node_modules/
-coverage/ 
+coverage/
 
 # Database & Migrations
 *.sql
@@ -31,3 +31,4 @@ coverage/
 .vscode/
 .idea/
 *.log
+repomix-output.xml
