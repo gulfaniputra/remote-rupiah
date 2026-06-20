@@ -84,29 +84,32 @@ const mockSql = new Proxy(function () {}, {
       return [];
     }
     if (queryStr.includes("SELECT id, unspent_usd_cents")) {
-      const source = argumentsList
-        .map((value) => (typeof value === "string" ? value : ""))
-        .find((value) => value === "wise" || value === "bank") || "";
+      const source =
+        argumentsList
+          .map((value) => (typeof value === "string" ? value : ""))
+          .find((value) => value === "wise" || value === "bank") || "";
       if (queryStr.includes("metadata->>'source'")) {
         if (source === "bank") {
-          return [{ id: "mock-tx-id-456", unspent_usd_cents: "250000" }];
+          return [{ id: "mock-tx-id-456", unspent_usd_cents: 250000 }];
         }
         if (source === "wise") {
-          return [{ id: "mock-tx-id-123", unspent_usd_cents: "1000000" }];
+          return [{ id: "mock-tx-id-123", unspent_usd_cents: 1000000 }];
         }
         return [];
       }
-      return [{ id: "mock-tx-id-123", unspent_usd_cents: "1000000" }];
+      return [{ id: "mock-tx-id-123", unspent_usd_cents: 1000000 }];
     }
+    /* Updated mock payload to serve numeric values matching backend casting changes */
     if (
-      queryStr.includes("amount_cents::text AS amount_cents") &&
+      (queryStr.includes("amount_cents::int AS amount_cents") ||
+        queryStr.includes("amount_cents::text AS amount_cents")) &&
       queryStr.includes("metadata->>'source' AS source") &&
       queryStr.includes("ORDER BY date ASC, id ASC")
     ) {
       return [
         {
-          amount_cents: "100000",
-          actual_idr_received_cents: "1400000000",
+          amount_cents: 100000,
+          actual_idr_received_cents: 1400000000,
           source: "wise",
         },
       ];
@@ -121,7 +124,7 @@ const mockSql = new Proxy(function () {}, {
           return [
             {
               valid_from: match.valid_from,
-              mid_rate_cents: match.mid_rate_cents,
+              mid_rate_cents: parseInt(match.mid_rate_cents, 10) || 0,
             },
           ];
         }
@@ -131,9 +134,10 @@ const mockSql = new Proxy(function () {}, {
     if (queryStr.includes("csv_mappings")) {
       const currentUserId = extractUserId() || currentMockUserId || "default";
       if (queryStr.includes("INSERT")) {
-        const rawMapping = argumentsList
-          .map((value) => (typeof value === "string" ? value : ""))
-          .find((value) => value.startsWith("{")) ||
+        const rawMapping =
+          argumentsList
+            .map((value) => (typeof value === "string" ? value : ""))
+            .find((value) => value.startsWith("{")) ||
           sqlValue(2) ||
           sqlValue(1);
         testMocks.csvMappingsByUser[currentUserId] = rawMapping
@@ -153,7 +157,6 @@ const mockSql = new Proxy(function () {}, {
       if (queryStr.includes("INSERT")) {
         return [{ user_id: currentUserId || "default" }];
       } else if (queryStr.includes("UPDATE")) {
-        // Mock UPDATE nppn_notified_at = NOW()
         const profile = testMocks.taxProfiles.find(
           (p) => p.user_id === currentUserId,
         );
@@ -167,7 +170,6 @@ const mockSql = new Proxy(function () {}, {
         );
         return profile ? [profile] : [];
       } else {
-        // Full-table scan (e.g. cron): return all profiles
         return testMocks.taxProfiles;
       }
     }
@@ -187,8 +189,20 @@ let realSql: postgres.Sql;
 let useMock = isTesting;
 
 try {
-  realSql = useMock ? mockSql : postgres(dbUrl);
-} catch {
+  realSql = useMock
+    ? mockSql
+    : postgres({
+        host: Deno.env.get("PGHOST") || "localhost",
+        port: parseInt(Deno.env.get("PGPORT") || "5432", 10),
+        database: Deno.env.get("PGDATABASE") || "remote_rupiah",
+        username: Deno.env.get("PGUSER") || "postgres",
+        password: Deno.env.get("PGPASSWORD") || "postgres",
+      });
+} catch (err: unknown) {
+  if (!isTesting) {
+    console.error("❌ CRITICAL DATABASE INITIALIZATION FAILED:", err);
+    Deno.exit(1);
+  }
   useMock = true;
   realSql = mockSql;
 }
@@ -200,6 +214,13 @@ if (!useMock) {
       err.message?.includes("authentication failed") ||
       err.message?.includes("connection")
     ) {
+      if (!isTesting) {
+        console.error(
+          "❌ CRITICAL: Database connection or auth failed in app runtime:",
+          err.message,
+        );
+        Deno.exit(1);
+      }
       useMock = true;
     }
   });
@@ -233,6 +254,13 @@ const sqlProxy = new Proxy(function () {}, {
                 e.message?.includes("authentication failed") ||
                 e.message?.includes("connection")
               ) {
+                if (!isTesting) {
+                  console.error(
+                    "❌ CRITICAL: Transaction authentication failed:",
+                    e.message,
+                  );
+                  Deno.exit(1);
+                }
                 useMock = true;
                 return cb(
                   mockSql as unknown as postgres.TransactionSql<
@@ -250,6 +278,13 @@ const sqlProxy = new Proxy(function () {}, {
               e.message?.includes("authentication failed") ||
               e.message?.includes("connection")
             ) {
+              if (!isTesting) {
+                console.error(
+                  "❌ CRITICAL: Transaction pipeline block failed connection:",
+                  e.message,
+                );
+                Deno.exit(1);
+              }
               useMock = true;
               return cb(
                 mockSql as unknown as postgres.TransactionSql<
@@ -288,6 +323,13 @@ const sqlProxy = new Proxy(function () {}, {
             err.message?.includes("authentication failed") ||
             err.message?.includes("connection")
           ) {
+            if (!isTesting) {
+              console.error(
+                "❌ CRITICAL: Dynamic query connection failed:",
+                err.message,
+              );
+              Deno.exit(1);
+            }
             useMock = true;
             return [];
           }
@@ -302,6 +344,13 @@ const sqlProxy = new Proxy(function () {}, {
         e.message?.includes("authentication failed") ||
         e.message?.includes("connection")
       ) {
+        if (!isTesting) {
+          console.error(
+            "❌ CRITICAL: Query execution driver exception:",
+            e.message,
+          );
+          Deno.exit(1);
+        }
         useMock = true;
         return [];
       }
@@ -327,7 +376,7 @@ export const withAuth = <T>(
   }
 
   return sqlProxy.begin(async (tx) => {
-    await tx`SET LOCAL app.current_user_id = ${userId}`;
+    await tx`SELECT set_config('app.current_user_id', ${userId}, true)`;
     return fn(tx as unknown as postgres.TransactionSql, userId);
   }) as Promise<T>;
 };

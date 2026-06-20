@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { authMiddleware } from "../services/auth_middleware.ts";
-import { withAuth } from "../db/client.ts";
+import db, { withAuth } from "../db/client.ts";
 import { CsvParseStream } from "@std/csv";
 import { detectPlatform } from "../services/ingestion/detector.ts";
 import { mapCsvRow } from "../backend/src/services/ingestion/csv-mapper.ts";
@@ -59,14 +59,14 @@ const parseCsvRows = async (body: string) => {
   const rows: Record<string, string>[] = [];
   let headers: string[] = [];
   let isFirst = true;
-  for await (
-    const record of new ReadableStream({
-      start(controller) {
-        controller.enqueue(new TextEncoder().encode(body));
-        controller.close();
-      },
-    }).pipeThrough(new TextDecoderStream()).pipeThrough(new CsvParseStream())
-  ) {
+  for await (const record of new ReadableStream({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode(body));
+      controller.close();
+    },
+  })
+    .pipeThrough(new TextDecoderStream())
+    .pipeThrough(new CsvParseStream())) {
     if (isFirst) {
       headers = record.map((value) => String(value));
       isFirst = false;
@@ -139,28 +139,28 @@ app.post("/", async (c) => {
     const mapped = platform
       ? rows.map((row) => serialize(ROW_MAPPERS[platform](row)))
       : await (async () => {
-        const mapping = await loadCsvMapping(uid);
-        if (!mapping) {
-          return null;
-        }
+          const mapping = await loadCsvMapping(uid);
+          if (!mapping) {
+            return null;
+          }
 
-        const decoded = rows.map((row) => mapCsvRow(row, mapping, headers));
-        const failed = decoded.find((result) => !result.ok);
-        if (failed && !failed.ok) {
-          return c.json(
-            { success: false, error: failed.error, headers },
-            400,
+          const decoded = rows.map((row) => mapCsvRow(row, mapping, headers));
+          const failed = decoded.find((result) => !result.ok);
+          if (failed && !failed.ok) {
+            return c.json(
+              { success: false, error: failed.error, headers },
+              400,
+            );
+          }
+
+          return decoded.map((result, index) =>
+            serializeCanonical(
+              (result as { ok: true; value: CanonicalRow }).value,
+              crypto.randomUUID(),
+              rows[index] ?? {},
+            ),
           );
-        }
-
-        return decoded.map((result, index) =>
-          serializeCanonical(
-            (result as { ok: true; value: CanonicalRow }).value,
-            String(index),
-            rows[index] ?? {},
-          )
-        );
-      })();
+        })();
 
     if (mapped === null) {
       return c.json(
@@ -173,19 +173,44 @@ app.post("/", async (c) => {
     }
 
     if (mapped.length > 0) {
-      await withAuth(uid, async (tx, userId) => {
-        await tx`INSERT INTO transactions ${
-          tx(mapped.map((row) => ({
-            user_id: userId,
-            date: row.date,
-            currency: row.currency,
-            amount_cents: row.amount_cents,
-            source_tx_id: row.source_tx_id,
-            metadata: row.metadata,
-            actual_idr_received_cents: row.actual_idr_received_cents,
-          })) as unknown as Record<string, unknown>[])
-        } ON CONFLICT (user_id, source_tx_id) DO NOTHING`;
-      });
+      try {
+        // Authenticate the session context via withAuth to satisfy RLS constraints
+        await withAuth(uid, async (tx) => {
+          for (const row of mapped) {
+            const result = await tx`
+              INSERT INTO transactions (
+                user_id,
+                source_tx_id,
+                date,
+                currency,
+                amount_cents,
+                metadata,
+                actual_idr_received_cents
+              )
+              VALUES (
+                ${uid},
+                ${row.source_tx_id},
+                ${row.date},
+                ${row.currency},
+                ${row.amount_cents.toString()},
+                ${JSON.stringify(row.metadata, (_, v) => (typeof v === "bigint" ? v.toString() : v))},
+                ${row.actual_idr_received_cents?.toString() ?? null}
+              )
+              ON CONFLICT (user_id, source_tx_id) DO UPDATE SET
+                metadata = EXCLUDED.metadata,
+                actual_idr_received_cents = EXCLUDED.actual_idr_received_cents
+              RETURNING id, user_id;
+            `;
+            console.log("DEBUG: Authenticated Insert Result =", result);
+          }
+        });
+      } catch (dbError) {
+        console.error(
+          "CRITICAL: Captured Authenticated Database Exception:",
+          dbError,
+        );
+        throw dbError;
+      }
     }
 
     return c.json({ success: true, ingested: mapped.length, platform });

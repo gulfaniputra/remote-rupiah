@@ -5,8 +5,8 @@ module TaxLogic exposing
     , TaxInput
     , TaxResult
     , aggregateAnnualSummary
-    , calculateFinalPayable
     , calculateFXLeakage
+    , calculateFinalPayable
     , calculateIdrValue
     , calculateIndoTax
     , calculateNppn
@@ -121,7 +121,16 @@ projectYearEndLiability brackets g m =
         Money.zero
 
     else
-        calculateIndoTax brackets (Money.divide (Money.multiply g 12) m)
+        let
+            -- 1. Scale YTD gross linearly up to get annualized gross expectation
+            projectedGross =
+                Money.divide (Money.multiply g 12) m
+
+            -- 2. Deduct 50% using NPPN rules for net taxable base
+            projectedNetIncome =
+                calculateNppn projectedGross
+        in
+        calculateIndoTax brackets projectedNetIncome
 
 
 defaultBrackets : List TaxBracket

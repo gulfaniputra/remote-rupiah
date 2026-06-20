@@ -8609,39 +8609,6 @@ var $author$project$View$Dashboard$evidenceLockerPanel = function (maybeStatus) 
 					]))
 			]));
 };
-var $elm$core$String$dropRight = F2(
-	function (n, string) {
-		return (n < 1) ? string : A3($elm$core$String$slice, 0, -n, string);
-	});
-var $elm$core$String$right = F2(
-	function (n, string) {
-		return (n < 1) ? '' : A3(
-			$elm$core$String$slice,
-			-n,
-			$elm$core$String$length(string),
-			string);
-	});
-var $author$project$View$Dashboard$formatIntegerGroups = function (str) {
-	var len = $elm$core$String$length(str);
-	return (len <= 3) ? str : ($author$project$View$Dashboard$formatIntegerGroups(
-		A2($elm$core$String$dropRight, 3, str)) + (',' + A2($elm$core$String$right, 3, str)));
-};
-var $author$project$View$Dashboard$formatIntegerString = function (str) {
-	return A2($elm$core$String$startsWith, '-', str) ? ('-' + $author$project$View$Dashboard$formatIntegerGroups(
-		A2($elm$core$String$dropLeft, 1, str))) : $author$project$View$Dashboard$formatIntegerGroups(str);
-};
-var $author$project$View$Dashboard$formatWithCommas = function (rawStr) {
-	var _v0 = A2($elm$core$String$split, '.', rawStr);
-	if ((_v0.b && _v0.b.b) && (!_v0.b.b.b)) {
-		var integerPart = _v0.a;
-		var _v1 = _v0.b;
-		var decimalPart = _v1.a;
-		return $author$project$View$Dashboard$formatIntegerString(integerPart) + ('.' + decimalPart);
-	} else {
-		return $author$project$View$Dashboard$formatIntegerString(rawStr);
-	}
-};
-var $author$project$Money$fromCents = A2($elm$core$Basics$composeR, $cmditch$elm_bigint$BigInt$fromInt, $author$project$Money$Money);
 var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$html$Html$input = _VirtualDom_node('input');
 var $elm$core$String$filter = _String_filter;
@@ -8663,16 +8630,38 @@ var $author$project$View$Dashboard$isValidNpwp = A2(
 		}));
 var $author$project$TaxLogic$projectYearEndLiability = F3(
 	function (brackets, g, m) {
-		if (m <= 0) {
-			return $author$project$Money$zero;
-		} else {
-			var projectedGross = A2(
+		return (m <= 0) ? $author$project$Money$zero : A2(
+			$author$project$TaxLogic$calculateIndoTax,
+			brackets,
+			A2(
 				$author$project$Money$divide,
 				A2($author$project$Money$multiply, g, 12),
-				m);
-			var projectedNetIncome = $author$project$TaxLogic$calculateNppn(projectedGross);
-			return A2($author$project$TaxLogic$calculateIndoTax, brackets, projectedNetIncome);
+				m));
+	});
+var $elm$core$List$repeatHelp = F3(
+	function (result, n, value) {
+		repeatHelp:
+		while (true) {
+			if (n <= 0) {
+				return result;
+			} else {
+				var $temp$result = A2($elm$core$List$cons, value, result),
+					$temp$n = n - 1,
+					$temp$value = value;
+				result = $temp$result;
+				n = $temp$n;
+				value = $temp$value;
+				continue repeatHelp;
+			}
 		}
+	});
+var $elm$core$List$repeat = F2(
+	function (n, value) {
+		return A3($elm$core$List$repeatHelp, _List_Nil, n, value);
+	});
+var $elm$core$String$dropRight = F2(
+	function (n, string) {
+		return (n < 1) ? string : A3($elm$core$String$slice, 0, -n, string);
 	});
 var $elm$core$String$cons = _String_cons;
 var $elm$core$String$fromChar = function (_char) {
@@ -8699,6 +8688,14 @@ var $elm$core$String$padLeft = F3(
 				$elm$core$String$repeat,
 				n - $elm$core$String$length(string),
 				$elm$core$String$fromChar(_char)),
+			string);
+	});
+var $elm$core$String$right = F2(
+	function (n, string) {
+		return (n < 1) ? '' : A3(
+			$elm$core$String$slice,
+			-n,
+			$elm$core$String$length(string),
 			string);
 	});
 var $elm$core$String$concat = function (strings) {
@@ -8777,8 +8774,7 @@ var $author$project$View$Dashboard$summaryCard = F3(
 					_List_fromArray(
 						[
 							$elm$html$Html$text(
-							'Rp ' + $author$project$View$Dashboard$formatWithCommas(
-								$author$project$Money$toString(value)))
+							'Rp ' + $author$project$Money$toString(value))
 						]))
 				]));
 	});
@@ -8933,10 +8929,19 @@ var $author$project$View$Dashboard$renderReady = F9(
 		var unrealizedIdr = $author$project$View$Dashboard$totalUnrealized(unrealized);
 		var fxLeakageIdr = $author$project$View$Dashboard$totalFxLeakage(fxLeakage);
 		var fmt = function (m) {
-			return 'Rp ' + $author$project$View$Dashboard$formatWithCommas(
-				$author$project$Money$toString(m));
+			return 'Rp ' + $author$project$Money$toString(m);
 		};
-		var annIdr = $author$project$Money$fromCents(120000000000);
+		var annIdr = function () {
+			var leakageValue = $author$project$View$Dashboard$totalFxLeakage(fxLeakage);
+			return _Utils_eq(leakageValue, $author$project$Money$zero) ? $author$project$Money$zero : A3(
+				$elm$core$List$foldl,
+				F2(
+					function (elem, acc) {
+						return A2($author$project$Money$add, acc, elem);
+					}),
+				$author$project$Money$zero,
+				A2($elm$core$List$repeat, 250, leakageValue));
+		}();
 		var profit = $author$project$TaxLogic$calculateNppn(annIdr);
 		var indo = A2($author$project$TaxLogic$calculateIndoTax, $author$project$TaxLogic$defaultBrackets, profit);
 		var credit = $author$project$TaxLogic$calculatePPh24Credit(
@@ -9220,7 +9225,7 @@ var $author$project$View$Dashboard$renderReady = F9(
 							A3(
 							$author$project$View$Dashboard$summaryCard,
 							'PROJECTED TAX',
-							A3($author$project$TaxLogic$projectYearEndLiability, $author$project$TaxLogic$defaultBrackets, annIdr, 12),
+							A3($author$project$TaxLogic$projectYearEndLiability, $author$project$TaxLogic$defaultBrackets, profit, 5),
 							'card-default'),
 							A2(
 							$elm$html$Html$div,
@@ -9246,8 +9251,7 @@ var $author$project$View$Dashboard$renderReady = F9(
 									_List_fromArray(
 										[
 											$elm$html$Html$text(
-											'Rp ' + $author$project$View$Dashboard$formatWithCommas(
-												$author$project$Money$toString(unrealizedIdr)))
+											'Rp ' + $author$project$Money$toString(unrealizedIdr))
 										]))
 								]))
 						])),

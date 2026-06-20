@@ -88,7 +88,7 @@ psql -h localhost -U YOUR_ACTUAL_DB_USER -d remote_rupiah -f db/seed.sql
 deno task dev
 
 # In another terminal start Elm frontend
-cd frontend && elm reactor
+cd frontend && elm reactor --port=8010
 ```
 
 ## Testing Suite

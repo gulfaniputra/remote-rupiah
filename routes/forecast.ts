@@ -13,31 +13,32 @@ app.get("/", (c) => {
     (tx) =>
       tx`
     SELECT
-      COALESCE(SUM(amount_cents), 0)::text AS ytd_gross_cents,
-      COALESCE(SUM(withholding_cents), 0)::text AS ytd_withholding_cents,
-      COALESCE(SUM(actual_idr_received_cents), 0)::text AS ytd_actual_idr_cents,
+      COALESCE(SUM(amount_cents), 0)::bigint AS ytd_gross_cents,
+      COALESCE(SUM(withholding_cents), 0)::bigint AS ytd_withholding_cents,
+      COALESCE(SUM(actual_idr_received_cents), 0)::bigint AS ytd_actual_idr_cents,
       COUNT(*)::int AS transaction_count,
       COUNT(*) FILTER (WHERE is_1042s_verified = TRUE)::int AS verified_count,
       COALESCE(AVG(CASE WHEN kmk_rate IS NOT NULL AND actual_idr_received_cents IS NOT NULL AND amount_cents > 0
-        THEN (amount_cents * (kmk_rate * 100)::bigint / 100) - actual_idr_received_cents ELSE NULL END), 0)::text AS avg_fx_spread_cents,
+        THEN (amount_cents * kmk_rate)::bigint - actual_idr_received_cents ELSE NULL END), 0)::bigint AS avg_fx_spread_cents,
       EXTRACT(MONTH FROM MAX(date))::int AS latest_month
-    FROM transactions WHERE date_part('year', date) = ${year}`,
-  )
-    .then(([r]) =>
-      c.json({
-        success: true,
-        forecast: {
-          year,
-          ytdGrossCents: r.ytd_gross_cents,
-          ytdWithholdingCents: r.ytd_withholding_cents,
-          ytdActualIdrCents: r.ytd_actual_idr_cents,
-          transactionCount: r.transaction_count,
-          verifiedCount: r.verified_count,
-          avgFxSpreadCents: r.avg_fx_spread_cents,
-          latestMonth: r.latest_month || 0,
-        },
-      })
-    );
+    FROM transactions
+    WHERE date_part('year', date) = ${year}
+      AND amount_cents > 0`, // 👈 Filtered negative expenses here
+  ).then(([r]) =>
+    c.json({
+      success: true,
+      forecast: {
+        year,
+        ytdGrossCents: Number(r.ytd_gross_cents),
+        ytdWithholdingCents: Number(r.ytd_withholding_cents),
+        ytdActualIdrCents: Number(r.ytd_actual_idr_cents),
+        transactionCount: r.transaction_count,
+        verifiedCount: r.verified_count,
+        avgFxSpreadCents: Number(r.avg_fx_spread_cents),
+        latestMonth: r.latest_month || 0,
+      },
+    }),
+  );
 });
 
 app.get("/fx-efficiency", (c) => {
@@ -46,14 +47,37 @@ app.get("/fx-efficiency", (c) => {
     (c.get as (key: string) => unknown)("userId") as string | undefined,
     (tx) =>
       tx`
-    SELECT date, amount_cents::text AS amount_cents, kmk_rate::text AS kmk_rate,
-      actual_idr_received_cents::text AS actual_idr_cents,
+    SELECT date,
+      amount_cents::bigint AS amount_cents,
+      kmk_rate::text AS kmk_rate,
+      actual_idr_received_cents::bigint AS actual_idr_cents,
+      (amount_cents * kmk_rate)::bigint AS amount_idr_cents,
       CASE WHEN amount_cents > 0 AND kmk_rate IS NOT NULL AND actual_idr_received_cents IS NOT NULL
-        THEN ((amount_cents * (kmk_rate * 100)::bigint / 100) - actual_idr_received_cents)::text ELSE '0' END AS spread_cents,
+        THEN ((amount_cents * kmk_rate)::bigint - actual_idr_received_cents::bigint)::bigint
+        ELSE 0
+      END AS spread_cents,
       metadata->>'source' AS source
-    FROM transactions WHERE date_part('year', date) = ${year} AND kmk_rate IS NOT NULL ORDER BY date ASC`,
-  )
-    .then((res) => c.json({ success: true, fxData: res }));
+    FROM transactions
+    WHERE date_part('year', date) = ${year}
+      AND kmk_rate IS NOT NULL
+      AND amount_cents > 0
+    ORDER BY date ASC`,
+  ).then((res) =>
+    c.json({
+      success: true,
+      fxData: res.map((row) => ({
+        date: row.date,
+        source: row.source,
+        kmk_rate: row.kmk_rate,
+        amount_cents: String(row.amount_cents),
+        actual_idr_cents: row.actual_idr_cents
+          ? String(row.actual_idr_cents)
+          : null,
+        spread_cents: String(Math.round(Number(row.spread_cents))),
+        amount_idr_cents: String(Math.round(Number(row.amount_idr_cents))),
+      })),
+    }),
+  );
 });
 
 export default app;

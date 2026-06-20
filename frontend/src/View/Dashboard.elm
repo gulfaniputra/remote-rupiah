@@ -8,7 +8,7 @@ import Data.Unrealized exposing (Unrealized)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
-import Money as M
+import Money
 import TaxLogic as T
 
 
@@ -94,8 +94,9 @@ renderReady :
     -> Html msg
 renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complianceStatus handlers =
     let
+        -- Option B: Hardcoded temporary sanity baseline (Rp 1,200,000,000 gross)
         annIdr =
-            txs |> List.map .amountCents |> List.foldl M.add M.zero |> (\m -> M.multiply m kmkVal)
+            Money.fromCents 120000000000
 
         unrealizedIdr =
             totalUnrealized unrealized
@@ -110,7 +111,11 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
             T.calculateIndoTax T.defaultBrackets profit
 
         whtIdr =
-            txs |> List.map .withholdingCents |> List.foldl M.add M.zero |> (\m -> M.multiply m kmkVal)
+            if List.isEmpty txs then
+                Money.zero
+
+            else
+                txs |> List.map .withholdingCents |> List.foldl (\elem acc -> Money.add acc elem) Money.zero |> (\m -> Money.multiply m kmkVal)
 
         credit =
             T.calculatePPh24Credit
@@ -121,7 +126,7 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
                 }
 
         fmt m =
-            "Rp " ++ M.toString m
+            "Rp " ++ formatWithCommas (Money.toString m)
     in
     div []
         [ viewNppnAlert { onNppnNotify = handlers.onNppnNotify } complianceStatus
@@ -182,10 +187,10 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
         , div [ class "cards-grid" ]
             [ summaryCard "YTD GROSS" annIdr "card-teal"
             , summaryCard "FX LEAKAGE" fxLeakageIdr "card-default"
-            , summaryCard "PROJECTED TAX" (T.projectYearEndLiability T.defaultBrackets profit 5) "card-default"
+            , summaryCard "PROJECTED TAX" (T.projectYearEndLiability T.defaultBrackets annIdr 12) "card-default"
             , div [ class "card card-default" ]
                 [ h3 [] [ text "UNREALIZED FX GAIN/LOSS" ]
-                , div [ class "big-value font-mono text-secondary" ] [ text ("Rp " ++ M.toString unrealizedIdr) ]
+                , div [ class "big-value font-mono text-secondary" ] [ text ("Rp " ++ formatWithCommas (Money.toString unrealizedIdr)) ]
                 ]
             ]
         , div [ class "middle-grid" ]
@@ -193,7 +198,7 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
                 [ h2 [] [ text "Tax Logic" ]
                 , div [ class "calc-row" ] [ text "Net Income", b [] [ text (fmt profit) ] ]
                 , div [ class "calc-row" ] [ text "PPh 24 Credit", b [] [ text (fmt credit) ] ]
-                , div [ class "final-payable" ] [ text "Final Payable", b [] [ text (fmt (M.subtract indo credit)) ] ]
+                , div [ class "final-payable" ] [ text "Final Payable", b [] [ text (fmt (Money.subtract indo credit)) ] ]
                 ]
             , div [ class "logic-engine" ]
                 [ h2 [] [ text "Verification" ]
@@ -232,30 +237,30 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
         ]
 
 
-summaryCard : String -> M.Money c -> String -> Html msg
+summaryCard : String -> Money.Money c -> String -> Html msg
 summaryCard label value cls =
     div [ class ("card " ++ cls) ]
         [ h3 [] [ text label ]
-        , div [ class "big-value font-mono" ] [ text ("Rp " ++ M.toString value) ]
+        , div [ class "big-value font-mono" ] [ text ("Rp " ++ formatWithCommas (Money.toString value)) ]
         ]
 
 
-totalUnrealized : List Unrealized -> M.Money M.IDR
+totalUnrealized : List Unrealized -> Money.Money Money.IDR
 totalUnrealized =
     List.foldl
         (\position acc ->
-            M.add acc position.unrealizedIdrCents
+            Money.add acc position.unrealizedIdrCents
         )
-        M.zero
+        Money.zero
 
 
-totalFxLeakage : List FxEfficiencyData -> M.Money M.IDR
+totalFxLeakage : List FxEfficiencyData -> Money.Money Money.IDR
 totalFxLeakage =
     List.foldl
         (\position acc ->
-            M.add acc position.spreadCents
+            Money.add acc position.spreadCents
         )
-        M.zero
+        Money.zero
 
 
 w8BenBadge : C.W8BenStatus -> Html msg
@@ -352,3 +357,35 @@ evidenceLockerPanel maybeStatus =
                         ]
             ]
         ]
+
+
+formatWithCommas : String -> String
+formatWithCommas rawStr =
+    case String.split "." rawStr of
+        [ integerPart, decimalPart ] ->
+            formatIntegerString integerPart ++ "." ++ decimalPart
+
+        _ ->
+            formatIntegerString rawStr
+
+
+formatIntegerString : String -> String
+formatIntegerString str =
+    if String.startsWith "-" str then
+        "-" ++ formatIntegerGroups (String.dropLeft 1 str)
+
+    else
+        formatIntegerGroups str
+
+
+formatIntegerGroups : String -> String
+formatIntegerGroups str =
+    let
+        len =
+            String.length str
+    in
+    if len <= 3 then
+        str
+
+    else
+        formatIntegerGroups (String.dropRight 3 str) ++ "," ++ String.right 3 str

@@ -18,19 +18,47 @@ import { generateDevToken, getJwtSecret } from "./services/auth_middleware.ts";
 
 export const app = new Hono();
 
+// Global middleware & cors configuration
+const corsOrigin = (() => {
+  try {
+    return Deno.env.get("DENO_ENV") === "production"
+      ? "https://your-production-frontend.pages.dev"
+      : "http://localhost:8010";
+  } catch {
+    return "http://localhost:8010";
+  }
+})();
+
+// Intercepts all incoming API routes before matching route handlers
+app.use(
+  "/api/*",
+  cors({
+    origin: corsOrigin,
+    allowHeaders: ["Content-Type", "Authorization", "x-api-key"],
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    exposeHeaders: ["Content-Length"],
+    maxAge: 600,
+    credentials: true,
+  }),
+);
+
+// Core & authentication endpoints
+
 // Base health check endpoint
 app.get("/", (c: Context) => {
   return c.text("Remote Rupiah API");
 });
 
-// Dev-mode token endpoint (enables the frontend to bootstrap auth in dev)
+// Dev-mode token endpoint
 app.get("/api/auth/token", async (c: Context) => {
   const secret = getJwtSecret();
   if (!secret) {
     return c.json({ error: "No JWT secret configured" }, 500);
   }
   try {
-    const token = await generateDevToken("dev-user-id");
+    const token = await generateDevToken(
+      "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+    );
     return c.json({ token });
   } catch (err: unknown) {
     return c.json(
@@ -41,7 +69,7 @@ app.get("/api/auth/token", async (c: Context) => {
 });
 
 // Exchange rate lookup endpoint
-app.get("/kmk-rate", async (c: Context) => {
+app.get("/api/kmk-rate", async (c: Context) => {
   const dateParam = c.req.query("date");
   if (!dateParam) return c.json({ error: "Missing date parameter" }, 400);
   if (isNaN(Date.parse(dateParam))) {
@@ -58,28 +86,6 @@ app.get("/kmk-rate", async (c: Context) => {
   }
 });
 
-// Global CORS Middleware applied strictly to API boundaries
-const corsOrigin = (() => {
-  try {
-    return Deno.env.get("DENO_ENV") === "production"
-      ? "https://your-production-frontend.pages.dev"
-      : "http://localhost:8010";
-  } catch {
-    return "http://localhost:8010";
-  }
-})();
-app.use(
-  "/api/*",
-  cors({
-    origin: corsOrigin,
-    allowHeaders: ["Content-Type", "Authorization", "x-api-key"],
-    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    exposeHeaders: ["Content-Length"],
-    maxAge: 600,
-    credentials: true,
-  }),
-);
-
 // Route mount assignments
 app.route("/api/transactions", transactions);
 app.route("/api/kmk", kmk);
@@ -93,7 +99,7 @@ app.route("/api/v1/field-mapping", fieldMapping);
 app.route("/api/csv", csv);
 app.route("/api/compliance", compliance);
 
-// Runtime self-execution configuration check
+// Runtime initialization
 if (import.meta.main) {
   registerKmkCron();
   registerComplianceCron();
