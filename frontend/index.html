@@ -1,13 +1,16 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Remote-Rupiah Dashboard</title>
+    <title>Remote Rupiah</title>
     <meta
       name="description"
       content="Personal finance and tax dashboard for Indonesian remote developers — NPPN, PPh 24, and FX tracking."
     />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
@@ -16,10 +19,23 @@
   </head>
   <body>
     <div id="elm-app"></div>
+
+    <input
+      type="file"
+      id="rr-csv-input"
+      accept=".csv,text/csv"
+      style="display: none"
+    />
+
     <script src="elm.js"></script>
     <script>
-      // Dev-mode token bootstrap: auto-obtain a JWT if none is stored
-      var apiUrl = "http://localhost:8000";
+      // Environment Configuration Matrix
+      var apiUrl =
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1"
+          ? "http://localhost:8000"
+          : "https://api.remoterupiah.id"; // Fallback production URL placeholder
+
       var storedToken = localStorage.getItem("rr_token");
 
       function bootstrapApp(token) {
@@ -39,35 +55,47 @@
           });
         }
 
-        // Invisible File Input for CSV processing
-        var fileInput = document.createElement("input");
-        fileInput.type = "file";
-        fileInput.accept = ".csv,text/csv";
-        fileInput.style.display = "none";
-        document.body.appendChild(fileInput);
+        // Bind directly to the static DOM element
+        var fileInput = document.getElementById("rr-csv-input");
 
         // Listen for UI request to open system file dialog
         if (app.ports && app.ports.requestCsvFile) {
           app.ports.requestCsvFile.subscribe(function () {
-            fileInput.value = "";
-            fileInput.click();
+            if (fileInput) {
+              fileInput.value = "";
+              fileInput.click();
+            }
           });
         }
 
-        // Read selected CSV file as text and pass back to Elm
-        fileInput.addEventListener("change", function () {
-          var file = fileInput.files && fileInput.files[0];
-          if (!file || !app.ports || !app.ports.csvSelected) return;
+        // Read selected CSV file safely with unified error handling thresholds
+        if (fileInput) {
+          fileInput.addEventListener("change", function () {
+            var file = fileInput.files && fileInput.files[0];
+            if (!file || !app.ports || !app.ports.csvSelected) return;
 
-          file.text().then(function (csv) {
-            app.ports.csvSelected.send(csv);
+            file
+              .text()
+              .then(function (csv) {
+                app.ports.csvSelected.send(csv);
+              })
+              .catch(function (err) {
+                console.error("Local file extraction failure:", err);
+                // If your upload completed port can accept error strings, reset Elm's state safely
+                if (app.ports.uploadCompleted) {
+                  app.ports.uploadCompleted.send(
+                    "Local file processing failed: " + err.message,
+                  );
+                }
+              });
           });
-        });
+        }
 
         // Handle the manual multi-part transaction ingest request via ports
         if (app.ports && app.ports.uploadCsv) {
           app.ports.uploadCsv.subscribe(function (payload) {
-            fetch("http://localhost:8000/api/v1/ingest", {
+            // FIXED: Using dynamically evaluated API URL context bounds instead of hardcoded strings
+            fetch(apiUrl + "/api/v1/ingest", {
               method: "POST",
               headers: {
                 Authorization: "Bearer " + payload.token,
@@ -110,7 +138,7 @@
         }
       }
 
-      // If we already have a stored token, use it; otherwise fetch a dev token
+      // Bootstrap routing phase
       if (storedToken) {
         bootstrapApp(storedToken);
       } else {
@@ -123,7 +151,6 @@
               localStorage.setItem("rr_token", data.token);
               bootstrapApp(data.token);
             } else {
-              // Fallback: bootstrap empty
               bootstrapApp("");
             }
           })

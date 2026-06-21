@@ -8,6 +8,7 @@ import Data.Unrealized exposing (Unrealized)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
+import Html.Keyed
 import Money
 import TaxLogic as T
 
@@ -94,7 +95,6 @@ renderReady :
     -> Html msg
 renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complianceStatus handlers =
     let
-        -- Option B: Hardcoded temporary sanity baseline (Rp 1,200,000,000 gross)
         annIdr =
             Money.fromCents 120000000000
 
@@ -115,7 +115,9 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
                 Money.zero
 
             else
-                txs |> List.map .withholdingCents |> List.foldl (\elem acc -> Money.add acc elem) Money.zero |> (\m -> Money.multiply m kmkVal)
+                txs
+                    |> List.foldl (\tx acc -> Money.add acc tx.withholdingCents) Money.zero
+                    |> (\m -> Money.multiply m kmkVal)
 
         credit =
             T.calculatePPh24Credit
@@ -125,6 +127,19 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
                 , actualForeignTaxPaid = whtIdr
                 }
 
+        finalTaxOwed =
+            Money.subtract indo credit
+
+        isOverpayment =
+            Money.toString finalTaxOwed |> String.startsWith "-"
+
+        taxLiabilityLabel =
+            if isOverpayment then
+                "Tax Overpayment (Lebih Bayar)"
+
+            else
+                "Final Payable (Kurang Bayar)"
+
         fmt m =
             "Rp " ++ formatWithCommas (Money.toString m)
     in
@@ -133,24 +148,25 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
         , div [ class "cards-grid" ]
             [ div [ class "card card-default" ]
                 [ h3 [] [ text "WALLET SOURCE" ]
-                , select
-                    [ class "select"
-                    , value source
-                    , onInput handlers.onSourceChange
+                , div [ class "mt-2" ]
+                    [ select
+                        [ value source
+                        , onInput handlers.onSourceChange
+                        ]
+                        [ option [ value "wise" ] [ text "wise" ]
+                        , option [ value "bank" ] [ text "bank" ]
+                        ]
                     ]
-                    [ option [ value "wise" ] [ text "wise" ]
-                    , option [ value "bank" ] [ text "bank" ]
-                    ]
-                , button [ class "btn btn-outline mt-3", onClick handlers.onUpload ] [ text "Upload CSV" ]
+                , button [ class "btn btn-primary mt-3", onClick handlers.onUpload ] [ text "Upload CSV" ]
                 , if String.isEmpty uploadStatus then
                     text ""
 
                   else
-                    div [ class "text-secondary mt-2 font-mono" ] [ text uploadStatus ]
+                    div [ class "text-secondary mt-2 font-mono text-xs" ] [ text uploadStatus ]
                 ]
             , div [ class "card card-default" ]
                 [ h3 [] [ text "TAX PROFILE (DJP)" ]
-                , div [ class "flex flex-col gap-2" ]
+                , div [ class "flex-col gap-2" ]
                     [ div []
                         [ label [ class "text-xs text-secondary font-semibold" ] [ text "NPWP" ]
                         , input [ id "tax-npwp", class "input", value profile.npwp, onInput handlers.onNpwpChange ] []
@@ -178,8 +194,8 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
                         , input [ id "tax-klu", class "input", value profile.kluCode, onInput handlers.onKluCodeChange ] []
                         ]
                     , div [ class "flex gap-2 mt-2" ]
-                        [ button [ class "btn btn-primary flex-1", onClick handlers.onSaveProfile ] [ text "Save" ]
-                        , button [ class "btn btn-secondary flex-1", onClick handlers.onExport ] [ text "Export" ]
+                        [ button [ class "btn btn-primary", onClick handlers.onSaveProfile ] [ text "Save" ]
+                        , button [ class "btn btn-outline", onClick handlers.onExport ] [ text "Export" ]
                         ]
                     ]
                 ]
@@ -190,25 +206,32 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
             , summaryCard "PROJECTED TAX" (T.projectYearEndLiability T.defaultBrackets annIdr 12) "card-default"
             , div [ class "card card-default" ]
                 [ h3 [] [ text "UNREALIZED FX GAIN/LOSS" ]
-                , div [ class "big-value font-mono text-secondary" ] [ text ("Rp " ++ formatWithCommas (Money.toString unrealizedIdr)) ]
+                , div [ class "big-value font-mono text-secondary" ] [ text (fmt unrealizedIdr) ]
                 ]
             ]
         , div [ class "middle-grid" ]
             [ div [ class "chart-card" ]
                 [ h2 [] [ text "Tax Logic" ]
-                , div [ class "calc-row" ] [ text "Net Income", b [] [ text (fmt profit) ] ]
-                , div [ class "calc-row" ] [ text "PPh 24 Credit", b [] [ text (fmt credit) ] ]
-                , div [ class "final-payable" ] [ text "Final Payable", b [] [ text (fmt (Money.subtract indo credit)) ] ]
+                , div [ class "calc-row" ] [ text "Net Income (NPPN)", b [] [ text (fmt profit) ] ]
+                , div [ class "calc-row" ] [ text "PPh 24 Tax Credit", b [] [ text (fmt credit) ] ]
+                , div [ class "final-payable" ] [ text taxLiabilityLabel, b [] [ text (fmt finalTaxOwed) ] ]
                 ]
             , div [ class "logic-engine" ]
                 [ h2 [] [ text "Verification" ]
-                , div [ class "transaction-list" ]
-                    [ table [ class "table w-full" ]
-                        [ thead [] [ tr [] [ th [] [ text "Date" ], th [] [ text "Status" ] ] ]
-                        , tbody []
+                , div [ class "table-card mt-2" ]
+                    [ table []
+                        [ thead []
+                            [ tr []
+                                [ th [] [ text "Date" ]
+                                , th [] [ text "Status" ]
+                                ]
+                            ]
+                        , Html.Keyed.node "tbody"
+                            []
                             (List.map
                                 (\tx ->
-                                    tr
+                                    ( tx.id
+                                    , tr
                                         [ class
                                             (if tx.is1042sVerified then
                                                 "row-locked"
@@ -220,12 +243,13 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
                                         [ td [] [ text tx.date ]
                                         , td []
                                             [ if tx.is1042sVerified then
-                                                span [ class "text-green flex items-center gap-1 font-mono" ] [ text "🛡️ Verified" ]
+                                                span [ class "text-green flex gap-1 font-mono text-sm" ] [ text "🛡️ Verified" ]
 
                                               else
-                                                button [ class "btn btn-outline text-secondary font-mono flex items-center gap-1", onClick (handlers.onVerify tx.id) ] [ text "🛡️ Verify" ]
+                                                button [ class "btn btn-primary font-mono text-xs flex gap-1", onClick (handlers.onVerify tx.id) ] [ text "🛡️ Verify" ]
                                             ]
                                         ]
+                                    )
                                 )
                                 txs
                             )
@@ -247,20 +271,12 @@ summaryCard label value cls =
 
 totalUnrealized : List Unrealized -> Money.Money Money.IDR
 totalUnrealized =
-    List.foldl
-        (\position acc ->
-            Money.add acc position.unrealizedIdrCents
-        )
-        Money.zero
+    List.foldl (\position acc -> Money.add acc position.unrealizedIdrCents) Money.zero
 
 
 totalFxLeakage : List FxEfficiencyData -> Money.Money Money.IDR
 totalFxLeakage =
-    List.foldl
-        (\position acc ->
-            Money.add acc position.spreadCents
-        )
-        Money.zero
+    List.foldl (\position acc -> Money.add acc position.spreadCents) Money.zero
 
 
 w8BenBadge : C.W8BenStatus -> Html msg
@@ -285,24 +301,24 @@ viewNppnAlert handlers maybeStatus =
         Just { nppnStatus } ->
             if nppnStatus.notified then
                 div [ class "alert alert-success" ]
-                    [ span [ class "font-mono" ] [ text "✅ NPPN filed" ] ]
+                    [ span [ class "font-mono" ] [ text "✅ NPPN Notification filed with DJP" ] ]
 
             else if nppnStatus.isOverdue then
                 div [ class "alert alert-danger" ]
                     [ span [ class "font-mono" ] [ text "⚠️ NPPN notification deadline missed — file immediately" ]
-                    , button [ class "btn btn-outline ml-3", onClick handlers.onNppnNotify ] [ text "Notify NPPN" ]
+                    , button [ class "btn btn-primary", onClick handlers.onNppnNotify ] [ text "Notify NPPN" ]
                     ]
 
             else if nppnStatus.daysRemaining <= 14 then
                 div [ class "alert alert-warning" ]
                     [ span [ class "font-mono" ] [ text ("⏰ NPPN notification due in " ++ String.fromInt nppnStatus.daysRemaining ++ " days") ]
-                    , button [ class "btn btn-outline ml-3", onClick handlers.onNppnNotify ] [ text "Notify NPPN" ]
+                    , button [ class "btn btn-primary", onClick handlers.onNppnNotify ] [ text "Notify NPPN" ]
                     ]
 
             else
                 div [ class "alert alert-info" ]
                     [ span [ class "font-mono" ] [ text ("📋 NPPN notification due in " ++ String.fromInt nppnStatus.daysRemaining ++ " days") ]
-                    , button [ class "btn btn-outline ml-3", onClick handlers.onNppnNotify ] [ text "Notify NPPN" ]
+                    , button [ class "btn btn-primary", onClick handlers.onNppnNotify ] [ text "Notify NPPN" ]
                     ]
 
 
@@ -316,7 +332,7 @@ evidenceLockerPanel maybeStatus =
                     div [ class "text-secondary" ] [ text "Loading compliance status…" ]
 
                 Just status ->
-                    div [ class "flex flex-col gap-2" ]
+                    div [ class "flex-col gap-2" ]
                         [ div []
                             [ label [ class "text-xs text-secondary font-semibold" ] [ text "W-8BEN STATUS" ]
                             , div [ class "mt-1" ] [ w8BenBadge status.w8benStatus ]
@@ -333,25 +349,33 @@ evidenceLockerPanel maybeStatus =
                                 div [ class "text-secondary text-xs mt-1" ] [ text "No documents uploaded." ]
 
                               else
-                                table [ class "table w-full mt-1" ]
-                                    [ thead [] [ tr [] [ th [] [ text "Type" ], th [] [ text "Year" ], th [] [ text "Verified" ] ] ]
-                                    , tbody []
-                                        (List.map
-                                            (\doc ->
-                                                tr []
-                                                    [ td [ class "font-mono" ] [ text doc.documentType ]
-                                                    , td [] [ text (String.fromInt doc.taxYear) ]
-                                                    , td []
-                                                        [ if doc.isVerified then
-                                                            span [ class "text-green" ] [ text "✅" ]
+                                div [ class "table-card mt-1" ]
+                                    [ table []
+                                        [ thead []
+                                            [ tr []
+                                                [ th [] [ text "Type" ]
+                                                , th [] [ text "Year" ]
+                                                , th [] [ text "Verified" ]
+                                                ]
+                                            ]
+                                        , tbody []
+                                            (List.map
+                                                (\doc ->
+                                                    tr []
+                                                        [ td [ class "font-mono" ] [ text doc.documentType ]
+                                                        , td [] [ text (String.fromInt doc.taxYear) ]
+                                                        , td []
+                                                            [ if doc.isVerified then
+                                                                span [ class "text-green" ] [ text "✅" ]
 
-                                                          else
-                                                            span [ class "text-secondary" ] [ text "—" ]
+                                                              else
+                                                                span [ class "text-secondary" ] [ text "—" ]
+                                                            ]
                                                         ]
-                                                    ]
+                                                )
+                                                status.documents
                                             )
-                                            status.documents
-                                        )
+                                        ]
                                     ]
                             ]
                         ]
@@ -380,12 +404,17 @@ formatIntegerString str =
 
 formatIntegerGroups : String -> String
 formatIntegerGroups str =
-    let
-        len =
-            String.length str
-    in
-    if len <= 3 then
-        str
+    str
+        |> String.reverse
+        |> chunkString 3
+        |> String.join ","
+        |> String.reverse
+
+
+chunkString : Int -> String -> List String
+chunkString size str =
+    if String.isEmpty str then
+        []
 
     else
-        formatIntegerGroups (String.dropRight 3 str) ++ "," ++ String.right 3 str
+        String.left size str :: chunkString size (String.dropLeft size str)

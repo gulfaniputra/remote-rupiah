@@ -41,8 +41,18 @@ port downloadCsv : { filename : String, content : String } -> Cmd msg
 -- MODEL
 
 
+type AppState
+    = Loading
+    | Failure String
+    | MappingRequired CsvMapper.Model
+    | Ready
+
+
 type alias Model =
-    { state : State
+    { appState : AppState
+    , txs : List Transaction
+    , unrealized : List Unrealized
+    , fxLeakage : List FxEfficiencyData
     , complianceStatus : Maybe C.ComplianceStatusResponse
     , t : Time.Posix
     , kmk : Maybe String
@@ -98,46 +108,28 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg m =
     case msg of
         GotTransactions (Ok txs) ->
-            ( { m
-                | state =
-                    case m.state of
-                        Ready data ->
-                            Ready { data | txs = txs }
+            ( { m | txs = txs, appState = Ready }, Cmd.none )
 
-                        _ ->
-                            Ready { txs = txs, unrealized = [], fxLeakage = [] }
-              }
-            , Cmd.none
-            )
+        GotTransactions (Err err) ->
+            case err of
+                Api.SessionExpired ->
+                    ( { m | token = "", appState = Failure "Session expired" }, clearCredentials () )
+
+                Api.MappingRequired headers ->
+                    -- Initialize state explicitly inside update cycle to protect components from runtime re-init leaks
+                    ( { m | appState = MappingRequired (CsvMapper.init m.apiUrl m.token headers) }, Cmd.none )
+
+                _ ->
+                    ( { m | appState = Failure "Network error loading transactions" }, Cmd.none )
 
         GotUnrealized (Ok unrealized) ->
-            ( { m
-                | state =
-                    case m.state of
-                        Ready data ->
-                            Ready { data | unrealized = unrealized }
-
-                        _ ->
-                            Ready { txs = [], unrealized = unrealized, fxLeakage = [] }
-              }
-            , Cmd.none
-            )
-
-        GotFxEfficiency (Ok fxLeakage) ->
-            ( { m
-                | state =
-                    case m.state of
-                        Ready data ->
-                            Ready { data | fxLeakage = fxLeakage }
-
-                        _ ->
-                            Ready { txs = [], unrealized = [], fxLeakage = fxLeakage }
-              }
-            , Cmd.none
-            )
+            ( { m | unrealized = unrealized }, Cmd.none )
 
         GotUnrealized (Err _) ->
             ( m, Cmd.none )
+
+        GotFxEfficiency (Ok fxLeakage) ->
+            ( { m | fxLeakage = fxLeakage }, Cmd.none )
 
         GotFxEfficiency (Err _) ->
             ( m, Cmd.none )
@@ -154,47 +146,25 @@ update msg m =
         FileUploadCompleted result ->
             ( { m | uploadStatus = result }, Cmd.none )
 
-        GotTransactions (Err err) ->
-            case err of
-                Api.SessionExpired ->
-                    ( { m | token = "", state = Failure "Session expired" }, clearCredentials () )
-
-                Api.MappingRequired headers ->
-                    ( { m | state = MappingRequired { headers = headers } }, Cmd.none )
-
-                _ ->
-                    ( { m | state = Failure "Network error" }, Cmd.none )
-
         Verify id ->
             ( m, Api.verify1042s m.apiUrl m.token id (Verified id) )
 
         Verified id (Ok _) ->
-            case m.state of
-                Ready data ->
-                    ( { m
-                        | state =
-                            Ready
-                                { data
-                                    | txs =
-                                        List.map
-                                            (\tx ->
-                                                if tx.id == id then
-                                                    { tx | is1042sVerified = True }
+            let
+                updatedTxs =
+                    List.map
+                        (\tx ->
+                            if tx.id == id then
+                                { tx | is1042sVerified = True }
 
-                                                else
-                                                    tx
-                                            )
-                                            data.txs
-                                }
-                      }
-                    , Cmd.none
-                    )
-
-                _ ->
-                    ( m, Cmd.none )
+                            else
+                                tx
+                        )
+                        m.txs
+            in
+            ( { m | txs = updatedTxs }, Cmd.none )
 
         Verified _ (Err _) ->
-            -- Silently ignore failures to preserve UX state
             ( m, Cmd.none )
 
         Tick _ ->
@@ -203,8 +173,19 @@ update msg m =
         GotKmk _ ->
             ( m, Cmd.none )
 
-        CsvMapperMsg _ ->
-            ( m, Cmd.none )
+        CsvMapperMsg mapperMsg ->
+            case m.appState of
+                MappingRequired mapperModel ->
+                    let
+                        ( nextMapperModel, mapperCmd ) =
+                            CsvMapper.update mapperMsg mapperModel
+                    in
+                    ( { m | appState = MappingRequired nextMapperModel }
+                    , Cmd.map CsvMapperMsg mapperCmd
+                    )
+
+                _ ->
+                    ( m, Cmd.none )
 
         GotTaxProfile (Ok maybeProfile) ->
             ( { m | taxProfile = maybeProfile |> Maybe.withDefault TaxProfile.empty }, Cmd.none )
@@ -283,22 +264,22 @@ update msg m =
 
 
 
--- VIEW (Placeholder)
+-- VIEW
 
 
 view : Model -> Html Msg
 view m =
-    case m.state of
+    case m.appState of
         Loading ->
-            div [] [ text "Loading..." ]
+            div [] [ text "Loading Remote Rupiah pipeline..." ]
 
         Failure err ->
             div [] [ text ("Error: " ++ err) ]
 
-        MappingRequired { headers } ->
-            Html.map CsvMapperMsg (CsvMapper.view (CsvMapper.init m.apiUrl m.token headers))
+        MappingRequired mapperModel ->
+            Html.map CsvMapperMsg (CsvMapper.view mapperModel)
 
-        Ready data ->
+        Ready ->
             let
                 handlers =
                     { onSourceChange = UpdateSource
@@ -312,9 +293,12 @@ view m =
                     , onExport = Export 2026
                     , onNppnNotify = NppnNotify
                     }
+
+                dashboardState =
+                    Data.State.Ready { txs = m.txs, unrealized = m.unrealized, fxLeakage = m.fxLeakage }
             in
             D.view
-                (Ready data)
+                dashboardState
                 (m.kmk |> Maybe.andThen String.toInt |> Maybe.withDefault 0)
                 m.source
                 m.uploadStatus
@@ -332,7 +316,10 @@ main =
     Browser.element
         { init =
             \flags ->
-                ( { state = Loading
+                ( { appState = Loading
+                  , txs = []
+                  , unrealized = []
+                  , fxLeakage = []
                   , complianceStatus = Nothing
                   , t = epoch
                   , kmk = Nothing
@@ -343,7 +330,8 @@ main =
                   , taxProfile = TaxProfile.empty
                   }
                 , Cmd.batch
-                    [ Api.fetchUnrealized flags.apiUrl flags.token GotUnrealized
+                    [ Api.fetchTransactions flags.apiUrl flags.token GotTransactions
+                    , Api.fetchUnrealized flags.apiUrl flags.token GotUnrealized
                     , Api.fetchFxEfficiency flags.apiUrl flags.token GotFxEfficiency
                     , Api.fetchTaxProfile flags.apiUrl flags.token GotTaxProfile
                     , Api.fetchComplianceStatus flags.apiUrl flags.token GotComplianceStatus

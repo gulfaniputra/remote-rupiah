@@ -32,10 +32,32 @@ init : String -> String -> List String -> Model
 init apiUrl token headers =
     { token = token
     , apiUrl = apiUrl
-    , mapping = Dict.empty
+    , mapping = autoMatchHeaders headers
     , sourceHeaders = headers
     , status = Idle
     }
+
+
+autoMatchHeaders : List String -> Dict String String
+autoMatchHeaders headers =
+    let
+        canonical =
+            [ "date", "amount", "currency" ]
+
+        match header acc =
+            let
+                cleaned =
+                    header
+                        |> String.toLower
+                        |> String.trim
+            in
+            if List.member cleaned canonical then
+                Dict.insert header cleaned acc
+
+            else
+                acc
+    in
+    List.foldl match Dict.empty headers
 
 
 
@@ -63,7 +85,7 @@ update msg model =
             )
 
         GotMapping (Ok (Just m)) ->
-            ( { model | mapping = m, status = Idle }, Cmd.none )
+            ( { model | mapping = Dict.union m model.mapping, status = Idle }, Cmd.none )
 
         GotMapping (Ok Nothing) ->
             ( { model | status = Idle }, Cmd.none )
@@ -72,9 +94,15 @@ update msg model =
             ( { model | status = Failed "Failed to load mapping" }, Cmd.none )
 
         SelectTarget header target ->
-            ( { model | mapping = Dict.insert header target model.mapping }
-            , Cmd.none
-            )
+            let
+                updatedMapping =
+                    if String.isEmpty target then
+                        Dict.remove header model.mapping
+
+                    else
+                        Dict.insert header target model.mapping
+            in
+            ( { model | mapping = updatedMapping, status = Idle }, Cmd.none )
 
         SaveMapping ->
             ( { model | status = Loading }
@@ -99,19 +127,26 @@ canonicalTargets =
 
 viewRow : Dict String String -> String -> Html Msg
 viewRow mapping header =
+    let
+        currentTarget =
+            Dict.get header mapping |> Maybe.withDefault ""
+
+        hasValidTarget =
+            not (String.isEmpty currentTarget)
+    in
     div [ class "mapper-row" ]
         [ span [ class "mapper-source" ] [ text header ]
         , span [ class "mapper-arrow" ] [ text "→" ]
         , div [ class "mapper-target" ]
             [ select
                 [ onInput (SelectTarget header)
-                , value (Dict.get header mapping |> Maybe.withDefault "")
+                , value currentTarget
                 ]
                 (List.map
                     (\t ->
                         option [ value t ]
                             [ text
-                                (if t == "" then
+                                (if String.isEmpty t then
                                     "— skip —"
 
                                  else
@@ -124,7 +159,7 @@ viewRow mapping header =
             ]
         , span
             [ class
-                (if Dict.member header mapping then
+                (if hasValidTarget then
                     "mapper-confidence conf-high"
 
                  else
@@ -132,7 +167,7 @@ viewRow mapping header =
                 )
             ]
             [ text
-                (if Dict.member header mapping then
+                (if hasValidTarget then
                     "✓"
 
                  else
@@ -147,7 +182,7 @@ view model =
     div [ class "mapper-card" ]
         [ div [ class "mapper-header" ]
             [ h2 [] [ text "CSV Field Mapping" ]
-            , button [ class "btn", onClick FetchMapping ] [ text "Load Saved" ]
+            , button [ class "btn btn-outline", onClick FetchMapping ] [ text "Load Saved" ]
             ]
         , div [ class "mapper-grid" ]
             (List.map (viewRow model.mapping) model.sourceHeaders)
@@ -157,7 +192,7 @@ view model =
                     span [ class "text-danger text-sm" ] [ text e ]
 
                 SaveOk ->
-                    span [ class "text-success text-sm" ] [ text "Mapping saved." ]
+                    span [ class "text-green text-sm" ] [ text "Mapping saved successfully." ]
 
                 _ ->
                     text ""
