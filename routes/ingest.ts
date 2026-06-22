@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { authMiddleware } from "../services/auth_middleware.ts";
-import db, { withAuth } from "../db/client.ts";
+import { withAuth } from "../db/client.ts";
 import { CsvParseStream } from "@std/csv";
 import { detectPlatform } from "../services/ingestion/detector.ts";
 import { mapCsvRow } from "../backend/src/services/ingestion/csv-mapper.ts";

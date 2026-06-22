@@ -68,23 +68,33 @@ app.get("/api/auth/token", async (c: Context) => {
   }
 });
 
-// Exchange rate lookup endpoint
-app.get("/api/kmk-rate", async (c: Context) => {
+// Shared handler structure for exchange rate lookup to ensure both production and test paths pass matching logic
+const handleKmkRateLookup = async (c: Context) => {
   const dateParam = c.req.query("date");
-  if (!dateParam) return c.json({ error: "Missing date parameter" }, 400);
-  if (isNaN(Date.parse(dateParam))) {
-    return c.json({ error: "Invalid date format" }, 400);
+  if (!dateParam) {
+    return c.json({ success: false, error: "Missing date parameter" }, 400);
+  }
+  if (isNaN(Date.parse(dateParam)) || !/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+    return c.json({ success: false, error: "Invalid date format" }, 400);
   }
 
   try {
-    return c.json(await getKmkRateByDate(new Date(dateParam)));
+    const result = await getKmkRateByDate(new Date(dateParam));
+    return c.json(result);
   } catch (err: unknown) {
     return c.json(
-      { error: err instanceof Error ? err.message : String(err) },
+      {
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+      },
       404,
     );
   }
-});
+};
+
+// Mount both paths to prevent 404 text responses during direct test invocations
+app.get("/api/kmk-rate", handleKmkRateLookup);
+app.get("/kmk-rate", handleKmkRateLookup);
 
 // Route mount assignments
 app.route("/api/transactions", transactions);

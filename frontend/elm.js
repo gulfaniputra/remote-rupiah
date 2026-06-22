@@ -9255,7 +9255,7 @@ var $author$project$View$Dashboard$renderReady = F9(
 			$elm$core$String$startsWith,
 			'-',
 			$author$project$Money$toString(finalTaxOwed));
-		var taxLiabilityLabel = isOverpayment ? 'Tax Overpayment (Lebih Bayar)' : 'Final Payable (Kurang Bayar)';
+		var taxLiabilityLabel = isOverpayment ? 'Tax Overpayment' : 'Final Payable';
 		return A2(
 			$elm$html$Html$div,
 			_List_Nil,

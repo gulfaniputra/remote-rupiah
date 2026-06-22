@@ -135,10 +135,10 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
 
         taxLiabilityLabel =
             if isOverpayment then
-                "Tax Overpayment (Lebih Bayar)"
+                "Tax Overpayment"
 
             else
-                "Final Payable (Kurang Bayar)"
+                "Final Payable"
 
         fmt m =
             "Rp " ++ formatWithCommas (Money.toString m)

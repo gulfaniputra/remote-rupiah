@@ -4,7 +4,7 @@ const isTesting = !Deno.mainModule.endsWith("main.ts");
 const defaultDbUrl =
   "postgres://postgres:postgres@localhost:5432/remote_rupiah";
 
-const dbUrl = (() => {
+const _dbUrl = (() => {
   try {
     return Deno.env.get("DATABASE_URL") ?? defaultDbUrl;
   } catch {
