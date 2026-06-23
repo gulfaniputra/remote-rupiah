@@ -21,7 +21,7 @@ export const app = new Hono();
 // Global middleware & CORS configuration
 const corsOrigin = (() => {
   try {
-    return Deno.env.get("DENO_ENV") === "production"
+    return Deno.env.get("APP_ENV") === "production"
       ? "https://remote-rupiah.pages.dev/"
       : "http://localhost:8010";
   } catch {
