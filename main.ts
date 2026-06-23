@@ -18,11 +18,11 @@ import { generateDevToken, getJwtSecret } from "./services/auth_middleware.ts";
 
 export const app = new Hono();
 
-// Global middleware & cors configuration
+// Global middleware & CORS configuration
 const corsOrigin = (() => {
   try {
     return Deno.env.get("DENO_ENV") === "production"
-      ? "https://your-production-frontend.pages.dev"
+      ? "https://remote-rupiah.pages.dev/"
       : "http://localhost:8010";
   } catch {
     return "http://localhost:8010";
