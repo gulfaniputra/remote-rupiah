@@ -8,11 +8,10 @@ const app = new Hono();
 app.use("*", authMiddleware);
 
 const bodySchema = z.object({
-  year: z.union([z.string(), z.number()]).transform((v) =>
-    parseInt(String(v), 10)
-  ).pipe(
-    z.number().int().min(1000).max(9999),
-  ),
+  year: z
+    .union([z.string(), z.number()])
+    .transform((v) => parseInt(String(v), 10))
+    .pipe(z.number().int().min(1000).max(9999)),
 });
 
 app.post("/", zValidator("json", bodySchema), async (c) => {
@@ -63,23 +62,27 @@ app.post("/", zValidator("json", bodySchema), async (c) => {
         );
 
         for (const t of txs) {
-          const dateStr = t.date instanceof Date
-            ? t.date.toISOString().split("T")[0]
-            : String(t.date).split("T")[0];
+          const dateStr =
+            t.date instanceof Date
+              ? t.date.toISOString().split("T")[0]
+              : String(t.date).split("T")[0];
 
-          // Format Bruto Valas (USD) from cents
+          // Format Bruto Valas (USD) safely handling negative BigInt signs
           const amountCents = BigInt(t.amount_cents);
-          const valasInteger = amountCents / 100n;
-          const valasDecimals = amountCents % 100n;
-          const brutoValasStr = `${valasInteger}.${
-            String(valasDecimals).padStart(2, "0")
-          }`;
+          const isNegative = amountCents < 0n;
+          const absCents = isNegative ? -amountCents : amountCents;
+
+          const valasInteger = absCents / 100n;
+          const valasDecimals = absCents % 100n;
+          const brutoValasStr = `${isNegative ? "-" : ""}${valasInteger}.${String(
+            valasDecimals,
+          ).padStart(2, "0")}`;
 
           // Format Kurs KMK
           const kmkRateStr = String(t.kmk_rate || "0.00");
           const [ri, rf = ""] = kmkRateStr.split(".");
-          const rate = BigInt(ri) * 100n +
-            BigInt(rf.padEnd(2, "0").slice(0, 2));
+          const rate =
+            BigInt(ri) * 100n + BigInt(rf.padEnd(2, "0").slice(0, 2));
 
           // Calculate IDR values
           const brutoIdr = (amountCents * rate) / 10000n;
@@ -104,8 +107,7 @@ app.post("/", zValidator("json", bodySchema), async (c) => {
 
     return c.body(stream, 200, {
       "Content-Type": "text/csv",
-      "Content-Disposition":
-        `attachment; filename="DJP_Coretax_Export_${year}.csv"`,
+      "Content-Disposition": `attachment; filename="DJP_Coretax_Export_${year}.csv"`,
     });
   } catch (err: unknown) {
     return c.json(
