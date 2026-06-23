@@ -1,0 +1,49 @@
+name: CI Verification
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend-tests:
+    name: Deno Backend Lint & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run Linter
+        run: deno lint --exclude frontend/
+
+      - name: Run Testing Suite
+        run: deno test --allow-env --allow-net --allow-read --unstable-cron --exclude frontend/
+        env:
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+
+  frontend-tests:
+    name: Elm Frontend Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node (for elm-test)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Elm & elm-test
+        run: npm install -g elm elm-test
+
+      - name: Run Property-Based & Boundary Tests
+        run: cd frontend && elm-test
+
+      - name: Verify Elm Compiles with Optimization
+        run: cd frontend && elm make src/Main.elm --optimize --output=/dev/null
