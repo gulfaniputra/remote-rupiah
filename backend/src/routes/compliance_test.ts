@@ -139,15 +139,13 @@ Deno.test(
   "GET /compliance/status → response body contains nppnStatus with notified + daysRemaining",
   async () => {
     testMocks.clear();
-    testMocks.taxProfiles.push(
-      {
-        user_id: "user-1",
-        npwp: "",
-        nik: "",
-        address: "",
-        klu_code: 62010,
-      } as Parameters<typeof testMocks.taxProfiles.push>[0],
-    );
+    testMocks.taxProfiles.push({
+      user_id: "user-1",
+      npwp: "",
+      nik: "",
+      address: "",
+      klu_code: 62010,
+    } as Parameters<typeof testMocks.taxProfiles.push>[0]);
 
     const res = await app.fetch(makeStatusReq(await makeToken()));
     assertEquals(res.status, 200);
@@ -162,15 +160,13 @@ Deno.test(
   "POST /compliance/nppn/notify with token → 200, nppnStatus.notified: true",
   async () => {
     testMocks.clear();
-    testMocks.taxProfiles.push(
-      {
-        user_id: "user-1",
-        npwp: "",
-        nik: "",
-        address: "",
-        klu_code: 62010,
-      } as Parameters<typeof testMocks.taxProfiles.push>[0],
-    );
+    testMocks.taxProfiles.push({
+      user_id: "user-1",
+      npwp: "",
+      nik: "",
+      address: "",
+      klu_code: 62010,
+    } as Parameters<typeof testMocks.taxProfiles.push>[0]);
 
     const token = await makeToken();
     const res = await app.fetch(

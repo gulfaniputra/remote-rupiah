@@ -33,6 +33,7 @@ mockFxEfficiency : FxEfficiency.FxEfficiencyData
 mockFxEfficiency =
     { date = "2026-05-18"
     , amountCents = Money.fromCents 100000
+    , amountIdrCents = Money.fromCents 1615000000
     , kmkRate = Just "16120.00"
     , actualIdrCents = Just (Money.fromCents 1610000000)
     , spreadCents = Money.fromCents 5000000
@@ -43,7 +44,7 @@ mockFxEfficiency =
 suite : Test
 suite =
     describe "Data.State"
-        [ test "Ready accepts unrealized field" <|
+        [ test "Ready accepts all fields correctly" <|
             \_ ->
                 Ready { txs = [ mockTx ], unrealized = [ mockUnrealized ], fxLeakage = [ mockFxEfficiency ] }
                     |> Expect.equal (Ready { txs = [ mockTx ], unrealized = [ mockUnrealized ], fxLeakage = [ mockFxEfficiency ] })

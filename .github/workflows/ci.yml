@@ -19,11 +19,8 @@ jobs:
         with:
           deno-version: v2.x
 
-      - name: Run Linter
-        run: deno lint --exclude frontend/
-
-      - name: Run Testing Suite
-        run: deno test --allow-env --allow-net --allow-read --unstable-cron --exclude frontend/
+      - name: Run Backend Validation
+        run: deno task validate
         env:
           DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
 
@@ -34,13 +31,21 @@ jobs:
       - name: Clone Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node (for elm-test)
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Install Elm & elm-test
         run: npm install -g elm elm-test
+
+      - name: Cache Elm dependencies
+        uses: actions/cache@v3
+        with:
+          path: frontend/elm-stuff
+          key: ${{ runner.os }}-elm-${{ hashFiles('frontend/elm.json') }}
+          restore-keys: |
+            ${{ runner.os }}-elm-
 
       - name: Run Property-Based & Boundary Tests
         run: cd frontend && elm-test

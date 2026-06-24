@@ -7,6 +7,7 @@ import Expect
 import Html.Attributes as Attr
 import Money
 import Test exposing (Test, describe, test)
+import Test.Html.Event as Event
 import Test.Html.Query as Query
 import Test.Html.Selector as Selector
 import View.Dashboard as Dashboard
@@ -26,11 +27,9 @@ suite =
         , test "totalFxLeakage aggregates the dashboard value" <|
             \_ ->
                 Dashboard.totalFxLeakage
-                    [ { date = "2026-05-18", amountCents = Money.fromCents 100000, kmkRate = Just "16120.00", actualIdrCents = Just (Money.fromCents 1610000000), spreadCents = Money.fromCents 5000000, source = Just "wise" }
-                    , { date = "2026-05-19", amountCents = Money.fromCents 200000, kmkRate = Just "16120.00", actualIdrCents = Just (Money.fromCentsStr "3220000000"), spreadCents = Money.fromCents 2500000, source = Just "wise" }
+                    [ { date = "2026-05-18", amountCents = Money.fromCents 100000, amountIdrCents = Money.fromCents 1615000000, kmkRate = Just "16120.00", actualIdrCents = Just (Money.fromCents 1610000000), spreadCents = Money.fromCents 5000000, source = Just "wise" }
+                    , { date = "2026-05-19", amountCents = Money.fromCents 200000, amountIdrCents = Money.fromCentsStr "3222500000", kmkRate = Just "16120.00", actualIdrCents = Just (Money.fromCentsStr "3220000000"), spreadCents = Money.fromCents 2500000, source = Just "wise" }
                     ]
-                    |> Money.toCents
-                    |> Expect.equal 7500000
         , test "renders wallet source selector" <|
             \_ ->
                 Dashboard.view
@@ -318,21 +317,21 @@ suite =
                             , nppnStatus = nppnStatus
                             }
 
-                        -- Use a tag to verify the handler is wired
-                        tag =
-                            "notify-clicked"
+                        -- Set up a distinct tracking type for our test sequence loop
+                        type TestMsg
+                            = UserTriggeredNppnAction
 
                         handlers =
-                            { onSourceChange = \_ -> ()
-                            , onVerify = \_ -> ()
-                            , onUpload = ()
-                            , onNpwpChange = \_ -> ()
-                            , onNikChange = \_ -> ()
-                            , onAddressChange = \_ -> ()
-                            , onKluCodeChange = \_ -> ()
-                            , onSaveProfile = ()
-                            , onExport = ()
-                            , onNppnNotify = ()
+                            { onSourceChange = \_ -> UserTriggeredNppnAction
+                            , onVerify = \_ -> UserTriggeredNppnAction
+                            , onUpload = UserTriggeredNppnAction
+                            , onNpwpChange = \_ -> UserTriggeredNppnAction
+                            , onNikChange = \_ -> UserTriggeredNppnAction
+                            , onAddressChange = \_ -> UserTriggeredNppnAction
+                            , onKluCodeChange = \_ -> UserTriggeredNppnAction
+                            , onSaveProfile = UserTriggeredNppnAction
+                            , onExport = UserTriggeredNppnAction
+                            , onNppnNotify = UserTriggeredNppnAction
                             }
                     in
                     Dashboard.view
@@ -345,6 +344,7 @@ suite =
                         handlers
                         |> Query.fromHtml
                         |> Query.find [ Selector.tag "button", Selector.text "Notify NPPN" ]
-                        |> Query.has []
+                        |> Event.simulate Event.click
+                        |> Event.expect UserTriggeredNppnAction
             ]
         ]

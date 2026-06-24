@@ -1,11 +1,20 @@
-import { Hono } from "hono";
+import { Hono, Context, Env } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { withAuth } from "../db/client.ts";
 import { lookupKmkRate } from "../services/kmk.ts";
 import { authMiddleware } from "../services/auth_middleware.ts";
 
+interface AppEnv extends Env {
+  Variables: {
+    userId: string;
+  };
+}
+
 const app = new Hono();
+
+// Explicit contextual environment accessor
+const getUserId = (c: Context<AppEnv>) => c.get("userId") as string | undefined;
 
 const schema = z.object({
   date: z.string().date(),
@@ -51,29 +60,26 @@ const toSnake = (obj: Record<string, unknown>): Record<string, unknown> =>
     ]),
   );
 
-const userId = (c: { get: unknown }) =>
-  (c.get as (key: string) => unknown)("userId") as string | undefined;
-
 app.get("/", (c) => {
-  const uid = userId(c);
+  const uid = getUserId(c as unknown as Context<AppEnv>);
   return withAuth(uid, (tx) => tx`SELECT * FROM transactions`).then((txs) =>
     c.json({
       success: true,
       transactions: (txs as Record<string, unknown>[]).map(serializeTx),
-    })
+    }),
   );
 });
 
 app.post("/", zValidator("json", schema), async (c) => {
   const d = c.req.valid("json");
   const rate = d.kmkRate ?? (await lookupKmkRate(d.date, d.currency))?.midRate;
-  const uid = userId(c);
+  const uid = getUserId(c as unknown as Context<AppEnv>);
   return withAuth(
     uid,
     (tx, userId) =>
-      tx`INSERT INTO transactions ${
-        tx(toSnake({ ...d, kmkRate: rate, userId }) as Record<string, unknown>)
-      } RETURNING *`,
+      tx`INSERT INTO transactions ${tx(
+        toSnake({ ...d, kmkRate: rate, userId }) as Record<string, unknown>,
+      )} RETURNING *`,
   ).then((res) =>
     c.json(
       {
@@ -83,7 +89,7 @@ app.post("/", zValidator("json", schema), async (c) => {
           : undefined,
       },
       201,
-    )
+    ),
   );
 });
 
@@ -91,7 +97,7 @@ app.get(
   "/:id",
   zValidator("param", z.object({ id: z.string().uuid() })),
   (c) => {
-    const uid = userId(c);
+    const uid = getUserId(c as unknown as Context<AppEnv>);
     return withAuth(
       uid,
       (tx) =>
@@ -99,32 +105,35 @@ app.get(
     ).then((res) =>
       res[0]
         ? c.json({
-          success: true,
-          data: serializeTx(res[0] as Record<string, unknown>),
-        })
-        : c.json({ error: "Not found" }, 404)
+            success: true,
+            data: serializeTx(res[0] as Record<string, unknown>),
+          })
+        : c.json({ error: "Not found" }, 404),
     );
   },
 );
 
 app.patch("/:id/verify", async (c) => {
   const id = c.req.param("id");
-  const uid = userId(c);
+  const uid = getUserId(c as unknown as Context<AppEnv>);
   if (
     !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
   ) {
     return c.json({ error: "Invalid ID" }, 400);
   }
-  const res = await withAuth(uid, (tx) =>
-    tx`UPDATE transactions
+  const res = await withAuth(
+    uid,
+    (tx) =>
+      tx`UPDATE transactions
           SET is_1042s_verified = TRUE, verified_at = NOW()
           WHERE id = ${id} AND is_1042s_verified = FALSE
-          RETURNING *`);
+          RETURNING *`,
+  );
   return res[0]
     ? c.json({
-      success: true,
-      data: serializeTx(res[0] as Record<string, unknown>),
-    })
+        success: true,
+        data: serializeTx(res[0] as Record<string, unknown>),
+      })
     : c.json({ error: "Not found" }, 404);
 });
 

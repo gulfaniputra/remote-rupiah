@@ -1,4 +1,4 @@
-import { Context, Next } from "hono";
+import { Context, Next, Env } from "hono";
 import { sign, verify } from "hono/jwt";
 
 export type AuthToken = {
@@ -7,6 +7,14 @@ export type AuthToken = {
   iss: string;
   aud: string;
 };
+
+// Define the core application environment mapping for Context state
+interface AppEnv extends Env {
+  Variables: {
+    userId: string;
+    user: AuthToken;
+  };
+}
 
 const TEST_JWT_SECRET = "test-jwt-secret-12345678901234567890";
 const DEV_JWT_SECRET = "dev-jwt-secret-abcdef1234567890abcdef";
@@ -30,10 +38,12 @@ const isProduction: boolean = (() => {
 function isAuthToken(x: unknown): x is AuthToken {
   if (typeof x !== "object" || x === null) return false;
   const token = x as Record<string, unknown>;
-  return typeof token.sub === "string" &&
+  return (
+    typeof token.sub === "string" &&
     typeof token.exp === "number" &&
     typeof token.iss === "string" &&
-    typeof token.aud === "string";
+    typeof token.aud === "string"
+  );
 }
 
 const unauthorized = () =>
@@ -44,15 +54,14 @@ const unauthorized = () =>
 
 export const getJwtSecret = (): string | undefined => {
   try {
-    const secret =
-      (Deno.env.get("JWT_SECRET") || Deno.env.get("SUPABASE_JWT_SECRET"))
-        ?.trim();
+    const secret = (
+      Deno.env.get("JWT_SECRET") || Deno.env.get("SUPABASE_JWT_SECRET")
+    )?.trim();
     if (secret) return secret;
   } catch {
     // ignore
   }
   if (isTesting) return TEST_JWT_SECRET;
-  // Dev fallback: allow dev environment without explicit env vars
   return isProduction ? undefined : DEV_JWT_SECRET;
 };
 
@@ -80,7 +89,7 @@ export const generateDevToken = async (userId: string): Promise<string> => {
   );
 };
 
-export const authMiddleware = async (c: Context, next: Next) => {
+export const authMiddleware = async (c: Context<AppEnv>, next: Next) => {
   const auth = c.req.header("Authorization");
   if (!auth?.startsWith("Bearer ")) return unauthorized();
 
@@ -88,17 +97,19 @@ export const authMiddleware = async (c: Context, next: Next) => {
   if (!secret) return unauthorized();
 
   try {
-    const decoded = await verify(auth.split(" ")[1], secret, "HS256");
+    const decoded = await verify(auth.split(" ")[1], secret);
 
     if (
       !isAuthToken(decoded) ||
       decoded.exp <= Math.floor(Date.now() / 1000) ||
       decoded.iss !== "your-app" ||
       decoded.aud !== "your-users"
-    ) return unauthorized();
+    ) {
+      return unauthorized();
+    }
 
     c.set("user", decoded);
-    c.set("userId", decoded.sub); // Keep for backwards compatibility
+    c.set("userId", decoded.sub);
   } catch {
     return unauthorized();
   }

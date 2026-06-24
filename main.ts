@@ -1,6 +1,6 @@
+import { cors } from "hono/cors";
 import { Hono } from "hono";
-import { cors } from "hono/middleware";
-import type { Context } from "hono";
+import type { Context, Env } from "hono";
 import transactions from "./routes/transactions.ts";
 import kmk from "./routes/kmk.ts";
 import ingest from "./routes/ingest.ts";
@@ -17,13 +17,19 @@ import { registerComplianceCron } from "./services/compliance_cron.ts";
 import { getKmkRateByDate } from "./services/kmk_resolver.ts";
 import { generateDevToken, getJwtSecret } from "./services/auth_middleware.ts";
 
+interface AppEnv extends Env {
+  Variables: {
+    userId: string;
+  };
+}
+
 export const app = new Hono();
 
 // 1. Determine the unified allowed origin based on environment
 const allowedOrigin = (() => {
   try {
     return Deno.env.get("APP_ENV") === "production"
-      ? "https://remote-rupiah.pages.dev" // Clean, no trailing slash
+      ? "https://remote-rupiah.pages.dev"
       : "http://localhost:8010";
   } catch {
     return "http://localhost:8010";
@@ -46,12 +52,12 @@ app.use(
 // --- Core & Authentication Endpoints ---
 
 // Base health check endpoint
-app.get("/", (c: Context) => {
+app.get("/", (c) => {
   return c.text("Remote Rupiah API");
 });
 
 // Dev-mode token endpoint
-app.get("/api/auth/token", async (c: Context) => {
+app.get("/api/auth/token", async (c) => {
   const secret = getJwtSecret();
   if (!secret) {
     return c.json({ error: "No JWT secret configured" }, 500);
@@ -69,8 +75,8 @@ app.get("/api/auth/token", async (c: Context) => {
   }
 });
 
-// Shared handler structure for exchange rate lookup
-const handleKmkRateLookup = async (c: Context) => {
+// Shared handler structure for exchange rate lookup - Safely typed without any
+const handleKmkRateLookup = async (c: Context<AppEnv>) => {
   const dateParam = c.req.query("date");
   if (!dateParam) {
     return c.json({ success: false, error: "Missing date parameter" }, 400);

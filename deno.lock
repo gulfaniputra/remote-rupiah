@@ -8,9 +8,9 @@
     "jsr:@std/csv@1": "1.0.6",
     "jsr:@std/internal@^1.0.12": "1.0.12",
     "jsr:@std/streams@^1.0.9": "1.1.0",
-    "npm:@hono/zod-validator@*": "0.2.2_hono@4.12.12_zod@3.25.76",
-    "npm:@hono/zod-validator@~0.2.1": "0.2.2_hono@4.12.12_zod@3.25.76",
-    "npm:hono@^4.4.0": "4.12.12",
+    "npm:@hono/zod-validator@*": "0.2.2_hono@4.4.0_zod@3.25.76",
+    "npm:@hono/zod-validator@~0.2.1": "0.2.2_hono@4.4.0_zod@3.25.76",
+    "npm:hono@4.4.0": "4.4.0",
     "npm:postgres@^3.4.4": "3.4.9",
     "npm:zod@*": "3.25.76",
     "npm:zod@^3.23.8": "3.25.76"
@@ -42,15 +42,15 @@
     }
   },
   "npm": {
-    "@hono/zod-validator@0.2.2_hono@4.12.12_zod@3.25.76": {
+    "@hono/zod-validator@0.2.2_hono@4.4.0_zod@3.25.76": {
       "integrity": "sha512-dSDxaPV70Py8wuIU2QNpoVEIOSzSXZ/6/B/h4xA7eOMz7+AarKTSGV8E6QwrdcCbBLkpqfJ4Q2TmBO0eP1tCBQ==",
       "dependencies": [
         "hono",
         "zod"
       ]
     },
-    "hono@4.12.12": {
-      "integrity": "sha512-p1JfQMKaceuCbpJKAPKVqyqviZdS0eUxH9v82oWo1kb9xjQ5wA6iP3FNVAPDFlz5/p7d45lO+BpSk1tuSZMF4Q=="
+    "hono@4.4.0": {
+      "integrity": "sha512-Bb2GHk8jmlLIuxc3U+7UBGOoA5lByJTAFnRdH2N2fqEVy9TEQzJ9saIJUQ/ZqBvEvgEFe7UjPFNSFi8cyeU+3Q=="
     },
     "postgres@3.4.9": {
       "integrity": "sha512-GD3qdB0x1z9xgFI6cdRD6xu2Sp2WCOEoe3mtnyB5Ee0XrrL5Pe+e4CCnJrRMnL1zYtRDZmQQVbvOttLnKDLnaw=="
@@ -64,7 +64,7 @@
       "jsr:@std/assert@1",
       "jsr:@std/csv@1",
       "npm:@hono/zod-validator@~0.2.1",
-      "npm:hono@^4.4.0",
+      "npm:hono@4.4.0",
       "npm:postgres@^3.4.4",
       "npm:zod@^3.23.8"
     ]

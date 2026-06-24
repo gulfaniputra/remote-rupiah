@@ -1,4 +1,4 @@
-module MainUpdateTest exposing (..)
+module MainUpdateTest exposing (suite)
 
 import Api
 import Data.Compliance as C
@@ -11,7 +11,7 @@ import Expect
 import Http
 import Main
 import Money
-import Test exposing (..)
+import Test exposing (Test, describe, test)
 
 
 mockTx : Transaction
@@ -29,7 +29,7 @@ mockTx =
 
 loadingModel : Main.Model
 loadingModel =
-    { state = Loading
+    { appState = Loading
     , complianceStatus = Nothing
     , t = Main.epoch
     , kmk = Nothing
@@ -52,6 +52,7 @@ mockFxEfficiency : FxEfficiency.FxEfficiencyData
 mockFxEfficiency =
     { date = "2026-05-18"
     , amountCents = Money.fromCents 100000
+    , amountIdrCents = Money.fromCents 1615000000
     , kmkRate = Just "16120.00"
     , actualIdrCents = Just (Money.fromCents 1610000000)
     , spreadCents = Money.fromCents 5000000
@@ -66,25 +67,25 @@ suite =
             \_ ->
                 Main.update (Main.GotTransactions (Ok [ mockTx ])) loadingModel
                     |> Tuple.first
-                    |> .state
+                    |> .appState
                     |> Expect.equal (Ready { txs = [ mockTx ], unrealized = [], fxLeakage = [] })
         , test "GotUnrealized Ok transitions Loading → Ready" <|
             \_ ->
                 Main.update (Main.GotUnrealized (Ok [ mockUnrealized ])) loadingModel
                     |> Tuple.first
-                    |> .state
+                    |> .appState
                     |> Expect.equal (Ready { txs = [], unrealized = [ mockUnrealized ], fxLeakage = [] })
         , test "GotFxEfficiency Ok transitions Loading → Ready" <|
             \_ ->
                 Main.update (Main.GotFxEfficiency (Ok [ mockFxEfficiency ])) loadingModel
                     |> Tuple.first
-                    |> .state
+                    |> .appState
                     |> Expect.equal (Ready { txs = [], unrealized = [], fxLeakage = [ mockFxEfficiency ] })
         , test "GotTransactions Err BadStatus 401 transitions to Failure with session expired" <|
             \_ ->
                 Main.update (Main.GotTransactions (Err Api.SessionExpired)) loadingModel
                     |> Tuple.first
-                    |> .state
+                    |> .appState
                     |> Expect.equal (Failure "Session expired")
         , test "GotTransactions Err BadStatus 401 clears token" <|
             \_ ->
@@ -96,19 +97,19 @@ suite =
             \_ ->
                 Main.update (Main.GotTransactions (Err Api.NetworkError)) loadingModel
                     |> Tuple.first
-                    |> .state
+                    |> .appState
                     |> Expect.equal (Failure "Network error")
         , test "GotTransactions Err MappingRequired transitions to MappingRequired" <|
             \_ ->
                 Main.update (Main.GotTransactions (Err (Api.MappingRequired [ "Posted At", "Net Amount", "Currency" ]))) loadingModel
                     |> Tuple.first
-                    |> .state
+                    |> .appState
                     |> Expect.equal (MappingRequired { headers = [ "Posted At", "Net Amount", "Currency" ] })
         , test "Ready state with empty list" <|
             \_ ->
                 Main.update (Main.GotTransactions (Ok [])) loadingModel
                     |> Tuple.first
-                    |> .state
+                    |> .appState
                     |> Expect.equal (Ready { txs = [], unrealized = [], fxLeakage = [] })
         , test "UpdateSource mutates selected source" <|
             \_ ->
