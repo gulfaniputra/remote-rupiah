@@ -12,7 +12,7 @@ import wealth from "./routes/wealth.ts";
 import fieldMapping from "./routes/field_mapping.ts";
 import csv from "./backend/src/routes/csv.ts";
 import compliance from "./backend/src/routes/compliance.ts";
-import { registerKmkCron } from "./services/kmk_cron.ts";
+import "./services/kmk_cron.ts";
 import { registerComplianceCron } from "./services/compliance_cron.ts";
 import { getKmkRateByDate } from "./services/kmk_resolver.ts";
 import { generateDevToken, getJwtSecret } from "./services/auth_middleware.ts";
@@ -118,7 +118,6 @@ app.route("/api/compliance", compliance);
 
 // --- Runtime Initialization ---
 if (import.meta.main) {
-  registerKmkCron();
   registerComplianceCron();
   Deno.serve(app.fetch);
 }

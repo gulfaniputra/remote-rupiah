@@ -1,4 +1,4 @@
-port module Main exposing (Model, Msg(..), epoch, main, update)
+port module Main exposing (AppState(..), Model, Msg(..), epoch, main, update)
 
 import Api
 import Browser
