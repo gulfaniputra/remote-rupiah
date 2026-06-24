@@ -1,5 +1,6 @@
-import { Context, Hono } from "hono";
-import { cors } from "hono/cors";
+import { Hono } from "hono";
+import { cors } from "hono/middleware";
+import type { Context } from "hono";
 import transactions from "./routes/transactions.ts";
 import kmk from "./routes/kmk.ts";
 import ingest from "./routes/ingest.ts";
@@ -18,22 +19,22 @@ import { generateDevToken, getJwtSecret } from "./services/auth_middleware.ts";
 
 export const app = new Hono();
 
-// Global middleware & CORS configuration
-const corsOrigin = (() => {
+// 1. Determine the unified allowed origin based on environment
+const allowedOrigin = (() => {
   try {
     return Deno.env.get("APP_ENV") === "production"
-      ? "https://remote-rupiah.pages.dev/"
+      ? "https://remote-rupiah.pages.dev" // Clean, no trailing slash
       : "http://localhost:8010";
   } catch {
     return "http://localhost:8010";
   }
 })();
 
-// Intercepts all incoming API routes before matching route handlers
+// 2. Inject a single, robust global CORS middleware handling all routes
 app.use(
-  "/api/*",
+  "*",
   cors({
-    origin: corsOrigin,
+    origin: allowedOrigin,
     allowHeaders: ["Content-Type", "Authorization", "x-api-key"],
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
@@ -42,7 +43,7 @@ app.use(
   }),
 );
 
-// Core & authentication endpoints
+// --- Core & Authentication Endpoints ---
 
 // Base health check endpoint
 app.get("/", (c: Context) => {
@@ -68,7 +69,7 @@ app.get("/api/auth/token", async (c: Context) => {
   }
 });
 
-// Shared handler structure for exchange rate lookup to ensure both production and test paths pass matching logic
+// Shared handler structure for exchange rate lookup
 const handleKmkRateLookup = async (c: Context) => {
   const dateParam = c.req.query("date");
   if (!dateParam) {
@@ -92,11 +93,11 @@ const handleKmkRateLookup = async (c: Context) => {
   }
 };
 
-// Mount both paths to prevent 404 text responses during direct test invocations
+// Mount exchange rate paths
 app.get("/api/kmk-rate", handleKmkRateLookup);
 app.get("/kmk-rate", handleKmkRateLookup);
 
-// Route mount assignments
+// --- Route Mount Assignments ---
 app.route("/api/transactions", transactions);
 app.route("/api/kmk", kmk);
 app.route("/api/v1/ingest", ingest);
@@ -109,7 +110,7 @@ app.route("/api/v1/field-mapping", fieldMapping);
 app.route("/api/csv", csv);
 app.route("/api/compliance", compliance);
 
-// Runtime initialization
+// --- Runtime Initialization ---
 if (import.meta.main) {
   registerKmkCron();
   registerComplianceCron();

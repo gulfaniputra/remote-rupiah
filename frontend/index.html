@@ -29,16 +29,20 @@
 
     <script src="elm.js"></script>
     <script>
-      // Environment Configuration Matrix
-      var apiUrl =
+      // Unified Environment Configuration Matrix
+      var isLocalhost =
         window.location.hostname === "localhost" ||
-        window.location.hostname === "127.0.0.1"
-          ? "http://localhost:8000"
-          : "https://api.remoterupiah.id"; // Fallback production URL placeholder
+        window.location.hostname === "127.0.0.1";
+
+      // Points to your backend target cleanly across environments
+      var apiUrl = isLocalhost
+        ? "http://localhost:8010"
+        : "https://your-hono-app.deno.dev"; // Your live production Deno Deploy URL
 
       var storedToken = localStorage.getItem("rr_token");
 
       function bootstrapApp(token) {
+        // Initialize Elm exactly ONCE with the unified flag requirements
         var app = Elm.Main.init({
           node: document.getElementById("elm-app"),
           flags: {
@@ -68,7 +72,7 @@
           });
         }
 
-        // Read selected CSV file safely with unified error handling thresholds
+        // Read selected CSV file safely
         if (fileInput) {
           fileInput.addEventListener("change", function () {
             var file = fileInput.files && fileInput.files[0];
@@ -81,7 +85,6 @@
               })
               .catch(function (err) {
                 console.error("Local file extraction failure:", err);
-                // If your upload completed port can accept error strings, reset Elm's state safely
                 if (app.ports.uploadCompleted) {
                   app.ports.uploadCompleted.send(
                     "Local file processing failed: " + err.message,
@@ -91,10 +94,9 @@
           });
         }
 
-        // Handle the manual multi-part transaction ingest request via ports
+        // Handle the manual CSV ingestion request via ports
         if (app.ports && app.ports.uploadCsv) {
           app.ports.uploadCsv.subscribe(function (payload) {
-            // FIXED: Using dynamically evaluated API URL context bounds instead of hardcoded strings
             fetch(apiUrl + "/api/v1/ingest", {
               method: "POST",
               headers: {
@@ -124,7 +126,7 @@
           });
         }
 
-        // Local browser compilation to download processed data back down as clean CSV
+        // Download processed data back down as clean CSV
         if (app.ports && app.ports.downloadCsv) {
           app.ports.downloadCsv.subscribe(function (payload) {
             var blob = new Blob([payload.content], { type: "text/csv" });

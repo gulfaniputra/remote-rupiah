@@ -15,6 +15,12 @@ import Time
 import View.Dashboard as D
 
 
+type alias Flags =
+    { token : String
+    , apiUrl : String
+    }
+
+
 
 -- PORTS
 
@@ -116,7 +122,6 @@ update msg m =
                     ( { m | token = "", appState = Failure "Session expired" }, clearCredentials () )
 
                 Api.MappingRequired headers ->
-                    -- Initialize state explicitly inside update cycle to protect components from runtime re-init leaks
                     ( { m | appState = MappingRequired (CsvMapper.init m.apiUrl m.token headers) }, Cmd.none )
 
                 _ ->
@@ -311,7 +316,7 @@ view m =
 -- MAIN
 
 
-main : Program { token : String, apiUrl : String } Model Msg
+main : Program Flags Model Msg
 main =
     Browser.element
         { init =

@@ -10,8 +10,7 @@
     "jsr:@std/streams@^1.0.9": "1.1.0",
     "npm:@hono/zod-validator@*": "0.2.2_hono@4.12.12_zod@3.25.76",
     "npm:@hono/zod-validator@~0.2.1": "0.2.2_hono@4.12.12_zod@3.25.76",
-    "npm:hono@*": "4.12.12",
-    "npm:hono@^4.2.1": "4.12.12",
+    "npm:hono@^4.4.0": "4.12.12",
     "npm:postgres@^3.4.4": "3.4.9",
     "npm:zod@*": "3.25.76",
     "npm:zod@^3.23.8": "3.25.76"
@@ -65,7 +64,7 @@
       "jsr:@std/assert@1",
       "jsr:@std/csv@1",
       "npm:@hono/zod-validator@~0.2.1",
-      "npm:hono@^4.2.1",
+      "npm:hono@^4.4.0",
       "npm:postgres@^3.4.4",
       "npm:zod@^3.23.8"
     ]
