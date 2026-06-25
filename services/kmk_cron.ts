@@ -30,21 +30,22 @@ export function initKmkCron() {
   }
 
   // 2. Register Cron Jobs
+  // Standard format: minute hour day-of-month month day-of-week (0-6, Sun-Sat)
 
-  // Primary Sync: Tuesday 18:00 UTC
-  Deno.cron("kmk-rate-sync-primary", "0 18 * * TUE", async () => {
+  // Primary Sync: Tuesday 18:00 UTC (2 = Tuesday)
+  Deno.cron("kmk-rate-sync-primary", "0 18 * * 2", async () => {
     console.log("[KMK Cron] Primary sync triggered (Tue 18:00 UTC)");
     await performSync(CURRENCY_STRING);
   });
 
-  // Fallback Sync: Wednesday 06:00 UTC
-  Deno.cron("kmk-rate-sync-fallback", "0 6 * * WED", async () => {
+  // Fallback Sync: Wednesday 06:00 UTC (3 = Wednesday)
+  Deno.cron("kmk-rate-sync-fallback", "0 6 * * 3", async () => {
     console.log("[KMK Cron] Fallback sync triggered (Wed 06:00 UTC)");
     await performSync(CURRENCY_STRING);
   });
 
-  // Robustness Backfill: Sunday 17:00 UTC
-  Deno.cron("kmk-rate-backfill", "0 17 * * SUN", async () => {
+  // Robustness Backfill: Sunday 17:00 UTC (0 = Sunday)
+  Deno.cron("kmk-rate-backfill", "0 17 * * 0", async () => {
     console.log("[KMK Cron] Periodic backfill triggered (Sun 17:00 UTC)");
     try {
       const result = await backfillKmkRates(4, DEFAULT_CURRENCIES);

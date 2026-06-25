@@ -27,8 +27,8 @@ export const scanExpiredW8BEN = async (): Promise<W8BENScanResult> => {
       return diffMs < 0
         ? { ...acc, expired: [...acc.expired, r.user_id] }
         : diffMs <= WARN_DAYS_MS
-        ? { ...acc, expiringSoon: [...acc.expiringSoon, r.user_id] }
-        : acc;
+          ? { ...acc, expiringSoon: [...acc.expiringSoon, r.user_id] }
+          : acc;
     },
     { expired: [], expiringSoon: [] },
   );
@@ -50,31 +50,31 @@ export const scanNppnDeadline = async (): Promise<NppnDeadlineResult> => {
   };
 };
 
-/** Register a daily Deno cron to scan W-8BEN expiry (requires --unstable-cron). */
+/** Register a daily Deno cron to scan W-8BEN and NPPN deadlines. */
 export const registerComplianceCron = (): void => {
-  Deno.cron(
-    "w8ben-expiry-scan",
-    "0 9 * * *",
-    () =>
-      scanExpiredW8BEN().then((result) => {
-        if (result.expired.length > 0 || result.expiringSoon.length > 0) {
-          console.warn(
-            "[compliance-cron] W-8BEN scan found expired or expiring profiles",
-          );
-        }
-      }),
-  );
+  Deno.cron("w8ben-expiry-scan", "0 9 * * *", async () => {
+    try {
+      const result = await scanExpiredW8BEN();
+      if (result.expired.length > 0 || result.expiringSoon.length > 0) {
+        console.warn(
+          "[compliance-cron] W-8BEN scan found expired or expiring profiles",
+        );
+      }
+    } catch (err) {
+      console.error("[compliance-cron] W-8BEN scan failed:", err);
+    }
+  });
 
-  Deno.cron(
-    "nppn-deadline-scan",
-    "0 9 * * *",
-    () =>
-      scanNppnDeadline().then((result) => {
-        if (result.missing.length > 0) {
-          console.warn(
-            "[compliance-cron] NPPN deadline scan found profiles missing notification",
-          );
-        }
-      }),
-  );
+  Deno.cron("nppn-deadline-scan", "0 9 * * *", async () => {
+    try {
+      const result = await scanNppnDeadline();
+      if (result.missing.length > 0) {
+        console.warn(
+          "[compliance-cron] NPPN deadline scan found profiles missing notification",
+        );
+      }
+    } catch (err) {
+      console.error("[compliance-cron] NPPN deadline scan failed:", err);
+    }
+  });
 };
