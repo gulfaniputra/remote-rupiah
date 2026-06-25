@@ -1,4 +1,4 @@
-module View.Dashboard exposing (totalFxLeakage, totalUnrealized, view)
+module View.Dashboard exposing (DashboardHandlers, totalFxLeakage, totalUnrealized, view)
 
 import Data.Compliance as C
 import Data.FxEfficiency exposing (FxEfficiencyData)
@@ -11,6 +11,20 @@ import Html.Events exposing (onClick, onInput)
 import Html.Keyed
 import Money
 import TaxLogic as T
+
+
+type alias DashboardHandlers msg =
+    { onSourceChange : String -> msg
+    , onVerify : String -> msg
+    , onUpload : msg
+    , onNpwpChange : String -> msg
+    , onNikChange : String -> msg
+    , onAddressChange : String -> msg
+    , onKluCodeChange : String -> msg
+    , onSaveProfile : msg
+    , onExport : msg
+    , onNppnNotify : msg
+    }
 
 
 isValidNpwp : String -> Bool
@@ -30,18 +44,7 @@ view :
     -> String
     -> { npwp : String, nik : String, address : String, kluCode : String }
     -> Maybe C.ComplianceStatusResponse
-    ->
-        { onSourceChange : String -> msg
-        , onVerify : String -> msg
-        , onUpload : msg
-        , onNpwpChange : String -> msg
-        , onNikChange : String -> msg
-        , onAddressChange : String -> msg
-        , onKluCodeChange : String -> msg
-        , onSaveProfile : msg
-        , onExport : msg
-        , onNppnNotify : msg
-        }
+    -> DashboardHandlers msg
     -> Html msg
 view state kmkVal source uploadStatus profile complianceStatus handlers =
     case state of
@@ -80,18 +83,7 @@ renderReady :
     -> String
     -> { npwp : String, nik : String, address : String, kluCode : String }
     -> Maybe C.ComplianceStatusResponse
-    ->
-        { onSourceChange : String -> msg
-        , onVerify : String -> msg
-        , onUpload : msg
-        , onNpwpChange : String -> msg
-        , onNikChange : String -> msg
-        , onAddressChange : String -> msg
-        , onKluCodeChange : String -> msg
-        , onSaveProfile : msg
-        , onExport : msg
-        , onNppnNotify : msg
-        }
+    -> DashboardHandlers msg
     -> Html msg
 renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complianceStatus handlers =
     let

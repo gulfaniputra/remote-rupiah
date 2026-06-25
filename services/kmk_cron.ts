@@ -16,11 +16,13 @@ async function performSync(currencyList: string): Promise<void> {
   }
 }
 
-// Only register crons if Deno.cron is available (Deno Deploy environment)
-// This prevents crashes when running local tests.
-if (typeof Deno.cron === "function") {
+// Safer, idiomatic environment check for static analyzers:
+const hasCron =
+  "cron" in Deno && typeof (Deno as { cron?: unknown }).cron === "function";
+
+if (hasCron) {
   // Primary Sync: Tuesday 18:00 UTC = Wednesday 01:00 WIB
-  Deno.cron("kmk-rate-sync-primary", "0 18 * * TUE", async () => {
+  Deno.cron("kmk-rate-sync-primary", "0 18 * * 2", async () => {
     console.log(
       "[KMK Cron] Primary sync triggered (Tue 18:00 UTC / Wed 01:00 WIB)",
     );
@@ -28,7 +30,7 @@ if (typeof Deno.cron === "function") {
   });
 
   // Fallback Sync: Wednesday 06:00 UTC = Wednesday 13:00 WIB
-  Deno.cron("kmk-rate-sync-fallback", "0 6 * * WED", async () => {
+  Deno.cron("kmk-rate-sync-fallback", "0 6 * * 3", async () => {
     console.log(
       "[KMK Cron] Fallback sync triggered (Wed 06:00 UTC / Wed 13:00 WIB)",
     );
@@ -36,8 +38,7 @@ if (typeof Deno.cron === "function") {
   });
 
   // Robustness: Sunday 17:00 UTC = Monday 00:00 WIB
-  // 4-week backfill to catch any gaps from portal downtime.
-  Deno.cron("kmk-rate-backfill", "0 17 * * SUN", async () => {
+  Deno.cron("kmk-rate-backfill", "0 17 * * 0", async () => {
     console.log(
       "[KMK Cron] Periodic backfill triggered (Sun 17:00 UTC / Mon 00:00 WIB)",
     );
@@ -48,7 +49,12 @@ if (typeof Deno.cron === "function") {
           (result.errors.length > 0 ? `, err:${result.errors.length}` : ""),
       );
     } catch (err: unknown) {
-      console.error(`[KMK Cron] Backfill failed: ${err}`);
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[KMK Cron] Backfill failed: ${message}`);
     }
   });
+} else {
+  console.warn(
+    "[KMK Cron] Deno.cron is not available in this environment. Skipping registration.",
+  );
 }
