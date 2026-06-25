@@ -16,9 +16,8 @@ async function performSync(currencyList: string): Promise<void> {
   }
 }
 
-// Safer, idiomatic environment check for static analyzers:
-const hasCron =
-  "cron" in Deno && typeof (Deno as { cron?: unknown }).cron === "function";
+// Clean, type-safe environment check
+const hasCron = "cron" in Deno && typeof Deno.cron === "function";
 
 if (hasCron) {
   // Primary Sync: Tuesday 18:00 UTC = Wednesday 01:00 WIB
@@ -29,8 +28,8 @@ if (hasCron) {
     await performSync(CURRENCY_STRING);
   });
 
-  // Fallback Sync: Wednesday 06:00 UTC = Wednesday 13:00 WIB
-  Deno.cron("kmk-rate-sync-fallback", "0 6 * * 3", async () => {
+  // Fallback Sync: Wednesday 06:00 UTC = Wednesday 13:00 WIB (Padded hour for strict parser health)
+  Deno.cron("kmk-rate-sync-fallback", "0 06 * * 3", async () => {
     console.log(
       "[KMK Cron] Fallback sync triggered (Wed 06:00 UTC / Wed 13:00 WIB)",
     );
@@ -38,7 +37,7 @@ if (hasCron) {
   });
 
   // Robustness: Sunday 17:00 UTC = Monday 00:00 WIB
-  Deno.cron("kmk-rate-backfill", "0 17 * * 0", async () => {
+  Deno.cron("kmk-rate-backfill", "0 17 * * 7", async () => {
     console.log(
       "[KMK Cron] Periodic backfill triggered (Sun 17:00 UTC / Mon 00:00 WIB)",
     );

@@ -46,6 +46,8 @@ suite =
                     [ { date = "2026-05-18", amountCents = Money.fromCents 100000, amountIdrCents = Money.fromCents 1615000000, kmkRate = Just "16120.00", actualIdrCents = Just (Money.fromCents 1610000000), spreadCents = Money.fromCents 5000000, source = Just "wise" }
                     , { date = "2026-05-19", amountCents = Money.fromCents 200000, amountIdrCents = Money.fromCentsStr "3222500000", kmkRate = Just "16120.00", actualIdrCents = Just (Money.fromCentsStr "3220000000"), spreadCents = Money.fromCents 2500000, source = Just "wise" }
                     ]
+                    |> Money.toCents
+                    |> Expect.equal 7500000
         , test "renders wallet source selector" <|
             \_ ->
                 Dashboard.view
@@ -147,9 +149,20 @@ suite =
                         nppnStatus = { notified = False, notifiedAt = Nothing, deadline = "2026-03-31", daysRemaining = 30, isOverdue = False }
                         complianceStatus = { w8benStatus = C.W8BenValid, w8benExpiryDate = Just "2099-12-31", documents = [], nppnStatus = nppnStatus }
 
-                        -- Specific handlers for the event simulation test
+                        -- Fully typed DashboardHandlers record using our context's TestMsg tag
+                        handlers : Dashboard.DashboardHandlers TestMsg
                         handlers =
-                            { noOpHandlers | onNppnNotify = UserTriggeredNppnAction }
+                            { onSourceChange = \_ -> UserTriggeredNppnAction
+                            , onVerify = \_ -> UserTriggeredNppnAction
+                            , onUpload = UserTriggeredNppnAction
+                            , onNpwpChange = \_ -> UserTriggeredNppnAction
+                            , onNikChange = \_ -> UserTriggeredNppnAction
+                            , onAddressChange = \_ -> UserTriggeredNppnAction
+                            , onKluCodeChange = \_ -> UserTriggeredNppnAction
+                            , onSaveProfile = UserTriggeredNppnAction
+                            , onExport = UserTriggeredNppnAction
+                            , onNppnNotify = UserTriggeredNppnAction
+                            }
                     in
                     Dashboard.view
                         (Ready { txs = [], unrealized = [], fxLeakage = [] })
