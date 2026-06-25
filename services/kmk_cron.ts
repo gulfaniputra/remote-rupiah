@@ -21,37 +21,31 @@ async function performSync(currencyList: string): Promise<void> {
  * Only call this in production environments where Deno.cron is supported.
  */
 export function initKmkCron() {
-  if (typeof Deno.cron !== "function") {
-    console.warn(
-      "[KMK Cron] Deno.cron is not available in this environment. Skipping registration.",
+  // 1. Guard Clause: Must come first
+  if (!Deno.env.has("DENO_DEPLOYMENT_ID") || typeof Deno.cron !== "function") {
+    console.info(
+      "[KMK Cron] Skipping registration: Not in Deno Deploy environment.",
     );
     return;
   }
 
-  // 1. Primary Sync: Tuesday 18:00 UTC = Wednesday 01:00 WIB
-  // Using '2' for Tuesday
-  Deno.cron("kmk-rate-sync-primary", "0 18 * * 2", async () => {
-    console.log(
-      "[KMK Cron] Primary sync triggered (Tue 18:00 UTC / Wed 01:00 WIB)",
-    );
+  // 2. Register Cron Jobs
+
+  // Primary Sync: Tuesday 18:00 UTC
+  Deno.cron("kmk-rate-sync-primary", "0 18 * * TUE", async () => {
+    console.log("[KMK Cron] Primary sync triggered (Tue 18:00 UTC)");
     await performSync(CURRENCY_STRING);
   });
 
-  // 2. Fallback Sync: Wednesday 06:00 UTC = Wednesday 13:00 WIB
-  // Using '3' for Wednesday
-  Deno.cron("kmk-rate-sync-fallback", "0 6 * * 3", async () => {
-    console.log(
-      "[KMK Cron] Fallback sync triggered (Wed 06:00 UTC / Wed 13:00 WIB)",
-    );
+  // Fallback Sync: Wednesday 06:00 UTC
+  Deno.cron("kmk-rate-sync-fallback", "0 6 * * WED", async () => {
+    console.log("[KMK Cron] Fallback sync triggered (Wed 06:00 UTC)");
     await performSync(CURRENCY_STRING);
   });
 
-  // 3. Robustness Backfill: Sunday 17:00 UTC = Monday 00:00 WIB
-  // Using '0' for Sunday
-  Deno.cron("kmk-rate-backfill", "0 17 * * 0", async () => {
-    console.log(
-      "[KMK Cron] Periodic backfill triggered (Sun 17:00 UTC / Mon 00:00 WIB)",
-    );
+  // Robustness Backfill: Sunday 17:00 UTC
+  Deno.cron("kmk-rate-backfill", "0 17 * * SUN", async () => {
+    console.log("[KMK Cron] Periodic backfill triggered (Sun 17:00 UTC)");
     try {
       const result = await backfillKmkRates(4, DEFAULT_CURRENCIES);
       console.log(

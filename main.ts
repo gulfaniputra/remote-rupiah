@@ -1,6 +1,7 @@
 import { cors } from "hono/cors";
 import { Hono } from "hono";
 import type { Context, Env } from "hono";
+// Import routes
 import transactions from "./routes/transactions.ts";
 import kmk from "./routes/kmk.ts";
 import ingest from "./routes/ingest.ts";
@@ -12,6 +13,7 @@ import wealth from "./routes/wealth.ts";
 import fieldMapping from "./routes/field_mapping.ts";
 import csv from "./backend/src/routes/csv.ts";
 import compliance from "./backend/src/routes/compliance.ts";
+// Import services
 import { initKmkCron } from "./services/kmk_cron.ts";
 import { registerComplianceCron } from "./services/compliance_cron.ts";
 import { getKmkRateByDate } from "./services/kmk_resolver.ts";
@@ -25,7 +27,7 @@ interface AppEnv extends Env {
 
 export const app = new Hono();
 
-// 1. Determine the unified allowed origin based on environment
+// 1. Determine origin
 const allowedOrigin = (() => {
   try {
     return Deno.env.get("APP_ENV") === "production"
@@ -36,7 +38,7 @@ const allowedOrigin = (() => {
   }
 })();
 
-// 2. Inject a single, robust global CORS middleware handling all routes
+// 2. CORS Middleware
 app.use(
   "*",
   cors({
@@ -49,17 +51,12 @@ app.use(
   }),
 );
 
-// --- Core & Authentication Endpoints ---
-
-app.get("/", (c) => {
-  return c.text("Remote Rupiah API");
-});
+// --- Core & Auth Endpoints ---
+app.get("/", (c) => c.text("Remote Rupiah API"));
 
 app.get("/api/auth/token", async (c) => {
   const secret = getJwtSecret();
-  if (!secret) {
-    return c.json({ error: "No JWT secret configured" }, 500);
-  }
+  if (!secret) return c.json({ error: "No JWT secret configured" }, 500);
   try {
     const token = await generateDevToken(
       "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
@@ -75,13 +72,9 @@ app.get("/api/auth/token", async (c) => {
 
 const handleKmkRateLookup = async (c: Context<AppEnv>) => {
   const dateParam = c.req.query("date");
-  if (!dateParam) {
-    return c.json({ success: false, error: "Missing date parameter" }, 400);
-  }
-  if (isNaN(Date.parse(dateParam)) || !/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+  if (!dateParam || !/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
     return c.json({ success: false, error: "Invalid date format" }, 400);
   }
-
   try {
     const result = await getKmkRateByDate(new Date(dateParam));
     return c.json(result);
@@ -99,7 +92,7 @@ const handleKmkRateLookup = async (c: Context<AppEnv>) => {
 app.get("/api/kmk-rate", handleKmkRateLookup);
 app.get("/kmk-rate", handleKmkRateLookup);
 
-// --- Route Mount Assignments ---
+// --- Routes ---
 app.route("/api/transactions", transactions);
 app.route("/api/kmk", kmk);
 app.route("/api/v1/ingest", ingest);
@@ -113,13 +106,12 @@ app.route("/api/csv", csv);
 app.route("/api/compliance", compliance);
 
 // --- Runtime Initialization ---
-// Only register cron jobs if running in a Deno Deploy environment
 if (Deno.env.has("DENO_DEPLOYMENT_ID")) {
+  console.log("[System] Initializing production cron jobs...");
   initKmkCron();
   registerComplianceCron();
 }
 
-// Fallback execution for local environment execution contexts
 if (import.meta.main) {
   Deno.serve(app.fetch);
 }
