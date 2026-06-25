@@ -37,7 +37,8 @@ if (hasCron) {
   });
 
   // Robustness: Sunday 17:00 UTC = Monday 00:00 WIB
-  Deno.cron("kmk-rate-backfill", "0 17 * * 7", async () => {
+  // FIX: Shifted weekday value from '7' to '0' to comply with standard Deno Deploy cron syntax constraints.
+  Deno.cron("kmk-rate-backfill", "0 17 * * 0", async () => {
     console.log(
       "[KMK Cron] Periodic backfill triggered (Sun 17:00 UTC / Mon 00:00 WIB)",
     );

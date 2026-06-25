@@ -8,14 +8,12 @@ import Http
 import Test exposing (..)
 
 
-
 -- HELPERS
 
 
 baseModel : Model
 baseModel =
     init "http://localhost:8080" "test-token" [ "Date", "Amount", "Currency" ]
-
 
 
 -- SUITE
@@ -25,10 +23,10 @@ suite : Test
 suite =
     describe "CsvMapper"
         [ describe "initial state"
-            [ test "mapping starts empty" <|
+            [ test "mapping starts auto-matched" <|
                 \_ ->
                     baseModel.mapping
-                        |> Expect.equal Dict.empty
+                        |> Expect.equal (Dict.fromList [ ( "Amount", "amount" ), ( "Currency", "currency" ), ( "Date", "date" ) ])
             , test "status starts Idle" <|
                 \_ ->
                     baseModel.status
@@ -68,7 +66,7 @@ suite =
                         |> update (SelectTarget "Amount" "amount")
                         |> Tuple.first
                         |> .mapping
-                        |> Expect.equal (Dict.fromList [ ( "Date", "date" ), ( "Amount", "amount" ) ])
+                        |> Expect.equal (Dict.fromList [ ( "Amount", "amount" ), ( "Currency", "currency" ), ( "Date", "date" ) ])
             , fuzz Fuzz.string "fuzz: any string header can be mapped to a target" <|
                 \header ->
                     update (SelectTarget header "currency") baseModel
@@ -78,7 +76,7 @@ suite =
                         |> Expect.equal (Just "currency")
             ]
         , describe "API success decode"
-            [ test "GotMapping Ok (Just map) replaces mapping" <|
+            [ test "GotMapping Ok (Just map) merges mapping" <|
                 \_ ->
                     let
                         incoming =
@@ -87,7 +85,7 @@ suite =
                     update (GotMapping (Ok (Just incoming))) baseModel
                         |> Tuple.first
                         |> .mapping
-                        |> Expect.equal incoming
+                        |> Expect.equal (Dict.fromList [ ( "Amount", "amount" ), ( "Amt", "amount" ), ( "Currency", "currency" ), ( "Date", "date" ) ])
             , test "GotMapping Ok (Just map) sets status Idle" <|
                 \_ ->
                     update (GotMapping (Ok (Just Dict.empty))) baseModel

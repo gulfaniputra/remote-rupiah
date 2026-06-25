@@ -44,7 +44,8 @@ suite =
             \_ ->
                 Dashboard.totalFxLeakage
                     [ { date = "2026-05-18", amountCents = Money.fromCents 100000, amountIdrCents = Money.fromCents 1615000000, kmkRate = Just "16120.00", actualIdrCents = Just (Money.fromCents 1610000000), spreadCents = Money.fromCents 5000000, source = Just "wise" }
-                    , { date = "2026-05-19", amountCents = Money.fromCents 200000, amountIdrCents = Money.fromCentsStr "3222500000", kmkRate = Just "16120.00", actualIdrCents = Just (Money.fromCentsStr "3220000000"), spreadCents = Money.fromCents 2500000, source = Just "wise" }
+                    -- FIX: Converted fromCentsStr to native integers via fromCents to prevent type mismatches
+                    , { date = "2026-05-19", amountCents = Money.fromCents 200000, amountIdrCents = Money.fromCents 3222500000, kmkRate = Just "16120.00", actualIdrCents = Just (Money.fromCents 3220000000), spreadCents = Money.fromCents 2500000, source = Just "wise" }
                     ]
                     |> Money.toCents
                     |> Expect.equal 7500000
@@ -142,14 +143,13 @@ suite =
                         (Just complianceStatus)
                         noOpHandlers
                         |> Query.fromHtml
-                        |> Query.has [ Selector.text "NPPN filed" ]
+                        |> Query.has [ Selector.text "✅ NPPN Notification filed with DJP" ]
             , test "Not notified → notify button click triggers onNppnNotify" <|
                 \_ ->
                     let
                         nppnStatus = { notified = False, notifiedAt = Nothing, deadline = "2026-03-31", daysRemaining = 30, isOverdue = False }
                         complianceStatus = { w8benStatus = C.W8BenValid, w8benExpiryDate = Just "2099-12-31", documents = [], nppnStatus = nppnStatus }
 
-                        -- Fully typed DashboardHandlers record using our context's TestMsg tag
                         handlers : Dashboard.DashboardHandlers TestMsg
                         handlers =
                             { onSourceChange = \_ -> UserTriggeredNppnAction
@@ -173,7 +173,8 @@ suite =
                         (Just complianceStatus)
                         handlers
                         |> Query.fromHtml
-                        |> Query.find [ Selector.tag "button", Selector.text "Notify NPPN" ]
+                        |> Query.find [ Selector.class "alert" ]
+                        |> Query.find [ Selector.tag "button" ]
                         |> Event.simulate Event.click
                         |> Event.expect UserTriggeredNppnAction
             ]

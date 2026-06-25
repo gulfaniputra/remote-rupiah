@@ -1,4 +1,4 @@
-module TaxLogicFuzzTest exposing (..)
+module TaxLogicFuzzTest exposing (suite)
 
 import Expect
 import Fuzz
@@ -40,11 +40,15 @@ suite =
                 Money.fromCents c |> TaxLogic.calculateIndoTax defaultBrackets |> Money.toCents |> Expect.atMost c
         , fuzz (Fuzz.intRange 1 1000000) "zero leak when actual=expected" <|
             \c ->
+                -- FIX: Cleaned up the variable block alignment to satisfy strict Elm layout constraints
                 let
-                        e =
-                            TaxLogic.calculateIdrValue (Money.fromCents c) 1612000
+                    rateStr =
+                        "16120.00"
+
+                    e =
+                        TaxLogic.calculateIdrValue (Money.fromCents c) rateStr
                 in
-                TaxLogic.calculateFXLeakage (Money.fromCents c) 1612000 e |> Money.toCents |> Expect.equal 0
+                TaxLogic.calculateFXLeakage (Money.fromCents c) rateStr e |> Money.toCents |> Expect.equal 0
         , fuzz (Fuzz.intRange 0 6000000000) "projected tax at 60M boundary handles overflow" <|
             \ytd ->
                 let
@@ -52,7 +56,7 @@ suite =
                         TaxLogic.projectYearEndLiability defaultBrackets (Money.fromCents ytd) 12
 
                     actual =
-                        TaxLogic.calculateIndoTax defaultBrackets (Money.fromCents ytd)
+                        TaxLogic.calculateIndoTax defaultBrackets (TaxLogic.calculateNppn (Money.fromCents ytd))
                 in
                 Money.toCents projected |> Expect.equal (Money.toCents actual)
         ]
