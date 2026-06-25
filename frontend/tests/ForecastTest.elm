@@ -7,7 +7,7 @@ import TaxLogic exposing (..)
 import Test exposing (..)
 
 
-p : Money.Money -> Int -> Money.Money
+p : Money.Money Money.IDR -> Int -> Money.Money Money.IDR
 p =
     TaxLogic.projectYearEndLiability TaxLogic.defaultBrackets
 

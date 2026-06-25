@@ -21,15 +21,17 @@ const hasCron = "cron" in Deno && typeof Deno.cron === "function";
 
 if (hasCron) {
   // Primary Sync: Tuesday 18:00 UTC = Wednesday 01:00 WIB
-  Deno.cron("kmk-rate-sync-primary", "0 18 * * 2", async () => {
+  // FIX: Prepended seconds field ('0 ') to meet Deno Deploy's mandatory 6-field schedule structure.
+  Deno.cron("kmk-rate-sync-primary", "0 0 18 * * 2", async () => {
     console.log(
       "[KMK Cron] Primary sync triggered (Tue 18:00 UTC / Wed 01:00 WIB)",
     );
     await performSync(CURRENCY_STRING);
   });
 
-  // Fallback Sync: Wednesday 06:00 UTC = Wednesday 13:00 WIB (Padded hour for strict parser health)
-  Deno.cron("kmk-rate-sync-fallback", "0 06 * * 3", async () => {
+  // Fallback Sync: Wednesday 06:00 UTC = Wednesday 13:00 WIB
+  // FIX: Prepended seconds field and removed octal-like leading zero from hour field ('06' -> '6') for parsing reliability.
+  Deno.cron("kmk-rate-sync-fallback", "0 0 6 * * 3", async () => {
     console.log(
       "[KMK Cron] Fallback sync triggered (Wed 06:00 UTC / Wed 13:00 WIB)",
     );
@@ -37,8 +39,7 @@ if (hasCron) {
   });
 
   // Robustness: Sunday 17:00 UTC = Monday 00:00 WIB
-  // FIX: Shifted weekday value from '7' to '0' to comply with standard Deno Deploy cron syntax constraints.
-  Deno.cron("kmk-rate-backfill", "0 17 * * 0", async () => {
+  Deno.cron("kmk-rate-backfill", "0 0 17 * * 0", async () => {
     console.log(
       "[KMK Cron] Periodic backfill triggered (Sun 17:00 UTC / Mon 00:00 WIB)",
     );

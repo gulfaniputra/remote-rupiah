@@ -8,7 +8,11 @@ import Test exposing (..)
 
 
 f4 =
-    Fuzz.map4 (\a b c d -> { fn = a, tt = b, id = c, fp = d }) (Fuzz.intRange 0 1000000000) (Fuzz.intRange 1 1000000000) (Fuzz.intRange 0 1000000000) (Fuzz.intRange 0 1000000000)
+    Fuzz.map4 (\a b c d -> { fn = a, tt = b, id = c, fp = d })
+        (Fuzz.intRange 0 1000000000)
+        (Fuzz.intRange 1 1000000000)
+        (Fuzz.intRange 0 1000000000)
+        (Fuzz.intRange 0 1000000000)
 
 
 cr fn tt id fp =
@@ -28,7 +32,15 @@ suite =
         , fuzz f4 "credit >= 0" <| \r -> Money.toCents (cr (min r.fn r.tt) r.tt r.id r.fp) |> Expect.atLeast 0
         , fuzz f4 "credit <= formula cap" <|
             \r ->
-                Money.toCents (cr (min r.fn r.tt) r.tt r.id r.fp) |> Expect.atMost (floor (toFloat (min r.fn r.tt) * toFloat r.id / toFloat (max 1 r.tt)))
+                let
+                    foreignIncome =
+                        min r.fn r.tt
+
+                    -- Replaced float math with pure integer operations to avoid off-by-one cent rounding discrepancies
+                    exactFormulaCap =
+                        (foreignIncome * r.id) // max 1 r.tt
+                in
+                Money.toCents (cr foreignIncome r.tt r.id r.fp) |> Expect.atMost exactFormulaCap
         , fuzz (Fuzz.intRange 0 999999999) "NPPN = floor(input/2)" <|
             \c ->
                 Money.fromCents c |> TaxLogic.calculateNppn |> Money.toCents |> Expect.equal (c // 2)
@@ -40,15 +52,15 @@ suite =
                 Money.fromCents c |> TaxLogic.calculateIndoTax defaultBrackets |> Money.toCents |> Expect.atMost c
         , fuzz (Fuzz.intRange 1 1000000) "zero leak when actual=expected" <|
             \c ->
-                -- FIX: Cleaned up the variable block alignment to satisfy strict Elm layout constraints
                 let
-                    rateStr =
-                        "16120.00"
+                    -- FIX: Swapped out string representation for scaled raw integer to fit backend/shared contracts
+                    rateInt =
+                        16120
 
                     e =
-                        TaxLogic.calculateIdrValue (Money.fromCents c) rateStr
+                        TaxLogic.calculateIdrValue (Money.fromCents c) rateInt
                 in
-                TaxLogic.calculateFXLeakage (Money.fromCents c) rateStr e |> Money.toCents |> Expect.equal 0
+                TaxLogic.calculateFXLeakage (Money.fromCents c) rateInt e |> Money.toCents |> Expect.equal 0
         , fuzz (Fuzz.intRange 0 6000000000) "projected tax at 60M boundary handles overflow" <|
             \ytd ->
                 let
