@@ -51,12 +51,10 @@ app.use(
 
 // --- Core & Authentication Endpoints ---
 
-// Base health check endpoint
 app.get("/", (c) => {
   return c.text("Remote Rupiah API");
 });
 
-// Dev-mode token endpoint
 app.get("/api/auth/token", async (c) => {
   const secret = getJwtSecret();
   if (!secret) {
@@ -75,7 +73,6 @@ app.get("/api/auth/token", async (c) => {
   }
 });
 
-// Shared handler structure for exchange rate lookup - Safely typed without any
 const handleKmkRateLookup = async (c: Context<AppEnv>) => {
   const dateParam = c.req.query("date");
   if (!dateParam) {
@@ -99,7 +96,6 @@ const handleKmkRateLookup = async (c: Context<AppEnv>) => {
   }
 };
 
-// Mount exchange rate paths
 app.get("/api/kmk-rate", handleKmkRateLookup);
 app.get("/kmk-rate", handleKmkRateLookup);
 
@@ -117,7 +113,11 @@ app.route("/api/csv", csv);
 app.route("/api/compliance", compliance);
 
 // --- Runtime Initialization ---
+registerComplianceCron();
+
+// Fallback execution for local environment execution contexts
 if (import.meta.main) {
-  registerComplianceCron();
   Deno.serve(app.fetch);
 }
+
+export default app;
