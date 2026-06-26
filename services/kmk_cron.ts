@@ -6,6 +6,7 @@ const CURRENCY_STRING = DEFAULT_CURRENCIES.join(",");
 async function performSync(currencyList: string): Promise<void> {
   try {
     const result = await syncKmkRates({ currency: currencyList });
+
     console.log(
       `[KMK Cron] Sync Complete: +${result.inserted}, skip:${result.skipped}` +
         (result.errors.length > 0 ? `, err:${result.errors.join("; ")}` : ""),
@@ -29,35 +30,47 @@ export function initKmkCron() {
     return;
   }
 
-  // 2. Register Cron Jobs
+  try {
+    console.log("[KMK Cron] Registering cron jobs...");
 
-  // Deno.cron uses standard 0-6 day-of-week (0=Sun, 1=Mon, … 6=Sat).
-  // Do not use named abbreviations (TUE, WED, SUN). The Deploy API rejects them.
+    /**
+     * IMPORTANT: Deno.cron requires 6 fields:
+     * second minute hour day month weekday
+     */
 
-  // Primary Sync: Tuesday 18:00 UTC
-  Deno.cron("kmk-rate-sync-primary", "0 18 * * 2", async () => {
-    console.log("[KMK Cron] Primary sync triggered (Tue 18:00 UTC)");
-    await performSync(CURRENCY_STRING);
-  });
+    // Primary Sync: Tuesday 18:00 UTC
+    // (0 sec, 0 min, 18 hour, Tue)
+    Deno.cron("kmk-rate-sync-primary", "0 0 18 * * 2", async () => {
+      console.log("[KMK Cron] Primary sync triggered (Tue 18:00 UTC)");
+      await performSync(CURRENCY_STRING);
+    });
 
-  // Fallback Sync: Wednesday 06:00 UTC
-  Deno.cron("kmk-rate-sync-fallback", "0 6 * * 3", async () => {
-    console.log("[KMK Cron] Fallback sync triggered (Wed 06:00 UTC)");
-    await performSync(CURRENCY_STRING);
-  });
+    // Fallback Sync: Wednesday 06:00 UTC
+    Deno.cron("kmk-rate-sync-fallback", "0 0 6 * * 3", async () => {
+      console.log("[KMK Cron] Fallback sync triggered (Wed 06:00 UTC)");
+      await performSync(CURRENCY_STRING);
+    });
 
-  // Robustness Backfill: Sunday 17:00 UTC
-  Deno.cron("kmk-rate-backfill", "0 17 * * 0", async () => {
-    console.log("[KMK Cron] Periodic backfill triggered (Sun 17:00 UTC)");
-    try {
-      const result = await backfillKmkRates(4, DEFAULT_CURRENCIES);
-      console.log(
-        `[KMK Cron] Backfill Complete: +${result.inserted}, skip:${result.skipped}` +
-          (result.errors.length > 0 ? `, err:${result.errors.length}` : ""),
-      );
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`[KMK Cron] Backfill failed: ${message}`);
-    }
-  });
+    // Robustness Backfill: Sunday 17:00 UTC
+    Deno.cron("kmk-rate-backfill", "0 0 17 * * 0", async () => {
+      console.log("[KMK Cron] Periodic backfill triggered (Sun 17:00 UTC)");
+
+      try {
+        const result = await backfillKmkRates(4, DEFAULT_CURRENCIES);
+
+        console.log(
+          `[KMK Cron] Backfill Complete: +${result.inserted}, skip:${result.skipped}` +
+            (result.errors.length > 0 ? `, err:${result.errors.length}` : ""),
+        );
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(`[KMK Cron] Backfill failed: ${message}`);
+      }
+    });
+
+    console.log("[KMK Cron] All cron jobs registered successfully.");
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[KMK Cron] Registration failed: ${message}`);
+  }
 }
