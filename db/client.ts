@@ -189,15 +189,7 @@ let realSql: postgres.Sql;
 let useMock = isTesting;
 
 try {
-  realSql = useMock
-    ? mockSql
-    : postgres({
-        host: Deno.env.get("PGHOST") || "localhost",
-        port: parseInt(Deno.env.get("PGPORT") || "5432", 10),
-        database: Deno.env.get("PGDATABASE") || "remote_rupiah",
-        username: Deno.env.get("PGUSER") || "postgres",
-        password: Deno.env.get("PGPASSWORD") || "postgres",
-      });
+  realSql = useMock ? mockSql : postgres(_dbUrl);
 } catch (err: unknown) {
   if (!isTesting) {
     console.error("❌ CRITICAL DATABASE INITIALIZATION FAILED:", err);
