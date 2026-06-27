@@ -27,22 +27,28 @@ interface AppEnv extends Env {
 
 export const app = new Hono();
 
-// 1. Determine origin
-const allowedOrigin = (() => {
-  try {
-    return Deno.env.get("APP_ENV") === "production"
-      ? "https://remote-rupiah.pages.dev"
-      : "http://localhost:8010";
-  } catch {
-    return "http://localhost:8010";
-  }
-})();
+// 1. Define allowed origins
+const allowedOrigins = [
+  "https://remote-rupiah.pages.dev",
+  "http://localhost:8010",
+];
 
-// 2. CORS Middleware
+// 2. CORS Middleware with dynamic origin matching
 app.use(
   "*",
   cors({
-    origin: allowedOrigin,
+    origin: (origin) => {
+      // Allow any subdomain of *.remote-rupiah.pages.dev (for preview deployments)
+      // Also allow hardcoded production/local origins
+      if (
+        origin.endsWith(".remote-rupiah.pages.dev") ||
+        allowedOrigins.includes(origin)
+      ) {
+        return origin;
+      }
+      // Default fallback to production domain
+      return allowedOrigins[0];
+    },
     allowHeaders: ["Content-Type", "Authorization", "x-api-key"],
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
