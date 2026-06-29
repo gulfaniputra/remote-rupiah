@@ -1,18 +1,19 @@
 # remote-rupiah
 
-**remote-rupiah** is a financial compliance engine designed for Indonesian remote professionals and digital nomads billing U.S. clients. The entire system is deployed edge-native for zero operational overhead.
+**remote-rupiah** is a financial compliance engine designed for Indonesian Software Developers billing U.S. clients. The entire system is deployed edge-native for zero operational overhead.
 
-The system automates **UU HPP compliance**, **PPh 24 foreign tax credits**, and **KMK (Kurs Menteri Keuangan)** rate conversions using a strict **Zero-Float architecture**.
+**remote-rupiah** automates **UU HPP compliance**, **PPh 24 foreign tax credits**, and **KMK (Kurs Menteri Keuangan)** rate conversions using a strict **Zero-Float architecture**.
 
 ## Table of Contents
 
 - [Strategic Value Proposition](#strategic-value-proposition)
-- [Project Status](#project-status)
 - [Tech Stack](#tech-stack)
 - [Financial Integrity Protocols](#financial-integrity-protocols)
 - [Security & Multi-Tenancy](#security--multi-tenancy)
 - [Architecture Flow](#architecture-flow)
 - [Deployment & CI/CD](#deployment--cicd)
+- [Project Status](#project-status)
+- [Demo](#demo)
 - [Local Setup & Development](#local-setup--development)
 - [Testing Suite](#testing-suite)
 
@@ -23,23 +24,6 @@ The system automates **UU HPP compliance**, **PPh 24 foreign tax credits**, and 
 - **Architectural Safeguards:** Enforces absolute data isolation and compile-time correctness via Elm types and PostgreSQL RLS.
 - **Leak Detection:** Surfaces hidden foreign exchange spread losses across Wise, Revolut, and PayPal.
 - **DJP Coretax Ready:** Streams memory-safe CSV formats compliant with the Indonesian tax portal schemas.
-
-## Project Status
-
-Core engine is **80% complete and production-ready**. Development prioritizes domain mechanics, type safety, and total test coverage over visual polish to secure an immutable ledger foundation first.
-
-### Complete Core (80%)
-
-- **Ingestion Engine:** Async multi-currency stream-parsing into a unified schema.
-- **CSV Mapping:** Deterministic boundary transformation of native Wise, Revolut, and PayPal exports.
-- **Calculation Invariants:** Compile-time blocks against floating-point drift and cross-currency mixing.
-- **Domain Testing:** Property-based and boundary suites covering both client and server domains.
-
-### Active Backlog (20%)
-
-1. **DJP API Sync:** Migrating the KMK ingestion pipeline from local mocks to live integration test suites.
-2. **Notification Dispatchers:** Wiring cron events to outbound SMTP/Webhook alerts for expiring W-8BEN forms.
-3. **UI Extensions:** Delivering the dashboard view layer in Elm (underlying state management is complete and tested).
 
 ## Tech Stack
 
@@ -87,6 +71,27 @@ Automated verification and deployment pipelines are driven via GitHub Actions (`
 
 - **Continuous Integration (CI):** Executes parallel test jobs verifying Elm compilation optimizations, Deno lints, type checks, and randomized fuzz matrices on every push.
 - **Continuous Deployment (CD):** Merges to `main` trigger atomic, zero-downtime updates directly to **Deno Deploy** and **Cloudflare Pages**.
+
+## Project Status
+
+Core engine is **75% complete and production-ready**. Development prioritizes domain mechanics, type safety, and total test coverage over visual polish to secure an immutable ledger foundation first.
+
+### Complete Core (75%)
+
+- **Calculation Invariants:** Compile-time blocks against floating-point drift and cross-currency mixing.
+- **Domain Testing:** Property-based and boundary suites covering both client and server domains.
+- **Ingestion Engine:** Async multi-currency stream-parsing into a unified schema.
+- **Ingestion Boundary:** Multi-currency pipeline logic is fully validated via direct relational constraints. Native Wise/Revolut/PayPal/banks CSV mapping structures are currently decoupled and isolated to the active backlog.
+
+### Active Backlog (25%)
+
+- **CSV Mapping:** Deterministic boundary transformation of native Wise/Revolut/PayPal/banks exports.
+- **DJP API Sync:** Migrating the KMK ingestion pipeline from local mocks to live integration test suites.
+- **Notification Dispatchers:** Wiring cron events to outbound SMTP/Webhook alerts for expiring W-8BEN forms.
+
+## Demo
+
+- https://remote-rupiah.pages.dev/
 
 ## Local Setup & Development
 
