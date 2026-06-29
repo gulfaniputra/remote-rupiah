@@ -37,6 +37,19 @@ isValidNik =
     String.filter Char.isDigit >> String.length >> (==) 16
 
 
+formatSourceLabel : String -> String
+formatSourceLabel source =
+    case source of
+        "wise" ->
+            "Wise"
+
+        "bank" ->
+            "Banks"
+
+        _ ->
+            source
+
+
 view :
     State
     -> Int
@@ -133,7 +146,7 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
                 "Final Payable"
 
         fmt m =
-            "Rp " ++ formatWithCommas (Money.toString m)
+            toShorthand m
     in
     div []
         [ viewNppnAlert { onNppnNotify = handlers.onNppnNotify } complianceStatus
@@ -145,8 +158,8 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
                         [ value source
                         , onInput handlers.onSourceChange
                         ]
-                        [ option [ value "wise" ] [ text "wise" ]
-                        , option [ value "bank" ] [ text "bank" ]
+                        [ option [ value "wise" ] [ text (formatSourceLabel "wise") ]
+                        , option [ value "bank" ] [ text (formatSourceLabel "bank") ]
                         ]
                     ]
                 , button [ class "btn btn-primary mt-3", onClick handlers.onUpload ] [ text "Upload CSV" ]
@@ -257,7 +270,7 @@ summaryCard : String -> Money.Money c -> String -> Html msg
 summaryCard label value cls =
     div [ class ("card " ++ cls) ]
         [ h3 [] [ text label ]
-        , div [ class "big-value font-mono" ] [ text ("Rp " ++ formatWithCommas (Money.toString value)) ]
+        , div [ class "big-value font-mono" ] [ text (toShorthand value) ]
         ]
 
 
@@ -373,6 +386,71 @@ evidenceLockerPanel maybeStatus =
                         ]
             ]
         ]
+
+
+toShorthand : Money.Money c -> String
+toShorthand money =
+    let
+        cents =
+            Money.toCents money
+
+        isNegative =
+            cents < 0
+
+        absCents =
+            if isNegative then
+                negate cents
+
+            else
+                cents
+
+        billion =
+            1000000000 * 100
+
+        million =
+            1000000 * 100
+
+        thousand =
+            1000 * 100
+
+        ( amount, suffix ) =
+            if absCents >= billion then
+                ( toFloat absCents / toFloat billion, "B" )
+
+            else if absCents >= million then
+                ( toFloat absCents / toFloat million, "M" )
+
+            else if absCents >= thousand then
+                ( toFloat absCents / toFloat thousand, "K" )
+
+            else
+                ( toFloat absCents / 100.0, "" )
+
+        formatted =
+            let
+                rounded =
+                    round (amount * 10)
+
+                whole =
+                    rounded // 10
+
+                frac =
+                    modBy 10 rounded
+            in
+            if frac == 0 then
+                String.fromInt whole ++ suffix
+
+            else
+                String.fromInt whole ++ "." ++ String.fromInt frac ++ suffix
+
+        sign =
+            if isNegative then
+                "-"
+
+            else
+                ""
+    in
+    "IDR " ++ sign ++ formatted
 
 
 formatWithCommas : String -> String

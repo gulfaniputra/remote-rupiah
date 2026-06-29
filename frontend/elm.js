@@ -8902,40 +8902,14 @@ var $author$project$View$Dashboard$evidenceLockerPanel = function (maybeStatus) 
 					]))
 			]));
 };
-var $author$project$View$Dashboard$chunkString = F2(
-	function (size, str) {
-		return $elm$core$String$isEmpty(str) ? _List_Nil : A2(
-			$elm$core$List$cons,
-			A2($elm$core$String$left, size, str),
-			A2(
-				$author$project$View$Dashboard$chunkString,
-				size,
-				A2($elm$core$String$dropLeft, size, str)));
-	});
-var $elm$core$String$reverse = _String_reverse;
-var $author$project$View$Dashboard$formatIntegerGroups = function (str) {
-	return $elm$core$String$reverse(
-		A2(
-			$elm$core$String$join,
-			',',
-			A2(
-				$author$project$View$Dashboard$chunkString,
-				3,
-				$elm$core$String$reverse(str))));
-};
-var $author$project$View$Dashboard$formatIntegerString = function (str) {
-	return A2($elm$core$String$startsWith, '-', str) ? ('-' + $author$project$View$Dashboard$formatIntegerGroups(
-		A2($elm$core$String$dropLeft, 1, str))) : $author$project$View$Dashboard$formatIntegerGroups(str);
-};
-var $author$project$View$Dashboard$formatWithCommas = function (rawStr) {
-	var _v0 = A2($elm$core$String$split, '.', rawStr);
-	if ((_v0.b && _v0.b.b) && (!_v0.b.b.b)) {
-		var integerPart = _v0.a;
-		var _v1 = _v0.b;
-		var decimalPart = _v1.a;
-		return $author$project$View$Dashboard$formatIntegerString(integerPart) + ('.' + decimalPart);
-	} else {
-		return $author$project$View$Dashboard$formatIntegerString(rawStr);
+var $author$project$View$Dashboard$formatSourceLabel = function (source) {
+	switch (source) {
+		case 'wise':
+			return 'Wise';
+		case 'bank':
+			return 'Banks';
+		default:
+			return source;
 	}
 };
 var $author$project$Money$fromCents = A2($elm$core$Basics$composeR, $cmditch$elm_bigint$BigInt$fromInt, $author$project$Money$Money);
@@ -8976,10 +8950,11 @@ var $author$project$TaxLogic$projectYearEndLiability = F3(
 			return A2($author$project$TaxLogic$calculateIndoTax, brackets, projectedNetIncome);
 		}
 	});
-var $elm$core$String$dropRight = F2(
-	function (n, string) {
-		return (n < 1) ? string : A3($elm$core$String$slice, 0, -n, string);
-	});
+var $elm$core$Basics$modBy = _Basics_modBy;
+var $elm$core$Basics$round = _Basics_round;
+var $elm$core$String$concat = function (strings) {
+	return A2($elm$core$String$join, '', strings);
+};
 var $elm$core$String$cons = _String_cons;
 var $elm$core$String$fromChar = function (_char) {
 	return A2($elm$core$String$cons, _char, '');
@@ -9007,17 +8982,6 @@ var $elm$core$String$padLeft = F3(
 				$elm$core$String$fromChar(_char)),
 			string);
 	});
-var $elm$core$String$right = F2(
-	function (n, string) {
-		return (n < 1) ? '' : A3(
-			$elm$core$String$slice,
-			-n,
-			$elm$core$String$length(string),
-			string);
-	});
-var $elm$core$String$concat = function (strings) {
-	return A2($elm$core$String$join, '', strings);
-};
 var $cmditch$elm_bigint$BigInt$fillZeroes = function (x) {
 	return A3(
 		$elm$core$String$padLeft,
@@ -9052,18 +9016,37 @@ var $cmditch$elm_bigint$BigInt$toString = function (bigInt) {
 			return '-' + $cmditch$elm_bigint$BigInt$revMagnitudeToString(mag);
 	}
 };
-var $author$project$Money$toString = function (_v0) {
+var $author$project$Money$toAuthoritativeString = function (_v0) {
 	var b = _v0.a;
-	var raw = $cmditch$elm_bigint$BigInt$toString(b);
-	var unsigned = A2($elm$core$String$startsWith, '-', raw) ? A2($elm$core$String$dropLeft, 1, raw) : raw;
-	var body = ($elm$core$String$length(unsigned) <= 2) ? ('0.' + A3(
-		$elm$core$String$padLeft,
-		2,
-		_Utils_chr('0'),
-		unsigned)) : (A2($elm$core$String$dropRight, 2, unsigned) + ('.' + A2($elm$core$String$right, 2, unsigned)));
-	return _Utils_ap(
-		A2($elm$core$String$startsWith, '-', raw) ? '-' : '',
-		body);
+	return $cmditch$elm_bigint$BigInt$toString(b);
+};
+var $author$project$Money$toCents = A2(
+	$elm$core$Basics$composeR,
+	$author$project$Money$toAuthoritativeString,
+	A2(
+		$elm$core$Basics$composeR,
+		$elm$core$String$toInt,
+		$elm$core$Maybe$withDefault(-1)));
+var $author$project$View$Dashboard$toShorthand = function (money) {
+	var thousand = 1000 * 100;
+	var million = 1000000 * 100;
+	var cents = $author$project$Money$toCents(money);
+	var isNegative = cents < 0;
+	var sign = isNegative ? '-' : '';
+	var billion = 1000000000 * 100;
+	var absCents = isNegative ? (-cents) : cents;
+	var _v0 = (_Utils_cmp(absCents, billion) > -1) ? _Utils_Tuple2(absCents / billion, 'B') : ((_Utils_cmp(absCents, million) > -1) ? _Utils_Tuple2(absCents / million, 'M') : ((_Utils_cmp(absCents, thousand) > -1) ? _Utils_Tuple2(absCents / thousand, 'K') : _Utils_Tuple2(absCents / 100.0, '')));
+	var amount = _v0.a;
+	var suffix = _v0.b;
+	var formatted = function () {
+		var rounded = $elm$core$Basics$round(amount * 10);
+		var whole = (rounded / 10) | 0;
+		var frac = A2($elm$core$Basics$modBy, 10, rounded);
+		return (!frac) ? _Utils_ap(
+			$elm$core$String$fromInt(whole),
+			suffix) : ($elm$core$String$fromInt(whole) + ('.' + ($elm$core$String$fromInt(frac) + suffix)));
+	}();
+	return 'IDR ' + (sign + formatted);
 };
 var $author$project$View$Dashboard$summaryCard = F3(
 	function (label, value, cls) {
@@ -9091,11 +9074,35 @@ var $author$project$View$Dashboard$summaryCard = F3(
 					_List_fromArray(
 						[
 							$elm$html$Html$text(
-							'Rp ' + $author$project$View$Dashboard$formatWithCommas(
-								$author$project$Money$toString(value)))
+							$author$project$View$Dashboard$toShorthand(value))
 						]))
 				]));
 	});
+var $elm$core$String$dropRight = F2(
+	function (n, string) {
+		return (n < 1) ? string : A3($elm$core$String$slice, 0, -n, string);
+	});
+var $elm$core$String$right = F2(
+	function (n, string) {
+		return (n < 1) ? '' : A3(
+			$elm$core$String$slice,
+			-n,
+			$elm$core$String$length(string),
+			string);
+	});
+var $author$project$Money$toString = function (_v0) {
+	var b = _v0.a;
+	var raw = $cmditch$elm_bigint$BigInt$toString(b);
+	var unsigned = A2($elm$core$String$startsWith, '-', raw) ? A2($elm$core$String$dropLeft, 1, raw) : raw;
+	var body = ($elm$core$String$length(unsigned) <= 2) ? ('0.' + A3(
+		$elm$core$String$padLeft,
+		2,
+		_Utils_chr('0'),
+		unsigned)) : (A2($elm$core$String$dropRight, 2, unsigned) + ('.' + A2($elm$core$String$right, 2, unsigned)));
+	return _Utils_ap(
+		A2($elm$core$String$startsWith, '-', raw) ? '-' : '',
+		body);
+};
 var $author$project$View$Dashboard$totalFxLeakage = A2(
 	$elm$core$List$foldl,
 	F2(
@@ -9242,8 +9249,7 @@ var $author$project$View$Dashboard$renderReady = F9(
 		var unrealizedIdr = $author$project$View$Dashboard$totalUnrealized(unrealized);
 		var fxLeakageIdr = $author$project$View$Dashboard$totalFxLeakage(fxLeakage);
 		var fmt = function (m) {
-			return 'Rp ' + $author$project$View$Dashboard$formatWithCommas(
-				$author$project$Money$toString(m));
+			return $author$project$View$Dashboard$toShorthand(m);
 		};
 		var annIdr = $author$project$Money$fromCents(120000000000);
 		var profit = $author$project$TaxLogic$calculateNppn(annIdr);
@@ -9313,7 +9319,8 @@ var $author$project$View$Dashboard$renderReady = F9(
 														]),
 													_List_fromArray(
 														[
-															$elm$html$Html$text('wise')
+															$elm$html$Html$text(
+															$author$project$View$Dashboard$formatSourceLabel('wise'))
 														])),
 													A2(
 													$elm$html$Html$option,
@@ -9323,7 +9330,8 @@ var $author$project$View$Dashboard$renderReady = F9(
 														]),
 													_List_fromArray(
 														[
-															$elm$html$Html$text('bank')
+															$elm$html$Html$text(
+															$author$project$View$Dashboard$formatSourceLabel('bank'))
 														]))
 												]))
 										])),
