@@ -119,6 +119,14 @@ if (Deno.env.has("DENO_DEPLOYMENT_ID")) {
 }
 
 if (import.meta.main) {
+  // --- Startup Guard ---
+  const jwtSecret = getJwtSecret();
+  if (!jwtSecret) {
+    console.error("FATAL: JWT_SECRET environment variable is not set.");
+    Deno.exit(1);
+  }
+  // --- End Guard ---
+
   Deno.serve(app.fetch);
 }
 
