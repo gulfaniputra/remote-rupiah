@@ -1,8 +1,8 @@
 # remote-rupiah
 
-**remote-rupiah** is a high-precision edge-native financial compliance engine designed for Indonesian remote professionals and digital nomads working with U.S. clients.
+**remote-rupiah** is a financial compliance engine designed for Indonesian remote professionals and digital nomads billing U.S. clients. The entire system is deployed edge-native for zero operational overhead.
 
-The system automates **UU HPP compliance**, **PPh 24 foreign tax credits**, and **KMK (Kurs Menteri Keuangan)** rate management while ensuring mathematical integrity through a strict **Zero-Float architecture**.
+The system automates **UU HPP compliance**, **PPh 24 foreign tax credits**, and **KMK (Kurs Menteri Keuangan)** rate conversions using a strict **Zero-Float architecture**.
 
 ## Table of Contents
 
@@ -12,74 +12,81 @@ The system automates **UU HPP compliance**, **PPh 24 foreign tax credits**, and 
 - [Financial Integrity Protocols](#financial-integrity-protocols)
 - [Security & Multi-Tenancy](#security--multi-tenancy)
 - [Architecture Flow](#architecture-flow)
+- [Deployment & CI/CD](#deployment--cicd)
 - [Local Setup & Development](#local-setup--development)
 - [Testing Suite](#testing-suite)
 
 ## Strategic Value Proposition
 
-- **The Compliance Engine:** Deep implementation of Indonesian Tax Law optimized for **KLU 62010 (Software Development)** with automated NPPN calculations.
-- **Evidence Locker & Monitoring:** Proactive tracking for US-Indonesia Tax Treaty (W-8BEN) expiry dates, 1042-S document verification, and NPPN notification.
-- **Architectural Integrity:** Leverages **Elm's** type system and **PostgreSQL RLS** for absolute mathematical certainty and data isolation.
-- **Leak Detection:** Identifies hidden currency spread losses across Wise, Revolut, and PayPal.
-- **DJP Coretax Ready:** Generates compliant export formats for the Indonesian tax portal via memory-safe CSV streams.
+- **Tax Engine:** Computes Indonesian tax law specifications for **KLU 62010 (Software Development)** with automated NPPN calculations.
+- **Compliance Tracking:** Monitors US-Indonesia Tax Treaty (W-8BEN) expirations, Form 1042-S verifications, and NPPN notification states.
+- **Architectural Safeguards:** Enforces absolute data isolation and compile-time correctness via Elm types and PostgreSQL RLS.
+- **Leak Detection:** Surfaces hidden foreign exchange spread losses across Wise, Revolut, and PayPal.
+- **DJP Coretax Ready:** Streams memory-safe CSV formats compliant with the Indonesian tax portal schemas.
 
 ## Project Status
 
-This codebase is a **production-ready 80% complete core engine**. Development prioritizes core domain mechanics, type safety, and 100% test coverage over non-essential UI layout and visual polish. This ensures an unshakeable ledger foundation before building auxiliary components.
+Core engine is **80% complete and production-ready**. Development prioritizes domain mechanics, type safety, and total test coverage over visual polish to secure an immutable ledger foundation first.
 
-### Complete Core (The 80%)
+### Complete Core (80%)
 
-- **Pipeline Ingestion Engine:** Asynchronous stream-parsing of multi-currency financial data directly into a unified schema.
-- **CSV Mapping Layer:** Deterministic mapping of diverse Wise, Revolut, and PayPal CSV exports into explicit boundary formats.
-- **Calculation Invariants:** Compile-time validation completely preventing float-point drift and cross-currency mixing.
-- **Multi-Currency Test Suites:** Full property-based and boundary validation covering both frontend and backend domains.
+- **Ingestion Engine:** Async multi-currency stream-parsing into a unified schema.
+- **CSV Mapping:** Deterministic boundary transformation of native Wise, Revolut, and PayPal exports.
+- **Calculation Invariants:** Compile-time blocks against floating-point drift and cross-currency mixing.
+- **Domain Testing:** Property-based and boundary suites covering both client and server domains.
 
-### Active Backlog (The Remaining 20%)
+### Active Backlog (20%)
 
-1. **DJP API Sync Integration:** Moving the KMK ingestion pipeline from local mock testing into live integration testing suites with DJP production endpoints.
-2. **Notification Dispatchers:** Wiring background cron scan events to automated outbound notification channels (SMTP/Webhooks) for approaching W-8BEN expirations.
-3. **UI/UX View Extension:** Implementing final dashboard layouts in Elm. The underlying state-management logic is complete and fully tested. The remaining changes are isolated to visual code.
+1. **DJP API Sync:** Migrating the KMK ingestion pipeline from local mocks to live integration test suites.
+2. **Notification Dispatchers:** Wiring cron events to outbound SMTP/Webhook alerts for expiring W-8BEN forms.
+3. **UI Extensions:** Delivering the dashboard view layer in Elm (underlying state management is complete and tested).
 
 ## Tech Stack
 
-| Layer        | Technology     | Rationale                                                                                                                                 |
-| :----------- | :------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Frontend** | **Elm 0.19.1** | Strong type system eliminates runtime exceptions. Relies entirely on custom vanilla CSS and inline SVGs with zero external UI frameworks. |
-| **Backend**  | **Deno 2.2+**  | Native TypeScript execution, built-in testing suite, and Deno Cron for edge-native scheduled tasks.                                       |
-| **Database** | **PostgreSQL** | Strict Row-Level Security (RLS) for immutable and database-level tenant isolation.                                                        |
-| **API**      | **Hono 4.x**   | Ultra-lightweight routing middleware optimized for edge-native deployment.                                                                |
+| Layer        | Platform & Tooling                              | Rationale                                                                                     |
+| :----------- | :---------------------------------------------- | :-------------------------------------------------------------------------------------------- |
+| **Frontend** | **Elm 0.19.1** on **Cloudflare Pages**          | Eliminates client-side runtime crashes; served globally via edge CDN.                         |
+| **Backend**  | **Deno 2.2+** + **Hono 4.x** on **Deno Deploy** | V8 isolate orchestration with zero warm-up latency and native `Deno.cron` support.            |
+| **Database** | **PostgreSQL** via **Neon**                     | Serverless Postgres leveraging strict Row-Level Security (RLS) for absolute tenant isolation. |
 
 ### System Invariants
 
-- **Zero Runtime Exceptions:** Elm's architectural design guarantees error-free operations on the client side.
-- **Phantom Currency Safety:** Expressing financial assets as explicit types (`Money USD` vs `Money IDR`) renders cross-currency mixing structurally impossible at compile time.
-- **Zero Infrastructure Overhead:** Using Deno, Hono, and edge deployment allows solo-developer architectures to maintain near-zero server infrastructure operational burdens.
+- **Zero Runtime Exceptions:** Elm architecture guarantees crash-free client execution.
+- **Phantom Currency Safety:** Explicit types (`Money USD` vs `Money IDR`) prevent cross-currency operations at compile time.
+- **Zero Server Management:** Serverless edge runtimes isolate scaling overhead from core engineering tasks.
 
 ## Financial Integrity Protocols
 
 We adhere to the **Zero-Float Protocol**:
 
-1. **Strict Integer Math:** `Float` types are completely banned for currency calculations. All monetary balances are processed and stored as `BIGINT` representing cents in the database and handled via opaque arbitrary-precision integer types (`BigInt`) in Elm.
-2. **UU HPP Compliance:** Automatic **50% NPPN** net income calculation for software development services under KLU 62010.
-3. **PPh 24 "Lesser of" Rule:** Prevents double-taxation on US-source income by calculating the specific credit cap: `(ForeignNet / TotalTaxable) * TotalTaxDue`. Credits are strictly limited to zero if the associated Form 1042-S is unverified.
-4. **KMK Automation:** Automated weekly fetch of official **Kurs Menteri Keuangan** rates via Deno Cron ensuring audit-compliant IDR conversion.
-5. **Deterministic CSV Ingestion:** Automatically parses multi-currency CSV exports from Wise, Revolut, and PayPal, stream-parsing them directly into a unified `CanonicalTx` boundary format with deterministic ID generation.
+1. **Strict Integer Math:** `Float` types are banned. Balances are processed and stored as `BIGINT` (cents) in the database and handled via opaque arbitrary-precision integers (`BigInt`) in Elm.
+2. **UU HPP Compliance:** Computes automatic **50% NPPN** net income deductions for software services under KLU 62010.
+3. **PPh 24 Credit Cap:** Eliminates double-taxation on US-source income using the capping formula: `(ForeignNet / TotalTaxable) * TotalTaxDue`. Credits are restricted to zero if Form 1042-S is unverified.
+4. **KMK Automation:** Orchestrates weekly fetch pipelines of official **Kurs Menteri Keuangan** rates via Deno Cron for audit-compliant IDR conversion.
+5. **Deterministic Ingestion:** Streams multi-currency CSVs from Wise, Revolut, and PayPal directly into a unified `CanonicalTx` layout with deterministic ID generation.
 
 ## Security & Multi-Tenancy
 
-- **Database-Level Isolation:** Tenant security is strictly enforced via **PostgreSQL RLS**. The database engine natively isolates tenant data to prevent cross-tenant leakage.
-- **Route Protection:** All private backend endpoints are protected behind a JWT-based authentication middleware layer.
-- **Logic Isolation:** All core tax formulas reside in Elm as pure, side-effect-free functions, ensuring they remain 100% testable and auditable.
+- **Database-Level Isolation:** Data containment is enforced via native **PostgreSQL RLS** policies to eliminate cross-tenant leak vectors.
+- **Route Protection:** Secures private backend endpoints behind JWT-based authentication middleware layers.
+- **Logic Isolation:** Implements tax formulas as pure, side-effect-free functions in Elm, ensuring deterministic, auditable testing.
 
 ## Architecture Flow
 
 ```mermaid
 graph TD
-    Client[Elm Frontend] -->|HTTPS / Native Types| Edge[Deno Edge / Hono API]
+    Client[Elm Client / Cloudflare Pages] -->|HTTPS / Native Types| Edge[Hono API / Deno Deploy]
     Edge -->|Deno Cron| KMK[DJP KMK API Ingestion]
     Edge -->|Deno Cron| Compliance[W-8BEN & NPPN Scans]
-    Edge -->|Secured Connection| DB[(PostgreSQL + RLS)]
+    Edge -->|Pooled Connection| DB[(Neon Postgres + RLS)]
 ```
+
+## Deployment & CI/CD
+
+Automated verification and deployment pipelines are driven via GitHub Actions (`.github/workflows/ci.yml`):
+
+- **Continuous Integration (CI):** Executes parallel test jobs verifying Elm compilation optimizations, Deno lints, type checks, and randomized fuzz matrices on every push.
+- **Continuous Deployment (CD):** Merges to `main` trigger atomic, zero-downtime updates directly to **Deno Deploy** and **Cloudflare Pages**.
 
 ## Local Setup & Development
 
@@ -87,7 +94,7 @@ graph TD
 
 - **Deno 2.2+**
 - **Elm 0.19.1**
-- **PostgreSQL**
+- **PostgreSQL 17** (Local engine & Neon branch)
 
 ### Environment Setup
 
@@ -108,11 +115,17 @@ psql -h localhost -U YOUR_ACTUAL_DB_USER -d remote_rupiah -f db/seed.sql
 ### Running the App
 
 ```bash
-# Start Deno backend (Hono)
+# Build the Elm production asset from the root
+rm -rf frontend/elm-stuff
+cd frontend && elm make src/Main.elm --output=../public/elm.js && cd ..
+
+# Start Hono backend
+# Listening on http://localhost:8000
 deno task dev
 
-# In another terminal start Elm frontend
-cd frontend && elm reactor --port=8010
+# Start local static server for Elm frontend assets
+# Listening on http://localhost:8010
+deno run --allow-net --allow-read jsr:@std/http/file-server public --port=8010
 ```
 
 ## Testing Suite
@@ -122,9 +135,7 @@ Automated validation guarantees that underlying compliance formulas and structur
 ### Test Suite Breakdown
 
 - **Property-Based Fuzz Testing (`TaxLogicFuzzTest.elm`):** Runs thousands of randomized numerical arrays through the tax bracket logic to assert structural integrity across wide ranges of currency value variations.
-
 - **Boundary Validation (`PrecisionTest.elm`):** Validates extreme arbitrary precision edge-cases to guarantee zero rounding errors under the Zero-Float protocol.
-
 - **Data Isolation Testing:** Validates PostgreSQL schema RLS definitions to ensure cross-tenant leakage is mathematically impossible at the database engine level.
 
 ### Execution
