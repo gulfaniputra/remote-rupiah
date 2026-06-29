@@ -177,7 +177,7 @@ app.post("/", async (c) => {
         // Authenticate the session context via withAuth to satisfy RLS constraints
         await withAuth(uid, async (tx) => {
           for (const row of mapped) {
-            const result = await tx`
+            const _result = await tx`
               INSERT INTO transactions (
                 user_id,
                 source_tx_id,
@@ -201,7 +201,6 @@ app.post("/", async (c) => {
                 actual_idr_received_cents = EXCLUDED.actual_idr_received_cents
               RETURNING id, user_id;
             `;
-            console.log("DEBUG: Authenticated Insert Result =", result);
           }
         });
       } catch (dbError) {
