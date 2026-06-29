@@ -16,6 +16,7 @@
 - [Demo](#demo)
 - [Local Setup & Development](#local-setup--development)
 - [Testing Suite](#testing-suite)
+- [License](#license)
 
 ## Strategic Value Proposition
 
@@ -152,3 +153,7 @@ deno test --allow-env --allow-net --allow-read --unstable-cron
 # Run frontend tests
 cd frontend && elm-test
 ```
+
+## License
+
+This project is open-source and available under the terms of the [GNU General Public License v3.0 (GPL-3.0)](LICENSE).
