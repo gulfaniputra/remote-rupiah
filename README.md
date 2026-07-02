@@ -131,7 +131,7 @@ deno task dev
 
 # Start local static server for Elm frontend assets
 # Listening on http://localhost:8010
-deno run --allow-net --allow-read jsr:@std/http/file-server public --port=8010
+deno run --allow-net --allow-read jsr:@std/http/file-server frontend --port=8010
 ```
 
 ## Testing Suite

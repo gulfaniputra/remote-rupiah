@@ -61,9 +61,12 @@ app.use(
 app.get("/", (c) => c.text("Remote Rupiah API"));
 
 app.get("/api/auth/token", async (c) => {
-  const secret = getJwtSecret();
-  if (!secret) return c.json({ error: "No JWT secret configured" }, 500);
+  // Never expose this endpoint in production
+  if (Deno.env.get("DENO_ENV") === "production") {
+    return c.json({ error: "Not available" }, 404);
+  }
   try {
+    // For development only – use a fixed test user ID
     const token = await generateDevToken(
       "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
     );
