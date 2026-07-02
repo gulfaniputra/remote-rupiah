@@ -19,6 +19,15 @@ import { registerComplianceCron } from "./services/compliance_cron.ts";
 import { getKmkRateByDate } from "./services/kmk_resolver.ts";
 import { generateDevToken, getJwtSecret } from "./services/auth_middleware.ts";
 
+// Lazy KV instance: only opened when first needed
+let kvInstance: Deno.Kv | null = null;
+async function getKv(): Promise<Deno.Kv> {
+  if (!kvInstance) {
+    kvInstance = await Deno.openKv();
+  }
+  return kvInstance;
+}
+
 interface AppEnv extends Env {
   Variables: {
     userId: string;
@@ -27,26 +36,23 @@ interface AppEnv extends Env {
 
 export const app = new Hono();
 
-// 1. Define allowed origins
+// Define allowed origins
 const allowedOrigins = [
   "https://remote-rupiah.pages.dev",
   "http://localhost:8010",
 ];
 
-// 2. CORS Middleware with dynamic origin matching
+// CORS Middleware with dynamic origin matching
 app.use(
   "*",
   cors({
     origin: (origin) => {
-      // Allow any subdomain of *.remote-rupiah.pages.dev (for preview deployments)
-      // Also allow hardcoded production/local origins
       if (
         origin.endsWith(".remote-rupiah.pages.dev") ||
         allowedOrigins.includes(origin)
       ) {
         return origin;
       }
-      // Default fallback to production domain
       return allowedOrigins[0];
     },
     allowHeaders: ["Content-Type", "Authorization", "x-api-key"],
@@ -57,16 +63,14 @@ app.use(
   }),
 );
 
-// --- Core & Auth Endpoints ---
+// Core & Auth Endpoints
 app.get("/", (c) => c.text("Remote Rupiah API"));
 
 app.get("/api/auth/token", async (c) => {
-  // Never expose this endpoint in production
-  if (Deno.env.get("DENO_ENV") === "production") {
+  if (Deno.env.get("ALLOW_DEV_AUTH") !== "true") {
     return c.json({ error: "Not available" }, 404);
   }
   try {
-    // For development only – use a fixed test user ID
     const token = await generateDevToken(
       "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
     );
@@ -114,7 +118,50 @@ app.route("/api/v1/field-mapping", fieldMapping);
 app.route("/api/csv", csv);
 app.route("/api/compliance", compliance);
 
-// --- Runtime Initialization ---
+// Health check for KMK sync – uses lazy KV
+app.get("/health/kmk", async (c) => {
+  try {
+    const kv = await getKv();
+    const heartbeat = await kv.get<{
+      ok: boolean;
+      updated: number;
+      error?: string;
+    }>(["kmk", "heartbeat"]);
+
+    if (!heartbeat.value) {
+      return c.json(
+        { status: "never_synced", error: "No KMK sync has run yet" },
+        503,
+      );
+    }
+
+    const now = Date.now();
+    const age = now - heartbeat.value.updated;
+    const staleThreshold = 48 * 60 * 60 * 1000; // 48 hours
+
+    if (!heartbeat.value.ok || age > staleThreshold) {
+      return c.json(
+        {
+          status: "stale",
+          last_sync: new Date(heartbeat.value.updated).toISOString(),
+          age_hours: Math.round(age / (60 * 60 * 1000)),
+          error: heartbeat.value.error || "Sync overdue",
+        },
+        503,
+      );
+    }
+
+    return c.json({
+      status: "healthy",
+      last_sync: new Date(heartbeat.value.updated).toISOString(),
+      age_hours: Math.round(age / (60 * 60 * 1000)),
+    });
+  } catch (err) {
+    return c.json({ status: "error", error: String(err) }, 500);
+  }
+});
+
+// Runtime Initialization
 if (Deno.env.has("DENO_DEPLOYMENT_ID")) {
   console.log("[System] Initializing production cron jobs...");
   initKmkCron();
@@ -122,14 +169,11 @@ if (Deno.env.has("DENO_DEPLOYMENT_ID")) {
 }
 
 if (import.meta.main) {
-  // --- Startup Guard ---
   const jwtSecret = getJwtSecret();
   if (!jwtSecret) {
     console.error("FATAL: JWT_SECRET environment variable is not set.");
     Deno.exit(1);
   }
-  // --- End Guard ---
-
   Deno.serve(app.fetch);
 }
 

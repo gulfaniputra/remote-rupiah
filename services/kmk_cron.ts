@@ -1,21 +1,16 @@
 import { backfillKmkRates, syncKmkRates } from "./kmk.ts";
 
+// Lazy KV instance – only opened when first needed
+let kvInstance: Deno.Kv | null = null;
+async function getKv(): Promise<Deno.Kv> {
+  if (!kvInstance) {
+    kvInstance = await Deno.openKv();
+  }
+  return kvInstance;
+}
+
 const DEFAULT_CURRENCIES = ["USD", "SGD", "EUR", "AUD", "JPY"];
 const CURRENCY_STRING = DEFAULT_CURRENCIES.join(",");
-
-async function performSync(currencyList: string): Promise<void> {
-  try {
-    const result = await syncKmkRates({ currency: currencyList });
-
-    console.log(
-      `[KMK Cron] Sync Complete: +${result.inserted}, skip:${result.skipped}` +
-        (result.errors.length > 0 ? `, err:${result.errors.join("; ")}` : ""),
-    );
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error(`[KMK Cron] Sync failed: ${message}`);
-  }
-}
 
 /**
  * Initializes cron jobs.
@@ -33,31 +28,20 @@ export function initKmkCron() {
   try {
     console.log("[KMK Cron] Registering cron jobs...");
 
-    /**
-     * IMPORTANT: Deno.cron requires 6 fields:
-     * second minute hour day month weekday
-     */
-
-    // Primary Sync: Tuesday 18:00 UTC
-    // (0 sec, 0 min, 18 hour, Tue)
     Deno.cron("kmk-rate-sync-primary", "0 0 18 * * 2", async () => {
       console.log("[KMK Cron] Primary sync triggered (Tue 18:00 UTC)");
       await performSync(CURRENCY_STRING);
     });
 
-    // Fallback Sync: Wednesday 06:00 UTC
     Deno.cron("kmk-rate-sync-fallback", "0 0 6 * * 3", async () => {
       console.log("[KMK Cron] Fallback sync triggered (Wed 06:00 UTC)");
       await performSync(CURRENCY_STRING);
     });
 
-    // Robustness Backfill: Sunday 17:00 UTC
     Deno.cron("kmk-rate-backfill", "0 0 17 * * 0", async () => {
       console.log("[KMK Cron] Periodic backfill triggered (Sun 17:00 UTC)");
-
       try {
         const result = await backfillKmkRates(4, DEFAULT_CURRENCIES);
-
         console.log(
           `[KMK Cron] Backfill Complete: +${result.inserted}, skip:${result.skipped}` +
             (result.errors.length > 0 ? `, err:${result.errors.length}` : ""),
@@ -72,5 +56,35 @@ export function initKmkCron() {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[KMK Cron] Registration failed: ${message}`);
+  }
+}
+
+async function performSync(currencyList: string): Promise<void> {
+  try {
+    const result = await syncKmkRates({ currency: currencyList });
+    console.log(
+      `[KMK Cron] Sync Complete: +${result.inserted}, skip:${result.skipped}` +
+        (result.errors.length > 0 ? `, err:${result.errors.join("; ")}` : ""),
+    );
+
+    // Write heartbeat on success
+    const kv = await getKv();
+    await kv.set(["kmk", "heartbeat"], {
+      ok: true,
+      updated: Date.now(),
+      inserted: result.inserted,
+      skipped: result.skipped,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[KMK Cron] Sync failed: ${message}`);
+
+    // Write heartbeat on failure
+    const kv = await getKv();
+    await kv.set(["kmk", "heartbeat"], {
+      ok: false,
+      updated: Date.now(),
+      error: message,
+    });
   }
 }
