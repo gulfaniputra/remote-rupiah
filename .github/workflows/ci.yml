@@ -26,7 +26,7 @@ jobs:
             echo "Error: DENO_DEPLOYMENT_ID is unexpectedly set in CI environment!"
             exit 1
           fi
-          deno task validate
+          deno task validate:backend
         env:
           DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
 
