@@ -8912,7 +8912,6 @@ var $author$project$View$Dashboard$formatSourceLabel = function (source) {
 			return source;
 	}
 };
-var $author$project$Money$fromCents = A2($elm$core$Basics$composeR, $cmditch$elm_bigint$BigInt$fromInt, $author$project$Money$Money);
 var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$html$Html$input = _VirtualDom_node('input');
 var $elm$core$String$filter = _String_filter;
@@ -9251,7 +9250,20 @@ var $author$project$View$Dashboard$renderReady = F9(
 		var fmt = function (m) {
 			return $author$project$View$Dashboard$toShorthand(m);
 		};
-		var annIdr = $author$project$Money$fromCents(120000000000);
+		var annIdr = A3(
+			$elm$core$List$foldl,
+			F2(
+				function (tx, acc) {
+					var _v0 = tx.actualIdrReceivedCents;
+					if (_v0.$ === 'Just') {
+						var idr = _v0.a;
+						return A2($author$project$Money$add, acc, idr);
+					} else {
+						return acc;
+					}
+				}),
+			$author$project$Money$zero,
+			txs);
 		var profit = $author$project$TaxLogic$calculateNppn(annIdr);
 		var indo = A2($author$project$TaxLogic$calculateIndoTax, $author$project$TaxLogic$defaultBrackets, profit);
 		var credit = $author$project$TaxLogic$calculatePPh24Credit(

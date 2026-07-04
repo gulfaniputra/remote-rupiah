@@ -101,7 +101,17 @@ renderReady :
 renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complianceStatus handlers =
     let
         annIdr =
-            Money.fromCents 120000000000
+            txs
+                |> List.foldl
+                    (\tx acc ->
+                        case tx.actualIdrReceivedCents of
+                            Just idr ->
+                                Money.add acc idr
+
+                            Nothing ->
+                                acc
+                    )
+                    Money.zero
 
         unrealizedIdr =
             totalUnrealized unrealized

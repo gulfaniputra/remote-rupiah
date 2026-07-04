@@ -28,7 +28,7 @@ The engine streamlines compliance with Indonesian tax laws (**UU HPP**), tracks 
 
 | Layer        | Platform & Tooling                              | Rationale                                                                                 |
 | :----------- | :---------------------------------------------- | :---------------------------------------------------------------------------------------- |
-| **Frontend** | **Elm 0.19.1** on **Cloudflare Pages**          | Eliminates client-side runtime crashes; functional, immutable architecture.               |
+| **Frontend** | **Elm 0.19.1** on **Cloudflare Pages**          | Eliminates client-side runtime crashes. Functional and immutable architecture.            |
 | **Backend**  | **Deno 2.2+** + **Hono 4.x** on **Deno Deploy** | Secure V8 isolate orchestration with zero warm-up latency and native `Deno.cron` support. |
 | **Database** | **PostgreSQL 17** via **Neon**                  | Serverless Postgres leveraging strict RLS for multi-tenant isolation.                     |
 
@@ -40,15 +40,15 @@ The engine streamlines compliance with Indonesian tax laws (**UU HPP**), tracks 
 
 ## Financial Integrity Protocols
 
-1. **Strict Integer Math:** To eliminate IEEE 754 rounding errors, standard floating-point types are avoided for core financial computations. Balances are processed and stored as `BIGINT` (cents/minor units) in the database and handled via arbitrary-precision integers (`BigInt`) in Elm.
-2. **UU HPP Compliance:** Computes automatic **50% NPPN** net income deductions for Software Engineering Services under Code KLU 62010.
-3. **PPh 24 Credit Cap:** Helps calculate offsets for U.S.-sourced income tax tracking using the capping formula: `(ForeignNet / TotalTaxable) * TotalTaxDue`.
-4. **KMK Automation:** Orchestrates a persistent background rate-synchronization daemon via `Deno.cron` to fetch weekly official **Kurs Menteri Keuangan** exchange rates.
+- **Strict Integer Math:** To eliminate IEEE 754 rounding errors, standard floating-point types are avoided for core financial computations. Balances are processed and stored as `BIGINT` (cents/minor units) in the database and handled via arbitrary-precision integers (`BigInt`) in Elm.
+- **UU HPP Compliance:** Computes automatic **50% NPPN** net income deductions for Software Engineering Services under Code KLU 62010.
+- **PPh 24 Credit Cap:** Helps calculate offsets for U.S.-sourced income tax tracking using the capping formula: `(ForeignNet / TotalTaxable) * TotalTaxDue`.
+- **KMK Automation:** Orchestrates a persistent background rate-synchronization daemon via `Deno.cron` to fetch weekly official **Kurs Menteri Keuangan** exchange rates.
 
 ## Security & Multi-Tenancy
 
 - **Database-Level Isolation:** Data containment is strictly enforced via native **PostgreSQL RLS** policies to prevent cross-tenant leaks.
-- **Route Protection:** Secures backend api endpoints behind middleware layers handling JWT-based token verification.
+- **Route Protection:** Secures backend API endpoints behind middleware layers handling JWT-based token verification.
 - **Logic Isolation:** Implements core tax formulas as pure, side-effect-free functions to simplify verification and testing.
 
 ## Architecture Flow
@@ -65,12 +65,12 @@ graph TD
 
 Automated verification and deployment pipelines are driven via GitHub Actions (`.github/workflows/ci.yml`):
 
-- **Continuous Integration (CI):** Executes parallel test jobs verifying Elm compilation flags, Deno lints, type checks, and backend test suites on every push.
-- **Continuous Deployment (CD):** Merges to the primary branch trigger atomic, zero-downtime updates directly to **Deno Deploy** and **Cloudflare Pages**.
+- **CI:** Executes parallel test jobs verifying Elm compilation flags, Deno lints, type checks, and backend test suites on every push.
+- **CD:** Merges to the primary branch trigger atomic and zero-downtime updates directly to **Deno Deploy** and **Cloudflare Pages**.
 
 ## Project Status
 
-The core financial framework is functional, focusing heavily on runtime type safety and strict ledger isolation over UI elements.
+The core financial framework is functional and focusing heavily on runtime type safety and strict ledger isolation over UI elements.
 
 ### Completed Core (~75%)
 
@@ -81,12 +81,42 @@ The core financial framework is functional, focusing heavily on runtime type saf
 ### Active Backlog & Planned Features (~25%)
 
 - **CSV Mapping Layer:** Deterministic parser mapping for native multi-currency statements from Wise, Revolut, and PayPal exports.
-- **W-8BEN & 1042-S State Tracking:** Backend state machine to track US-Indonesia Tax Treaty documentation lifecycles, form expirations, and PPh 24 verification flags.
+- **W-8BEN & 1042-S State Tracking:** Backend state machine to track U.S.-Indonesia Tax Treaty documentation lifecycles, form expirations, and PPh 24 verification flags.
 - **FX Spread Analytics:** Specialized ingestion telemetry to evaluate hidden spread overhead charges across different multi-wallet providers.
 
 ## Demo
 
 - https://remote-rupiah.pages.dev/
+
+### Testing With Mock CSV Data
+
+To test the application without using real transaction data, you can use the provided mock CSV files located in the `mocks/` directory:
+
+| File                                                     | Description                                                                                                                             |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| [`mocks/wise-annual-40k.csv`](mocks/wise-annual-40k.csv) | 12 monthly Wise transfers totaling **$40,000 USD** (IDR 648M). Perfect for testing the tax logic on a realistic middle‑income scenario. |
+| [`mocks/wise-annual-80k.csv`](mocks/wise-annual-80k.csv) | 12 monthly Wise transfers totaling **$80,000 USD** (IDR 1.3B). Tests the progressive tax brackets at a higher income level.             |
+
+Both files use the **Wise CSV format**, which the application auto‑detects. No manual field mapping required.
+
+### How To Use
+
+- Download the CSV files above.
+- In the dashboard, click **"Upload CSV"** and select one of the file.
+- The transactions will appear in the table and the metrics (e.g. `YTD Gross`, `NPPN`, & `Final Payable`) will update automatically.
+
+### What To Expect
+
+| Metric          | $40k mock | $80k mock  |
+| --------------- | --------- | ---------- |
+| YTD Gross       | IDR 648M  | IDR 1.3B   |
+| NPPN Net Income | IDR 324M  | IDR 648M   |
+| Final Payable   | IDR 50M   | IDR 138.4M |
+
+**Notes:**
+
+- These mocks do not include US withholding, so the PPh 24 credit will be 0. You can add a `Fee` column if you wish to test withholding credits.
+- If you've previously uploaded other files, run `DELETE FROM transactions;` in the database before uploading a mock to start fresh and avoid duplicate transactions.
 
 ## Local Setup & Development
 

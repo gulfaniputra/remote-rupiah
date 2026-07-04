@@ -1,15 +1,15 @@
 module Data.Transaction exposing (Transaction, decoder, listDecoder)
 
 import Json.Decode as JD
-import Money exposing (IDR, Money)
+import Money exposing (IDR, Money, USD)
 
 
 type alias Transaction =
     { id : String
     , date : String
     , currency : String
-    , amountCents : Money IDR
-    , withholdingCents : Money IDR
+    , amountCents : Money USD
+    , withholdingCents : Money USD
     , actualIdrReceivedCents : Maybe (Money IDR)
     , kmkRate : Maybe String
     , is1042sVerified : Bool

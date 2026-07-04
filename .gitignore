@@ -19,10 +19,11 @@ coverage/
 !migrations/*.sql
 !db/*.sql
 
-# Financial Safety (Remote Rupiah Specific)
+# Financial Safety
 /data/raw/
 /exports/
 *.csv
+!mocks/*.csv
 *.xlsx
 *.pdf
 

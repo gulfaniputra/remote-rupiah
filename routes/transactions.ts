@@ -44,7 +44,16 @@ export const txOutputSchema = z.object({
   actual_idr_received_cents: z.string().nullable(),
   kmk_rate: z.string().nullable(),
   is_1042s_verified: z.boolean(),
-  metadata: z.record(z.unknown()).nullable().optional(),
+  metadata: z.preprocess((val) => {
+    if (typeof val === "string") {
+      try {
+        return JSON.parse(val);
+      } catch {
+        return null;
+      }
+    }
+    return val;
+  }, z.record(z.unknown()).nullable().optional()),
 });
 
 export const serializeTx = (row: Record<string, unknown>) =>

@@ -2,7 +2,7 @@
   "tasks": {
     "dev": "deno run --allow-env --allow-net --allow-read --unstable-kv --watch --env main.ts",
     "serve:backend": "deno task dev",
-    "build:frontend": "rm -rf frontend/elm-stuff && cd frontend && elm make src/Main.elm --output=../public/elm.js && cd ..",
+    "build:frontend": "rm -rf frontend/elm-stuff && cd frontend && elm make src/Main.elm --output=elm.js && cd ..",
     "serve:frontend": "deno run --allow-net --allow-read jsr:@std/http/file-server frontend --port=8010",
     "validate:backend": "deno lint && deno test -A",
     "validate:frontend": "cd frontend && elm-test"
