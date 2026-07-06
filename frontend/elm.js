@@ -7598,11 +7598,17 @@ var $author$project$Main$update = F2(
 						{csv: csv, token: m.token}));
 			case 'FileUploadCompleted':
 				var result = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						m,
-						{uploadStatus: result}),
-					$elm$core$Platform$Cmd$none);
+				var refreshCmd = A2($elm$core$String$startsWith, 'Upload complete', result) ? $elm$core$Platform$Cmd$batch(
+					_List_fromArray(
+						[
+							A3($author$project$Api$fetchTransactions, m.apiUrl, m.token, $author$project$Main$GotTransactions),
+							A3($author$project$Api$fetchUnrealized, m.apiUrl, m.token, $author$project$Main$GotUnrealized),
+							A3($author$project$Api$fetchFxEfficiency, m.apiUrl, m.token, $author$project$Main$GotFxEfficiency)
+						])) : $elm$core$Platform$Cmd$none;
+				var newModel = _Utils_update(
+					m,
+					{uploadStatus: result});
+				return _Utils_Tuple2(newModel, refreshCmd);
 			case 'Verify':
 				var id = msg.a;
 				return _Utils_Tuple2(

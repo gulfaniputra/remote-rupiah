@@ -149,7 +149,23 @@ update msg m =
             ( { m | uploadStatus = "Uploading CSV..." }, uploadCsv { token = m.token, csv = csv } )
 
         FileUploadCompleted result ->
-            ( { m | uploadStatus = result }, Cmd.none )
+            let
+                newModel =
+                    { m | uploadStatus = result }
+
+                -- If the upload succeeded, refresh all dynamic data
+                refreshCmd =
+                    if String.startsWith "Upload complete" result then
+                        Cmd.batch
+                            [ Api.fetchTransactions m.apiUrl m.token GotTransactions
+                            , Api.fetchUnrealized m.apiUrl m.token GotUnrealized
+                            , Api.fetchFxEfficiency m.apiUrl m.token GotFxEfficiency
+                            ]
+
+                    else
+                        Cmd.none
+            in
+            ( newModel, refreshCmd )
 
         Verify id ->
             ( m, Api.verify1042s m.apiUrl m.token id (Verified id) )
