@@ -1,182 +1,163 @@
 # remote-rupiah
 
-**remote-rupiah** is a tax compliance engine designed for Indonesian Software Developers billing U.S. clients. The entire system is built edge-native to minimize operational overhead for solo and small teams.
+[![CI Verification](https://github.com/gulfaniputra/remote-rupiah/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/gulfaniputra/remote-rupiah/actions/workflows/ci.yml)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+![Elm](https://img.shields.io/badge/Elm-0.19.1-1293D8?logo=elm&logoColor=white)
+![Deno](https://img.shields.io/badge/Deno-2.2%2B-black?logo=deno)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
 
-The engine streamlines compliance with Indonesian tax laws (**UU HPP**), tracks foreign tax credits (**PPh 24**), and automates official **KMK (Kurs Menteri Keuangan)** rate conversions using a scalable fixed-point integer architecture.
+![demo](./docs/demo.gif)
+
+**remote-rupiah** is an edge-native tax compliance dashboard for Indonesian developers billing U.S. clients. It surfaces hidden FX spreads in USD->IDR transfers and computes **NPPN (Norma) net-income deductions** and **PPh 24 foreign tax credit** caps directly from transaction data with zero servers to manage.
+
+**187 backend tests** (`Deno.test`) · **187 Elm tests + 31 property-based fuzz tests** on the tax/money logic.
+
+> **Status:** Core tax/FX engine and db layer are functional and tested. Auth, CSV coverage, and deployment automation are partial. Refer to [Known Limitations](#known-limitations) before relying on this for a real filing.
 
 ## Table of Contents
 
-- [Strategic Value Proposition](#strategic-value-proposition)
+- [Directory Structure](#directory-structure)
 - [Tech Stack](#tech-stack)
-- [Financial Integrity Protocols](#financial-integrity-protocols)
-- [Security & Multi-Tenancy](#security--multi-tenancy)
-- [Architecture Flow](#architecture-flow)
-- [Deployment & CI/CD](#deployment--cicd)
-- [Project Status](#project-status)
-- [Demo](#demo)
-- [Local Setup & Development](#local-setup--development)
-- [Testing Suite](#testing-suite)
+- [Core Guarantees](#core-guarantees)
+- [Tax & FX Logic](#tax--fx-logic)
+- [Architecture](#architecture)
+- [API Surface](#api-surface)
+- [Known Limitations](#known-limitations)
+- [Local Setup](#local-setup)
+- [Testing](#testing)
 - [License](#license)
 
-## Strategic Value Proposition
+## Directory Structure
 
-- **Tax Engine:** Computes Indonesian tax law specifications for **KLU 62010 (Software Development)** with automated NPPN net income deductions.
-- **Architectural Safeguards:** Enforces strict multi-tenant data isolation and compile-time correctness via Elm types and PostgreSQL Row-Level Security (RLS).
-- **DJP Coretax Ready:** Streams memory-safe CSV formats formatted to align with the Indonesian tax authority (DJP) portal schemas.
+```text
+.
+├── main.ts                 # Hono entry
+├── deno.json               # Deno tasks + import map
+│
+├── routes/                 # Hono handlers (one file per resource)
+│
+├── services/                 # Core business logic (shared by routes & cron)
+│   ├── tax_logic.ts          # TS mirror of TaxLogic.elm
+│   ├── kmk*.ts               # Rate fetch/sync/backfill + Deno.cron scheduler
+│   ├── compliance*.ts        # W-8BEN/1042-S status + deadline-scan cron (console-only)
+│   ├── auth_middleware.ts    # JWT verification + dev-only token generator
+│   ├── ingestion/            # Per-provider CSV parsers
+│   └── wealth/               # FIFO lot accounting for unrealized FX gain
+│
+├── backend/src/              # Overlapping backend tree pending removal
+│
+├── db/
+│   ├── schema.sql             # Current schema: tables + RLS policies
+│   └── seed.sql               # Local dev seed data
+│
+├── frontend/
+│   ├── index.html              # Static shell that loads elm.js
+│   └── src/
+│       ├── Main.elm             # App entry
+│       ├── Money.elm            # Opaque BigInt Money type & USD/IDR phantoms
+│       ├── TaxLogic.elm         # Pure NPPN/PPh24/bracket/FX-leak calculations
+│       ├── Api.elm              # HTTP calls to the backend
+│       ├── CsvMapper.elm        # Manual field-mapping UI
+│       ├── Data/                # JSON decoders (one module per resource)
+│       └── View/Dashboard.elm   # Main dashboard view
+│
+├── mocks/                    # Sample Wise CSVs for manual/demo testing
+├── docs/spec.md              # Main feature/compliance specification
+└── .github/workflows/ci.yml  # Lint + test on push/PR
+```
 
 ## Tech Stack
 
-| Layer        | Platform & Tooling                              | Rationale                                                                                 |
-| :----------- | :---------------------------------------------- | :---------------------------------------------------------------------------------------- |
-| **Frontend** | **Elm 0.19.1** on **Cloudflare Pages**          | Eliminates client-side runtime crashes. Functional and immutable architecture.            |
-| **Backend**  | **Deno 2.2+** + **Hono 4.x** on **Deno Deploy** | Secure V8 isolate orchestration with zero warm-up latency and native `Deno.cron` support. |
-| **Database** | **PostgreSQL 17** via **Neon**                  | Serverless Postgres leveraging strict RLS for multi-tenant isolation.                     |
+| Layer        | Platform             | Notes                                                                     |
+| ------------ | -------------------- | ------------------------------------------------------------------------- |
+| **Frontend** | Elm 0.19.1           | Compiled to a static bundle & served from `frontend/`.                    |
+| **Backend**  | Deno 2.2+ & Hono 4.4 | Single `main.ts` entry (JWT-protected routes & `Deno.cron` jobs).         |
+| **Database** | PostgreSQL 17 & Neon | Row-Level Security (RLS) on every tenant table via `app.current_user_id`. |
 
-### System Invariants
+## Core Guarantees
 
-- **Zero Runtime Exceptions:** Elm architecture guarantees crash-free client execution.
-- **Phantom Currency Safety:** Explicit types (`Money USD` vs `Money IDR`) prevent accidental cross-currency operations at compile time.
-- **Zero Server Management:** Fully serverless edge runtimes isolate infrastructure scaling tasks from core development logic.
+- **The Elm decoder is the only thing enforcing the money contract.** `Money.decoder` requires `amount_cents` to arrive as a numeric string and rejects anything else. Nothing on the TypeScript/Hono side stops a future route from returning a `number` instead of a string. If that ever happens, the Elm app fails the decode loudly instead of accepting corrupted money.
+- **Phantom currency types.** `Money USD` and `Money IDR` are distinct types in Elm. Mixing them is a compile error and not a runtime bug.
+- **RLS by default.** Every tenant table (`transactions`, `field_mappings`, `user_tax_profiles`, `compliance_documents`) enables RLS scoped to the authenticated user.
 
-## Financial Integrity Protocols
+## Tax & FX Logic
 
-- **Strict Integer Math:** To eliminate IEEE 754 rounding errors, standard floating-point types are avoided for core financial computations. Balances are processed and stored as `BIGINT` (cents/minor units) in the database and handled via arbitrary-precision integers (`BigInt`) in Elm.
-- **UU HPP Compliance:** Computes automatic **50% NPPN** net income deductions for Software Engineering Services under Code KLU 62010.
-- **PPh 24 Credit Cap:** Helps calculate offsets for U.S.-sourced income tax tracking using the capping formula: `(ForeignNet / TotalTaxable) * TotalTaxDue`.
-- **KMK Automation:** Orchestrates a persistent background rate-synchronization daemon via `Deno.cron` to fetch weekly official **Kurs Menteri Keuangan** exchange rates.
+All formulas live in `TaxLogic.elm` and are mirrored in `services/tax_logic.ts` for server-side use:
 
-## Security & Multi-Tenancy
+- **NPPN (KLU 62010):** Taxable income = `Gross_IDR × 0.50`.
+- **2026 progressive brackets:** 5% (0–60M) · 15% (60M–250M) · 25% (250M–500M) · 30% (500M–5B) · 35% (>5B).
+- **PPh 24 foreign tax credit cap:** `min(US tax paid, (ForeignNetIncome / TotalTaxableIncome) × TotalTaxDue)`. The credit is forced to zero unless the transaction's `is_1042s_verified` flag is set. An unverified 1042-S grants no credit.
+- **KMK rate lookup:** Each transaction is matched to the KMK rate valid for its week (rates rotate every Wednesday); `services/kmk_cron.ts` syncs new rates on a schedule and backfills gaps.
+- **FX leakage:** `(USD amount × mid-market rate) − actual IDR received` surfaced per-transaction and aggregated on the dashboard.
 
-- **Database-Level Isolation:** Data containment is strictly enforced via native **PostgreSQL RLS** policies to prevent cross-tenant leaks.
-- **Route Protection:** Secures backend API endpoints behind middleware layers handling JWT-based token verification.
-- **Logic Isolation:** Implements core tax formulas as pure, side-effect-free functions to simplify verification and testing.
-
-## Architecture Flow
+## Architecture
 
 ```mermaid
 graph TD
-    Client[Elm Client / Cloudflare Pages] -->|HTTPS / Native Types| Edge[Hono API / Deno Deploy]
-    Edge -->|Deno Cron| KMK[KMK API Ingestion]
-    Edge -->|Deno Cron| Compliance[W-8BEN & NPPN Scans]
-    Edge -->|Pooled Connection| DB[(Neon Postgres + RLS)]
+    Client[Elm frontend, static bundle] -->|HTTPS, JWT bearer| Edge[Hono API on Deno]
+    Edge -->|Deno.cron| KMK[KMK rate sync]
+    Edge -->|Deno.cron| Compliance[W-8BEN / NPPN deadline scan]
+    Edge -->|pooled connection| DB[(PostgreSQL + RLS)]
 ```
 
-## Deployment & CI/CD
+_Notes: CI (`.github/workflows/ci.yml`) runs on every push/PR to `main`: `deno lint` + `deno test -A` for the backend and `elm-test` + an optimized `elm make` build for the frontend._
 
-Automated verification and deployment pipelines are driven via GitHub Actions (`.github/workflows/ci.yml`):
+## API Surface
 
-- **CI:** Executes parallel test jobs verifying Elm compilation flags, Deno lints, type checks, and backend test suites on every push.
-- **CD:** Merges to the primary branch trigger atomic and zero-downtime updates directly to **Deno Deploy** and **Cloudflare Pages**.
+All routes except `/`, `/health/kmk` and the dev-only auth token endpoint require a `Bearer` JWT.
 
-## Project Status
+| Route                                   | Purpose                                               |
+| --------------------------------------- | ----------------------------------------------------- |
+| `/api/transactions`                     | Transaction CRUD and KMK rate auto-attach on create   |
+| `/api/v1/ingest`                        | CSV upload and auto-detection                         |
+| `/api/v1/field-mapping`, `/api/csv/map` | Manual field mapping for unrecognized CSVs            |
+| `/api/tax-profile`                      | NPWP/NIK/KLU profile                                  |
+| `/api/forecast`                         | YTD totals, projected liability, and FX efficiency    |
+| `/api/wealth`                           | FIFO-based unrealized gain on foreign-wallet balances |
+| `/api/export`, `/api/export/djp`        | SPT and DJP Coretax-formatted CSV export              |
+| `/api/compliance`                       | W-8BEN and 1042-S document status                     |
+| `/health/kmk`                           | KMK sync heartbeat (healthy/stale/never_synced)       |
 
-The core financial framework is functional and focusing heavily on runtime type safety and strict ledger isolation over UI elements.
+## Known Limitations
 
-### Completed Core (~75%)
+- **Auth is dev-only:** No login screen. Just `GET /api/auth/token` behind `ALLOW_DEV_AUTH`.
+- **CSV auto-detection: Wise, Revolut, PayPal only:** Payoneer/BCA/Mandiri/BNI fall back to the manual field-mapper UI.
+- **Compliance reminders log to console but not to user:** NPPN/W-8BEN cron jobs scan but don't email or push.
+- **No CD automation:** CI validates but shipping to Deno Deploy & Cloudflare Pages is still manual.
+- **Uneven TaxLogic.elm coverage:** Bracket/PPh24 math has fuzz tests. `calculateFXLeakage`, `calculateFinalPayable`, and `generateTaxReport` have only a couple of example-based tests each.
+- **One float boundary:** `routes/forecast.ts` multiplies a `NUMERIC` KMK rate as a float before casting to `BIGINT` for FX-spread aggregation. The rest of the money path stays integer-only.
 
-- **Calculation Invariants:** Compile-time validation blocking cross-currency blending and floating-point drift.
-- **Database Architecture:** Relational schema deployment with active PostgreSQL RLS configuration.
-- **KMK Ingestion Daemon:** Automated `Deno.cron` worker fetching and caching official minister of finance exchange rates.
+## Local Setup
 
-### Active Backlog & Planned Features (~25%)
-
-- **CSV Mapping Layer:** Deterministic parser mapping for native multi-currency statements from Wise, Revolut, and PayPal exports.
-- **W-8BEN & 1042-S State Tracking:** Backend state machine to track U.S.-Indonesia Tax Treaty documentation lifecycles, form expirations, and PPh 24 verification flags.
-- **FX Spread Analytics:** Specialized ingestion telemetry to evaluate hidden spread overhead charges across different multi-wallet providers.
-
-## Demo
-
-- https://remote-rupiah.pages.dev/
-
-### Testing With Mock CSV Data
-
-To test the application without using real transaction data, you can use the provided mock CSV files located in the `mocks/` directory:
-
-| File                                                     | Description                                                                                                                             |
-| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| [`mocks/wise-annual-40k.csv`](mocks/wise-annual-40k.csv) | 12 monthly Wise transfers totaling **$40,000 USD** (IDR 648M). Perfect for testing the tax logic on a realistic middle‑income scenario. |
-| [`mocks/wise-annual-80k.csv`](mocks/wise-annual-80k.csv) | 12 monthly Wise transfers totaling **$80,000 USD** (IDR 1.3B). Tests the progressive tax brackets at a higher income level.             |
-
-Both files use the **Wise CSV format**, which the application auto‑detects. No manual field mapping required.
-
-### How To Use
-
-- Download the CSV files above.
-- In the dashboard, click **"Upload CSV"** and select one of the file.
-- The transactions will appear in the table and the metrics (e.g. `YTD Gross`, `NPPN`, & `Final Payable`) will update automatically.
-
-### What To Expect
-
-| Metric          | $40k mock | $80k mock  |
-| --------------- | --------- | ---------- |
-| YTD Gross       | IDR 648M  | IDR 1.3B   |
-| NPPN Net Income | IDR 324M  | IDR 648M   |
-| Final Payable   | IDR 50M   | IDR 138.4M |
-
-**Notes:**
-
-- These mocks do not include US withholding, so the PPh 24 credit will be 0. You can add a `Fee` column if you wish to test withholding credits.
-- If you've previously uploaded other files, run `DELETE FROM transactions;` in the database before uploading a mock to start fresh and avoid duplicate transactions.
-
-## Local Setup & Development
-
-### Prerequisites
-
-- **Deno 2.2+**
-- **Elm 0.19.1**
-- **PostgreSQL 17**
-
-### Environment Setup
+**Prerequisites:** Deno 2.2+, Elm 0.19.1, and PostgreSQL 17.
 
 ```bash
-# Setup environment variables
 cp .env.example .env
-
-# Create database
 createdb remote_rupiah
-
-# Apply the database tables
-psql -h localhost -U YOUR_ACTUAL_DB_USER -d remote_rupiah -f db/schema.sql
-
-# Seed the database with initial/mock data
-psql -h localhost -U YOUR_ACTUAL_DB_USER -d remote_rupiah -f db/seed.sql
+psql -h localhost -U YOUR_DB_USER -d remote_rupiah -f db/schema.sql
+psql -h localhost -U YOUR_DB_USER -d remote_rupiah -f db/seed.sql
+deno task build:frontend   # Compiles frontend/src/Main.elm -> frontend/elm.js
+deno task serve:backend    # http://localhost:8000
+deno task serve:frontend   # http://localhost:8010
 ```
 
-### Running the App
+_Notes: Hit `GET /api/auth/token` to mint a dev JWT._
+
+### Mock data
+
+`mocks/wise-annual-{40k,80k}.csv` are ready-made Wise exports for exercising NPPN/YTD/final-payable without real transactions. No withholding column, so PPh 24 credit shows as zero. Re-uploading requires `DELETE FROM transactions;`.
+
+## Testing
 
 ```bash
-# Build the Elm production asset from the root
-deno task build:frontend
-
-# Start Hono backend
-# Listening on http://localhost:8000
-deno task serve:backend
-
-# Start local static server for Elm frontend assets
-# Listening on http://localhost:8010
-deno task serve:frontend
+deno task validate:backend   # deno lint + deno test -A
+deno task validate:frontend  # cd frontend && elm-test
 ```
 
-## Testing Suite
-
-Automated validation blocks regression drops across financial calculation components and user boundaries during refactoring.
-
-### Test Suite Breakdown
-
-- **Property-Based Fuzz Testing (`TaxLogicFuzzTest.elm`):** Runs thousands of randomized numerical arrays through the tax bracket logic to assert structural integrity across wide ranges of currency value variations.
-- **Boundary Validation (`PrecisionTest.elm`):** Validates extreme arbitrary precision edge-cases to guarantee zero rounding errors under the Zero-Float protocol.
-- **Data Isolation Testing:** Validates PostgreSQL schema RLS definitions to ensure cross-tenant leakage is mathematically impossible at the database engine level.
-
-### Execution
-
-```bash
-# Run backend tests
-deno task validate:backend
-
-# Run frontend tests
-deno task validate:frontend
-```
+- `TaxLogicFuzzTest.elm`: property-based tests over the bracket/NPPN/PPh24 math across randomized inputs.
+- `PrecisionTest.elm`: boundary cases for the BigInt money path.
+- RLS is exercised through backend integration tests rather than a dedicated Elm suite.
 
 ## License
 
-This project is open-source and available under the terms of the [GNU General Public License v3.0 (GPL-3.0)](LICENSE).
+[GNU GPL v3.0](LICENSE)
