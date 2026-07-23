@@ -43,7 +43,7 @@ jobs:
           node-version: 20
 
       - name: Install Elm & elm-test
-        run: npm install -g elm elm-test
+        run: npm install -g elm@0.19.1 elm-test@0.19.1
 
       - name: Cache Elm dependencies
         uses: actions/cache@v3
