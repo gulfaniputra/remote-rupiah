@@ -108,4 +108,4 @@ deno task validate:frontend   # Elm unit & property fuzz tests
 
 ## License
 
-[GNU GPL v3.0](LICENSE)
+[MIT License](LICENSE)
