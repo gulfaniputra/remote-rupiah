@@ -1,7 +1,7 @@
 # remote-rupiah
 
 [![CI Verification](https://github.com/gulfaniputra/remote-rupiah/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/gulfaniputra/remote-rupiah/actions/workflows/ci.yml)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Elm](https://img.shields.io/badge/Elm-0.19.1-1293D8?logo=elm&logoColor=white)
 ![Deno](https://img.shields.io/badge/Deno-2.2%2B-black?logo=deno&logoColor=white)
 ![Hono](https://img.shields.io/badge/Hono-4.4-E36009?logo=hono&logoColor=white)
