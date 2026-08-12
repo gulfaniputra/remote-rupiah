@@ -8,6 +8,8 @@
 
 ![demo](./docs/demo.gif)
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)](https://remote-rupiah.pages.dev/)
+
 **remote-rupiah** is an edge-native tax compliance dashboard for Indonesian developers billing U.S. clients. It surfaces hidden FX spreads in USD->IDR transfers and computes **NPPN (Norma) net-income deductions** and **PPh 24 foreign tax credit** caps directly from transaction data with zero servers to manage.
 
 **187 backend tests** (`Deno.test`) · **187 Elm tests + 31 property-based fuzz tests** on the tax/money logic.
