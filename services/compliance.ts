@@ -1,8 +1,6 @@
 import { withAuth } from "../db/client.ts";
 
-// ---------------------------------------------------------------------------
 // Types
-// ---------------------------------------------------------------------------
 
 export type DocumentType = "1042s" | "w8ben";
 export type W8BenStatus = "Valid" | "Expired" | "Missing";
@@ -21,7 +19,6 @@ export interface UpsertPayload {
   taxYear: number;
   storageKey: string;
   mimeType: string;
-  /** Accepts number (from JSON) or bigint (from internal callers) */
   sizeBytes: bigint | number;
 }
 
@@ -40,9 +37,7 @@ export interface NppnStatus {
   isOverdue: boolean;
 }
 
-// ---------------------------------------------------------------------------
 // Constants
-// ---------------------------------------------------------------------------
 
 const ALLOWED_MIME_TYPES = new Set([
   "application/pdf",
@@ -53,9 +48,7 @@ const ALLOWED_MIME_TYPES = new Set([
 
 const MAX_SIZE_BYTES = 10_485_760n; // 10 MB
 
-// ---------------------------------------------------------------------------
 // Helpers
-// ---------------------------------------------------------------------------
 
 const getTaxYearDeadline = (): { year: number; deadline: string } => {
   const now = new Date();
@@ -71,9 +64,7 @@ const computeDaysRemaining = (deadline: string): number => {
   return Math.ceil(diffMs / 86_400_000);
 };
 
-// ---------------------------------------------------------------------------
 // Validation
-// ---------------------------------------------------------------------------
 
 const validatePayload = (p: UpsertPayload): bigint => {
   if (!ALLOWED_MIME_TYPES.has(p.mimeType)) {
@@ -88,9 +79,7 @@ const validatePayload = (p: UpsertPayload): bigint => {
   return size;
 };
 
-// ---------------------------------------------------------------------------
 // Service: upsertDocument
-// ---------------------------------------------------------------------------
 
 export const upsertDocument = (
   userId: string,
@@ -99,31 +88,27 @@ export const upsertDocument = (
   !userId
     ? Promise.reject(new Error("Authentication required"))
     : withAuth(userId, async (tx) => {
-      const rows = await tx`
-      INSERT INTO compliance_documents
-        (user_id, document_type, tax_year, storage_key, mime_type, size_bytes)
-      VALUES
-        (${userId}, ${payload.documentType}, ${payload.taxYear},
-         ${payload.storageKey}, ${payload.mimeType}, ${
-        validatePayload(
-          payload,
-        ).toString()
-      })
-      ON CONFLICT (user_id, document_type, tax_year)
-      DO UPDATE SET
-        storage_key  = EXCLUDED.storage_key,
-        mime_type    = EXCLUDED.mime_type,
-        size_bytes   = EXCLUDED.size_bytes,
-        is_verified  = FALSE,
-        uploaded_at  = NOW()
-      RETURNING id
-    `;
-      return { id: rows[0]?.id ?? "" };
-    });
+        const rows = await tx`
+          INSERT INTO compliance_documents
+            (user_id, document_type, tax_year, storage_key, mime_type, size_bytes)
+          VALUES
+            (${userId}, ${payload.documentType}, ${payload.taxYear},
+             ${payload.storageKey}, ${payload.mimeType}, ${validatePayload(
+               payload,
+             ).toString()})
+          ON CONFLICT (user_id, document_type, tax_year)
+          DO UPDATE SET
+            storage_key  = EXCLUDED.storage_key,
+            mime_type    = EXCLUDED.mime_type,
+            size_bytes   = EXCLUDED.size_bytes,
+            is_verified  = FALSE,
+            uploaded_at  = NOW()
+          RETURNING id
+        `;
+        return { id: rows[0]?.id ?? "" };
+      });
 
-// ---------------------------------------------------------------------------
-// Service: getNppnStatus
-// ---------------------------------------------------------------------------
+// Service: `getNppnStatus`
 
 export const getNppnStatus = (userId: string): Promise<NppnStatus> =>
   withAuth(userId, async (tx) => {
@@ -131,9 +116,9 @@ export const getNppnStatus = (userId: string): Promise<NppnStatus> =>
     const rows = await tx`
       SELECT nppn_notified_at::text
       FROM user_tax_profiles
+      WHERE user_id = ${userId}
       LIMIT 1
     `;
-
     const notifiedAt: string | null = rows[0]?.nppn_notified_at ?? null;
     const daysRemaining = computeDaysRemaining(deadline);
 
@@ -146,22 +131,19 @@ export const getNppnStatus = (userId: string): Promise<NppnStatus> =>
     };
   });
 
-// ---------------------------------------------------------------------------
-// Service: markNppnNotified
-// ---------------------------------------------------------------------------
+// Service: 'markNppnNotified'
 
 export const markNppnNotified = (userId: string): Promise<NppnStatus> =>
   withAuth(userId, async (tx) => {
     await tx`
       UPDATE user_tax_profiles
       SET nppn_notified_at = NOW()
+      WHERE user_id = ${userId}
     `;
     return getNppnStatus(userId);
   });
 
-// ---------------------------------------------------------------------------
-// Service: getComplianceStatus
-// ---------------------------------------------------------------------------
+// Service: `getComplianceStatus`
 
 export const getComplianceStatus = (
   userId: string,
@@ -171,11 +153,13 @@ export const getComplianceStatus = (
       tx`
         SELECT w8ben_expiry_date::text
         FROM user_tax_profiles
+        WHERE user_id = ${userId}
         LIMIT 1
       `,
       tx`
         SELECT document_type, tax_year, is_verified
         FROM compliance_documents
+        WHERE user_id = ${userId}
         ORDER BY tax_year DESC
       `,
     ]);
@@ -186,8 +170,8 @@ export const getComplianceStatus = (
       w8benStatus: !expiryRaw
         ? "Missing"
         : new Date(expiryRaw) >= new Date()
-        ? "Valid"
-        : "Expired",
+          ? "Valid"
+          : "Expired",
       w8benExpiryDate: expiryRaw,
       documents: docRows.map((r) => ({
         documentType: r.document_type as string,

@@ -9,9 +9,7 @@ import {
 } from "../compliance.ts";
 import { testMocks } from "../../db/client.ts";
 
-// ---------------------------------------------------------------------------
 // Schema integrity
-// ---------------------------------------------------------------------------
 
 Deno.test(
   "ComplianceDocument contract: required fields typed correctly",
@@ -31,9 +29,7 @@ Deno.test(
   },
 );
 
-// ---------------------------------------------------------------------------
 // MIME type validation
-// ---------------------------------------------------------------------------
 
 Deno.test("upsertDocument rejects disallowed MIME type", async () => {
   testMocks.clear();
@@ -51,9 +47,7 @@ Deno.test("upsertDocument rejects disallowed MIME type", async () => {
   );
 });
 
-// ---------------------------------------------------------------------------
 // File size enforcement (max 10 MB = 10_485_760 bytes)
-// ---------------------------------------------------------------------------
 
 Deno.test("upsertDocument rejects files exceeding 10 MB", async () => {
   testMocks.clear();
@@ -71,9 +65,7 @@ Deno.test("upsertDocument rejects files exceeding 10 MB", async () => {
   );
 });
 
-// ---------------------------------------------------------------------------
 // Auth / RLS — unauthenticated call must throw
-// ---------------------------------------------------------------------------
 
 Deno.test("upsertDocument throws on missing userId", async () => {
   testMocks.clear();
@@ -91,25 +83,21 @@ Deno.test("upsertDocument throws on missing userId", async () => {
   );
 });
 
-// ---------------------------------------------------------------------------
 // Compliance status derivation
-// ---------------------------------------------------------------------------
 
 Deno.test(
   "getComplianceStatus returns Expired for past w8ben_expiry_date",
   async () => {
     testMocks.clear();
     // Seed mock: profile with expired W-8BEN
-    testMocks.taxProfiles.push(
-      {
-        user_id: "user-expired",
-        npwp: "123",
-        nik: "456",
-        address: "Jl. Test",
-        klu_code: 62010,
-        w8ben_expiry_date: "2023-12-31",
-      } as Parameters<typeof testMocks.taxProfiles.push>[0],
-    );
+    testMocks.taxProfiles.push({
+      user_id: "user-expired",
+      npwp: "123",
+      nik: "456",
+      address: "Jl. Test",
+      klu_code: 62010,
+      w8ben_expiry_date: "2023-12-31",
+    } as Parameters<typeof testMocks.taxProfiles.push>[0]);
 
     const status: ComplianceStatus = await getComplianceStatus("user-expired");
     assertEquals(status.w8benStatus, "Expired");
@@ -120,16 +108,14 @@ Deno.test(
   "getComplianceStatus returns Valid for future w8ben_expiry_date",
   async () => {
     testMocks.clear();
-    testMocks.taxProfiles.push(
-      {
-        user_id: "user-valid",
-        npwp: "123",
-        nik: "456",
-        address: "Jl. Test",
-        klu_code: 62010,
-        w8ben_expiry_date: "2099-12-31",
-      } as Parameters<typeof testMocks.taxProfiles.push>[0],
-    );
+    testMocks.taxProfiles.push({
+      user_id: "user-valid",
+      npwp: "123",
+      nik: "456",
+      address: "Jl. Test",
+      klu_code: 62010,
+      w8ben_expiry_date: "2099-12-31",
+    } as Parameters<typeof testMocks.taxProfiles.push>[0]);
 
     const status: ComplianceStatus = await getComplianceStatus("user-valid");
     assertEquals(status.w8benStatus, "Valid");
@@ -140,38 +126,32 @@ Deno.test(
   "getComplianceStatus returns Missing when no expiry on record",
   async () => {
     testMocks.clear();
-    testMocks.taxProfiles.push(
-      {
-        user_id: "user-missing",
-        npwp: "",
-        nik: "",
-        address: "",
-        klu_code: 62010,
-      } as Parameters<typeof testMocks.taxProfiles.push>[0],
-    );
+    testMocks.taxProfiles.push({
+      user_id: "user-missing",
+      npwp: "",
+      nik: "",
+      address: "",
+      klu_code: 62010,
+    } as Parameters<typeof testMocks.taxProfiles.push>[0]);
 
     const status: ComplianceStatus = await getComplianceStatus("user-missing");
     assertEquals(status.w8benStatus, "Missing");
   },
 );
 
-// ---------------------------------------------------------------------------
 // NPPN Deadline Status
-// ---------------------------------------------------------------------------
 
 Deno.test(
   "getNppnStatus: nppn_notified_at IS NULL + today > Mar 31 → { notified: false, isOverdue: true }",
   async () => {
     testMocks.clear();
-    testMocks.taxProfiles.push(
-      {
-        user_id: "user-past-deadline",
-        npwp: "",
-        nik: "",
-        address: "",
-        klu_code: 62010,
-      } as Parameters<typeof testMocks.taxProfiles.push>[0],
-    );
+    testMocks.taxProfiles.push({
+      user_id: "user-past-deadline",
+      npwp: "",
+      nik: "",
+      address: "",
+      klu_code: 62010,
+    } as Parameters<typeof testMocks.taxProfiles.push>[0]);
 
     const status = await getNppnStatus("user-past-deadline");
     assertEquals(status.notified, false);
@@ -183,16 +163,14 @@ Deno.test(
   "getNppnStatus: nppn_notified_at set → { notified: true, notifiedAt: '<ISO>', daysRemaining: 0 }",
   async () => {
     testMocks.clear();
-    testMocks.taxProfiles.push(
-      {
-        user_id: "user-notified",
-        npwp: "",
-        nik: "",
-        address: "",
-        klu_code: 62010,
-        nppn_notified_at: "2026-03-15T10:00:00Z",
-      } as Parameters<typeof testMocks.taxProfiles.push>[0],
-    );
+    testMocks.taxProfiles.push({
+      user_id: "user-notified",
+      npwp: "",
+      nik: "",
+      address: "",
+      klu_code: 62010,
+      nppn_notified_at: "2026-03-15T10:00:00Z",
+    } as Parameters<typeof testMocks.taxProfiles.push>[0]);
 
     const status = await getNppnStatus("user-notified");
     assertEquals(status.notified, true);
@@ -205,15 +183,13 @@ Deno.test(
   "getNppnStatus: daysRemaining is negative when past deadline",
   async () => {
     testMocks.clear();
-    testMocks.taxProfiles.push(
-      {
-        user_id: "user-past",
-        npwp: "",
-        nik: "",
-        address: "",
-        klu_code: 62010,
-      } as Parameters<typeof testMocks.taxProfiles.push>[0],
-    );
+    testMocks.taxProfiles.push({
+      user_id: "user-past",
+      npwp: "",
+      nik: "",
+      address: "",
+      klu_code: 62010,
+    } as Parameters<typeof testMocks.taxProfiles.push>[0]);
 
     const status = await getNppnStatus("user-past");
     assertEquals(status.notified, false);
@@ -235,17 +211,46 @@ Deno.test(
   "markNppnNotified: returns NppnStatus with notified: true",
   async () => {
     testMocks.clear();
-    testMocks.taxProfiles.push(
-      {
-        user_id: "user-mark",
-        npwp: "",
-        nik: "",
-        address: "",
-        klu_code: 62010,
-      } as Parameters<typeof testMocks.taxProfiles.push>[0],
-    );
+    testMocks.taxProfiles.push({
+      user_id: "user-mark",
+      npwp: "",
+      nik: "",
+      address: "",
+      klu_code: 62010,
+    } as Parameters<typeof testMocks.taxProfiles.push>[0]);
 
     const status = await markNppnNotified("user-mark");
     assertEquals(status.notified, true);
+  },
+);
+
+Deno.test(
+  "getNppnStatus only returns status for the authenticated user",
+  async () => {
+    testMocks.clear();
+    // Seed two users
+    testMocks.taxProfiles.push({
+      user_id: "user-a",
+      npwp: "123",
+      nik: "456",
+      address: "Jl. A",
+      klu_code: 62010,
+      // @ts-ignore - `null` simulates DB NULL; safe in test.
+      nppn_notified_at: null,
+    });
+    testMocks.taxProfiles.push({
+      user_id: "user-b",
+      npwp: "789",
+      nik: "012",
+      address: "Jl. B",
+      klu_code: 62010,
+      nppn_notified_at: "2026-03-15T10:00:00Z",
+    });
+
+    const statusForA = await getNppnStatus("user-a");
+    assertEquals(statusForA.notified, false); // Should not see user-b's notification.
+
+    const statusForB = await getNppnStatus("user-b");
+    assertEquals(statusForB.notified, true);
   },
 );
