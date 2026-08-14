@@ -1,4 +1,4 @@
-import { Context, Next, Env } from "hono";
+import { Context, Env, Next } from "hono";
 import { sign, verify } from "hono/jwt";
 
 export type AuthToken = {

@@ -84,10 +84,9 @@ const mockSql = new Proxy(function () {}, {
       return [];
     }
     if (queryStr.includes("SELECT id, unspent_usd_cents")) {
-      const source =
-        argumentsList
-          .map((value) => (typeof value === "string" ? value : ""))
-          .find((value) => value === "wise" || value === "bank") || "";
+      const source = argumentsList
+        .map((value) => (typeof value === "string" ? value : ""))
+        .find((value) => value === "wise" || value === "bank") || "";
       if (queryStr.includes("metadata->>'source'")) {
         if (source === "bank") {
           return [{ id: "mock-tx-id-456", unspent_usd_cents: 250000 }];
@@ -134,10 +133,9 @@ const mockSql = new Proxy(function () {}, {
     if (queryStr.includes("csv_mappings")) {
       const currentUserId = extractUserId() || currentMockUserId || "default";
       if (queryStr.includes("INSERT")) {
-        const rawMapping =
-          argumentsList
-            .map((value) => (typeof value === "string" ? value : ""))
-            .find((value) => value.startsWith("{")) ||
+        const rawMapping = argumentsList
+          .map((value) => (typeof value === "string" ? value : ""))
+          .find((value) => value.startsWith("{")) ||
           sqlValue(2) ||
           sqlValue(1);
         testMocks.csvMappingsByUser[currentUserId] = rawMapping

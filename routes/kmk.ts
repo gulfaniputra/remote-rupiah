@@ -73,12 +73,14 @@ app.get(
   },
 );
 
-app.get("/latest", (c) =>
-  lookupKmkRate(new Date().toISOString().slice(0, 10), "USD").then((r) =>
-    r
-      ? c.json({ success: true, data: r })
-      : c.json({ error: "Not synced" }, 404),
-  ),
+app.get(
+  "/latest",
+  (c) =>
+    lookupKmkRate(new Date().toISOString().slice(0, 10), "USD").then((r) =>
+      r
+        ? c.json({ success: true, data: r })
+        : c.json({ error: "Not synced" }, 404)
+    ),
 );
 
 app.get(
@@ -95,7 +97,7 @@ app.get(
     return lookupKmkRate(date, currency).then((r) =>
       r
         ? c.json({ success: true, data: r })
-        : c.json({ error: "Not found" }, 404),
+        : c.json({ error: "Not found" }, 404)
     );
   },
 );
@@ -112,7 +114,7 @@ app.get(
   (c) => {
     const { currency, limit } = c.req.valid("query");
     return listKmkRates(currency, limit).then((r) =>
-      c.json({ success: true, data: r, count: r.length }),
+      c.json({ success: true, data: r, count: r.length })
     );
   },
 );
@@ -127,18 +129,18 @@ app.post(
     !check(c)
       ? c.json({ error: "Unauthorized" }, 401)
       : syncKmkRates(c.req.valid("json"))
-          .then((res) =>
-            c.json({ success: true, ...res }, res.errors.length ? 207 : 200),
+        .then((res) =>
+          c.json({ success: true, ...res }, res.errors.length ? 207 : 200)
+        )
+        .catch((e: unknown) =>
+          c.json(
+            {
+              success: false,
+              error: e instanceof Error ? e.message : String(e),
+            },
+            502,
           )
-          .catch((e: unknown) =>
-            c.json(
-              {
-                success: false,
-                error: e instanceof Error ? e.message : String(e),
-              },
-              502,
-            ),
-          ),
+        ),
 );
 
 app.post(
@@ -155,16 +157,16 @@ app.post(
     return !check(c)
       ? c.json({ error: "Unauthorized" }, 401)
       : backfillKmkRates(weeks, currencies)
-          .then((res) => c.json({ success: true, ...res }))
-          .catch((e: unknown) =>
-            c.json(
-              {
-                success: false,
-                error: e instanceof Error ? e.message : String(e),
-              },
-              500,
-            ),
-          );
+        .then((res) => c.json({ success: true, ...res }))
+        .catch((e: unknown) =>
+          c.json(
+            {
+              success: false,
+              error: e instanceof Error ? e.message : String(e),
+            },
+            500,
+          )
+        );
   },
 );
 

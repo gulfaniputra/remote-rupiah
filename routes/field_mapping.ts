@@ -1,4 +1,4 @@
-import { Hono, Context, Env } from "hono";
+import { Context, Env, Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { match } from "../services/matcher.ts";
@@ -64,7 +64,17 @@ app.post("/confirm", zValidator("json", confirmSchema), async (c) => {
       }));
 
       await t`
-        INSERT INTO field_mappings ${t(rows, "user_id", "source_field", "target_field", "confidence", "user_verified", "matcher_version")}
+        INSERT INTO field_mappings ${
+        t(
+          rows,
+          "user_id",
+          "source_field",
+          "target_field",
+          "confidence",
+          "user_verified",
+          "matcher_version",
+        )
+      }
         ON CONFLICT (user_id, source_field, target_field)
         DO UPDATE SET
           confidence = EXCLUDED.confidence,

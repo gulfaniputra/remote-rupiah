@@ -1,4 +1,4 @@
-import { Hono, Context, Env } from "hono";
+import { Context, Env, Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { withAuth } from "../db/client.ts";
@@ -75,7 +75,7 @@ app.get("/", (c) => {
     c.json({
       success: true,
       transactions: (txs as Record<string, unknown>[]).map(serializeTx),
-    }),
+    })
   );
 });
 
@@ -86,9 +86,11 @@ app.post("/", zValidator("json", schema), async (c) => {
   return withAuth(
     uid,
     (tx, userId) =>
-      tx`INSERT INTO transactions ${tx(
-        toSnake({ ...d, kmkRate: rate, userId }) as Record<string, unknown>,
-      )} RETURNING *`,
+      tx`INSERT INTO transactions ${
+        tx(
+          toSnake({ ...d, kmkRate: rate, userId }) as Record<string, unknown>,
+        )
+      } RETURNING *`,
   ).then((res) =>
     c.json(
       {
@@ -98,7 +100,7 @@ app.post("/", zValidator("json", schema), async (c) => {
           : undefined,
       },
       201,
-    ),
+    )
   );
 });
 
@@ -114,10 +116,10 @@ app.get(
     ).then((res) =>
       res[0]
         ? c.json({
-            success: true,
-            data: serializeTx(res[0] as Record<string, unknown>),
-          })
-        : c.json({ error: "Not found" }, 404),
+          success: true,
+          data: serializeTx(res[0] as Record<string, unknown>),
+        })
+        : c.json({ error: "Not found" }, 404)
     );
   },
 );
@@ -140,9 +142,9 @@ app.patch("/:id/verify", async (c) => {
   );
   return res[0]
     ? c.json({
-        success: true,
-        data: serializeTx(res[0] as Record<string, unknown>),
-      })
+      success: true,
+      data: serializeTx(res[0] as Record<string, unknown>),
+    })
     : c.json({ error: "Not found" }, 404);
 });
 

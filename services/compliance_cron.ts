@@ -27,8 +27,8 @@ export const scanExpiredW8BEN = async (): Promise<W8BENScanResult> => {
       return diffMs < 0
         ? { ...acc, expired: [...acc.expired, r.user_id] }
         : diffMs <= WARN_DAYS_MS
-          ? { ...acc, expiringSoon: [...acc.expiringSoon, r.user_id] }
-          : acc;
+        ? { ...acc, expiringSoon: [...acc.expiringSoon, r.user_id] }
+        : acc;
     },
     { expired: [], expiringSoon: [] },
   );
