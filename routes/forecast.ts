@@ -6,6 +6,7 @@ const app = new Hono();
 
 app.use("*", authMiddleware);
 
+// `GET /api/forecast/`  (YTD aggregation)
 app.get("/", (c) => {
   const year = Number(c.req.query("year")) || new Date().getFullYear();
   return withAuth(
@@ -18,12 +19,19 @@ app.get("/", (c) => {
       COALESCE(SUM(actual_idr_received_cents), 0)::bigint AS ytd_actual_idr_cents,
       COUNT(*)::int AS transaction_count,
       COUNT(*) FILTER (WHERE is_1042s_verified = TRUE)::int AS verified_count,
-      COALESCE(AVG(CASE WHEN kmk_rate IS NOT NULL AND actual_idr_received_cents IS NOT NULL AND amount_cents > 0
-        THEN (amount_cents * kmk_rate)::bigint - actual_idr_received_cents ELSE NULL END), 0)::bigint AS avg_fx_spread_cents,
+      -- ✅ Pure integer average
+      COALESCE(
+        (SUM(CASE WHEN kmk_rate IS NOT NULL AND actual_idr_received_cents IS NOT NULL AND amount_cents > 0
+          THEN ((amount_cents * (kmk_rate * 100)::bigint) / 100) - actual_idr_received_cents
+          ELSE 0 END)
+          / NULLIF(COUNT(*) FILTER (WHERE kmk_rate IS NOT NULL AND actual_idr_received_cents IS NOT NULL AND amount_cents > 0), 0)
+        ),
+        0
+      )::bigint AS avg_fx_spread_cents,
       EXTRACT(MONTH FROM MAX(date))::int AS latest_month
     FROM transactions
     WHERE date_part('year', date) = ${year}
-      AND amount_cents > 0`, // 👈 Filtered negative expenses here
+      AND amount_cents > 0`,
   ).then(([r]) =>
     c.json({
       success: true,
@@ -37,10 +45,11 @@ app.get("/", (c) => {
         avgFxSpreadCents: Number(r.avg_fx_spread_cents),
         latestMonth: r.latest_month || 0,
       },
-    })
+    }),
   );
 });
 
+// `GET /api/forecast/fx-efficiency`
 app.get("/fx-efficiency", (c) => {
   const year = Number(c.req.query("year")) || new Date().getFullYear();
   return withAuth(
@@ -51,9 +60,10 @@ app.get("/fx-efficiency", (c) => {
       amount_cents::bigint AS amount_cents,
       kmk_rate::text AS kmk_rate,
       actual_idr_received_cents::bigint AS actual_idr_cents,
-      (amount_cents * kmk_rate)::bigint AS amount_idr_cents,
+      -- ✅ Pure integer
+      (amount_cents * (kmk_rate * 100)::bigint) / 100 AS amount_idr_cents,
       CASE WHEN amount_cents > 0 AND kmk_rate IS NOT NULL AND actual_idr_received_cents IS NOT NULL
-        THEN ((amount_cents * kmk_rate)::bigint - actual_idr_received_cents::bigint)::bigint
+        THEN ((amount_cents * (kmk_rate * 100)::bigint) / 100) - actual_idr_received_cents::bigint
         ELSE 0
       END AS spread_cents,
       metadata->>'source' AS source
@@ -73,10 +83,10 @@ app.get("/fx-efficiency", (c) => {
         actual_idr_cents: row.actual_idr_cents
           ? String(row.actual_idr_cents)
           : null,
-        spread_cents: String(Math.round(Number(row.spread_cents))),
-        amount_idr_cents: String(Math.round(Number(row.amount_idr_cents))),
+        spread_cents: String(row.spread_cents),
+        amount_idr_cents: String(row.amount_idr_cents),
       })),
-    })
+    }),
   );
 });
 

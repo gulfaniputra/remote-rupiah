@@ -35,6 +35,7 @@ export const testMocks = {
     withholding_cents: string;
     kmk_rate: string;
     is_1042s_verified: boolean;
+    actual_idr_received_cents?: string;
   }>,
   clear() {
     this.kmkRates = [];
@@ -84,9 +85,10 @@ const mockSql = new Proxy(function () {}, {
       return [];
     }
     if (queryStr.includes("SELECT id, unspent_usd_cents")) {
-      const source = argumentsList
-        .map((value) => (typeof value === "string" ? value : ""))
-        .find((value) => value === "wise" || value === "bank") || "";
+      const source =
+        argumentsList
+          .map((value) => (typeof value === "string" ? value : ""))
+          .find((value) => value === "wise" || value === "bank") || "";
       if (queryStr.includes("metadata->>'source'")) {
         if (source === "bank") {
           return [{ id: "mock-tx-id-456", unspent_usd_cents: 250000 }];
@@ -133,9 +135,10 @@ const mockSql = new Proxy(function () {}, {
     if (queryStr.includes("csv_mappings")) {
       const currentUserId = extractUserId() || currentMockUserId || "default";
       if (queryStr.includes("INSERT")) {
-        const rawMapping = argumentsList
-          .map((value) => (typeof value === "string" ? value : ""))
-          .find((value) => value.startsWith("{")) ||
+        const rawMapping =
+          argumentsList
+            .map((value) => (typeof value === "string" ? value : ""))
+            .find((value) => value.startsWith("{")) ||
           sqlValue(2) ||
           sqlValue(1);
         testMocks.csvMappingsByUser[currentUserId] = rawMapping
@@ -174,6 +177,41 @@ const mockSql = new Proxy(function () {}, {
     if (queryStr.includes("compliance_documents")) {
       if (queryStr.includes("INSERT")) return [{ id: "mock-doc-id" }];
       return [];
+    }
+
+    // Mock for `/fx-efficiency` query. Computes derived columns
+    // using pure integer math (matches `routes/forecast.ts`).
+    if (
+      queryStr.includes("amount_cents::bigint AS amount_cents") &&
+      queryStr.includes("amount_idr_cents")
+    ) {
+      const userId = currentMockUserId || "default";
+      const rows = testMocks.transactions.filter((t) => t.user_id === userId);
+      return rows.map((t) => {
+        const amountCents = BigInt(t.amount_cents);
+        const kmkRate = t.kmk_rate;
+        // Convert "16120.50" > 1612050n (cents).
+        const rateCents = BigInt(kmkRate.replace(".", ""));
+        const amountIdrCents = (amountCents * rateCents) / 100n;
+        const actualIdrCents = t.actual_idr_received_cents
+          ? BigInt(t.actual_idr_received_cents)
+          : null;
+
+        let spreadCents = 0n;
+        if (amountCents > 0n && kmkRate && actualIdrCents !== null) {
+          spreadCents = amountIdrCents - actualIdrCents;
+        }
+
+        return {
+          date: t.date,
+          amount_cents: amountCents,
+          kmk_rate: kmkRate,
+          actual_idr_cents: actualIdrCents,
+          amount_idr_cents: amountIdrCents,
+          spread_cents: spreadCents,
+          source: "wise",
+        };
+      });
     }
     if (queryStr.includes("FROM transactions")) {
       const currentUserId = extractUserId() || currentMockUserId || "default";
