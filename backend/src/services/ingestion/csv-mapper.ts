@@ -2,16 +2,15 @@ import { CanonicalTx } from "../../domain/canonical-tx.ts";
 
 export type Result<T, E> = { ok: true; value: T } | { ok: false; error: E };
 
-/** Normalizes YYYY-MM-DD / ISO dates. Returns null on invalid input. */
+// Normalizes YYYY-MM-DD / ISO dates. Returns null on invalid input.
 export const normalizeDate = (input: string): Date | null =>
-  /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?(Z|[+-]\d{2}:?\d{2})?)?$/
-      .test(
-        input.trim(),
-      ) && !isNaN(new Date(input.trim()).getTime())
+  /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?(Z|[+-]\d{2}:?\d{2})?)?$/.test(
+    input.trim(),
+  ) && !isNaN(new Date(input.trim()).getTime())
     ? new Date(input.trim())
     : null;
 
-/** Normalizes "1,234.56" → 123456n (bigint cents). No floats. */
+// Normalizes "1,234.56" > 123456n (bigint cents). No floats.
 export const normalizeAmount = (input: string): bigint | null => {
   const clean = input.replace(/,/g, "").trim();
   if (!/^-?\d+(\.\d+)?$/.test(clean)) return null;
@@ -24,7 +23,7 @@ export const normalizeAmount = (input: string): bigint | null => {
   }
 };
 
-/** Maps a single CSV row to CanonicalTx via deterministic exact-match. */
+// Maps a single CSV row to `CanonicalTx` via deterministic exact-match.
 export const mapCsvRow = (
   row: Record<string, string>,
   mapping: Record<string, string>,
@@ -63,10 +62,11 @@ export const mapCsvRow = (
     const clean = row[amountKey].replace(/,/g, "").trim();
     return {
       ok: false,
-      error: /^-?\d+(\.\d+)?$/.test(clean) &&
-          clean.split(".")[0].replace("-", "").length > 15
-        ? "Amount overflow or invalid bigint"
-        : `Invalid amount format: ${row[amountKey]}`,
+      error:
+        /^-?\d+(\.\d+)?$/.test(clean) &&
+        clean.split(".")[0].replace("-", "").length > 15
+          ? "Amount overflow or invalid bigint"
+          : `Invalid amount format: ${row[amountKey]}`,
     };
   }
 
@@ -75,12 +75,26 @@ export const mapCsvRow = (
     return { ok: false, error: `Invalid currency format: ${row[currencyKey]}` };
   }
 
+  const idrReceivedKey = src("actual_idr_received_cents");
+  let actualIdrReceivedCents: bigint | null = null;
+  if (idrReceivedKey && row[idrReceivedKey] !== undefined) {
+    const parsed = normalizeAmount(row[idrReceivedKey]);
+    if (parsed === null) {
+      return {
+        ok: false,
+        error: `Invalid IDR amount format: ${row[idrReceivedKey]}`,
+      };
+    }
+    actualIdrReceivedCents = parsed;
+  }
+
   return {
     ok: true,
     value: {
       date: normalizeDate(row[dateKey])!,
       amount: normalizeAmount(row[amountKey])!,
       currency,
+      actualIdrReceivedCents,
     },
   };
 };

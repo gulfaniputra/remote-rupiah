@@ -7881,7 +7881,7 @@ var $author$project$CsvMapper$SelectTarget = F2(
 		return {$: 'SelectTarget', a: a, b: b};
 	});
 var $author$project$CsvMapper$canonicalTargets = _List_fromArray(
-	['', 'date', 'amount', 'currency']);
+	['', 'date', 'amount', 'currency', 'actual_idr_received_cents']);
 var $elm$core$Basics$not = _Basics_not;
 var $elm$html$Html$Events$alwaysStop = function (x) {
 	return _Utils_Tuple2(x, true);

@@ -5,12 +5,12 @@ Deno.test("CSV Mapper - valid row to CanonicalTx", () => {
   const row = {
     "Tx Date": "2026-05-30",
     "Net Value": "1,234.56",
-    "Curr": "USD",
+    Curr: "USD",
   };
   const mapping = {
     "Tx Date": "date",
     "Net Value": "amount",
-    "Curr": "currency",
+    Curr: "currency",
   };
 
   const result = mapCsvRow(row, mapping, ["Tx Date", "Net Value", "Curr"]);
@@ -23,11 +23,11 @@ Deno.test("CSV Mapper - valid row to CanonicalTx", () => {
 });
 
 Deno.test("CSV Mapper - missing required field", () => {
-  const row = { "Tx Date": "2026-05-30", "Curr": "USD" };
+  const row = { "Tx Date": "2026-05-30", Curr: "USD" };
   const mapping = {
     "Tx Date": "date",
     "Net Value": "amount",
-    "Curr": "currency",
+    Curr: "currency",
   };
 
   const result = mapCsvRow(row, mapping, ["Tx Date", "Curr"]);
@@ -41,12 +41,12 @@ Deno.test("CSV Mapper - invalid date format", () => {
   const row = {
     "Tx Date": "invalid-date",
     "Net Value": "1,234.56",
-    "Curr": "USD",
+    Curr: "USD",
   };
   const mapping = {
     "Tx Date": "date",
     "Net Value": "amount",
-    "Curr": "currency",
+    Curr: "currency",
   };
 
   const result = mapCsvRow(row, mapping, ["Tx Date", "Net Value", "Curr"]);
@@ -57,11 +57,11 @@ Deno.test("CSV Mapper - invalid date format", () => {
 });
 
 Deno.test("CSV Mapper - invalid amount format", () => {
-  const row = { "Tx Date": "2026-05-30", "Net Value": "abc", "Curr": "USD" };
+  const row = { "Tx Date": "2026-05-30", "Net Value": "abc", Curr: "USD" };
   const mapping = {
     "Tx Date": "date",
     "Net Value": "amount",
-    "Curr": "currency",
+    Curr: "currency",
   };
 
   const result = mapCsvRow(row, mapping, ["Tx Date", "Net Value", "Curr"]);
@@ -75,12 +75,12 @@ Deno.test("CSV Mapper - duplicate headers handling", () => {
   const row = {
     "Tx Date": "2026-05-30",
     "Net Value": "1,234.56",
-    "Curr": "USD",
+    Curr: "USD",
   };
   const mapping = {
     "Tx Date": "date",
     "Net Value": "amount",
-    "Curr": "currency",
+    Curr: "currency",
   };
 
   // Pass duplicate headers
@@ -101,7 +101,7 @@ Deno.test("CSV Mapper - empty row handling", () => {
   const mapping = {
     "Tx Date": "date",
     "Net Value": "amount",
-    "Curr": "currency",
+    Curr: "currency",
   };
 
   const result = mapCsvRow(row, mapping, []);
@@ -115,17 +115,37 @@ Deno.test("CSV Mapper - bigint overflow handling", () => {
   const row = {
     "Tx Date": "2026-05-30",
     "Net Value": "99999999999999999999999999999999999999",
-    "Curr": "USD",
+    Curr: "USD",
   };
   const mapping = {
     "Tx Date": "date",
     "Net Value": "amount",
-    "Curr": "currency",
+    Curr: "currency",
   };
 
   const result = mapCsvRow(row, mapping, ["Tx Date", "Net Value", "Curr"]);
   assertEquals(result.ok, false);
   if (!result.ok) {
     assertEquals(result.error, "Amount overflow or invalid bigint");
+  }
+});
+
+Deno.test("CSV Mapper - maps actual_idr_received_cents", () => {
+  const row = {
+    "Tx Date": "2026-05-30",
+    "Net Value": "1,234.56",
+    Curr: "USD",
+    "IDR Received": "19,876,543.21",
+  };
+  const mapping = {
+    "Tx Date": "date",
+    "Net Value": "amount",
+    Curr: "currency",
+    "IDR Received": "actual_idr_received_cents",
+  };
+  const result = mapCsvRow(row, mapping, Object.keys(row));
+  assertEquals(result.ok, true);
+  if (result.ok) {
+    assertEquals(result.value.actualIdrReceivedCents, 1987654321n);
   }
 });

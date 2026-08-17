@@ -122,7 +122,7 @@ update msg model =
 
 canonicalTargets : List String
 canonicalTargets =
-    [ "", "date", "amount", "currency" ]
+    [ "", "date", "amount", "currency", "actual_idr_received_cents" ]
 
 
 viewRow : Dict String String -> String -> Html Msg

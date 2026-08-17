@@ -7,6 +7,7 @@ import { mapCsvRow } from "../backend/src/services/ingestion/csv-mapper.ts";
 import { mapRevolutRow } from "../services/ingestion/revolut_parser.ts";
 import { mapPaypalRow } from "../services/ingestion/paypal_parser.ts";
 import { mapWiseRow } from "../services/ingestion/wise_parser.ts";
+import { CanonicalTx } from "../backend/src/domain/canonical-tx.ts";
 
 const app = new Hono();
 const MAX_PAYLOAD_BYTES = 5 * 1024 * 1024;
@@ -15,11 +16,6 @@ const ROW_MAPPERS = {
   revolut: mapRevolutRow,
   paypal: mapPaypalRow,
 } as const;
-type CanonicalRow = {
-  date: Date;
-  amount: bigint;
-  currency: string;
-};
 
 app.use("*", authMiddleware);
 
@@ -59,16 +55,14 @@ const parseCsvRows = async (body: string) => {
   const rows: Record<string, string>[] = [];
   let headers: string[] = [];
   let isFirst = true;
-  for await (
-    const record of new ReadableStream({
-      start(controller) {
-        controller.enqueue(new TextEncoder().encode(body));
-        controller.close();
-      },
-    })
-      .pipeThrough(new TextDecoderStream())
-      .pipeThrough(new CsvParseStream())
-  ) {
+  for await (const record of new ReadableStream({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode(body));
+      controller.close();
+    },
+  })
+    .pipeThrough(new TextDecoderStream())
+    .pipeThrough(new CsvParseStream())) {
     if (isFirst) {
       headers = record.map((value) => String(value));
       isFirst = false;
@@ -110,7 +104,7 @@ const serialize = (row: {
 });
 
 const serializeCanonical = (
-  row: CanonicalRow,
+  row: CanonicalTx,
   sourceTxId: string,
   metadata: Record<string, unknown>,
 ) => ({
@@ -118,7 +112,7 @@ const serializeCanonical = (
   date: row.date.toISOString().split("T")[0],
   currency: row.currency,
   amount_cents: row.amount,
-  actual_idr_received_cents: null,
+  actual_idr_received_cents: row.actualIdrReceivedCents ?? null,
   metadata,
 });
 
@@ -141,28 +135,28 @@ app.post("/", async (c) => {
     const mapped = platform
       ? rows.map((row) => serialize(ROW_MAPPERS[platform](row)))
       : await (async () => {
-        const mapping = await loadCsvMapping(uid);
-        if (!mapping) {
-          return null;
-        }
+          const mapping = await loadCsvMapping(uid);
+          if (!mapping) {
+            return null;
+          }
 
-        const decoded = rows.map((row) => mapCsvRow(row, mapping, headers));
-        const failed = decoded.find((result) => !result.ok);
-        if (failed && !failed.ok) {
-          return c.json(
-            { success: false, error: failed.error, headers },
-            400,
+          const decoded = rows.map((row) => mapCsvRow(row, mapping, headers));
+          const failed = decoded.find((result) => !result.ok);
+          if (failed && !failed.ok) {
+            return c.json(
+              { success: false, error: failed.error, headers },
+              400,
+            );
+          }
+
+          return decoded.map((result, index) =>
+            serializeCanonical(
+              (result as { ok: true; value: CanonicalTx }).value,
+              crypto.randomUUID(),
+              rows[index] ?? {},
+            ),
           );
-        }
-
-        return decoded.map((result, index) =>
-          serializeCanonical(
-            (result as { ok: true; value: CanonicalRow }).value,
-            crypto.randomUUID(),
-            rows[index] ?? {},
-          )
-        );
-      })();
+        })();
 
     if (mapped === null) {
       return c.json(
@@ -176,7 +170,7 @@ app.post("/", async (c) => {
 
     if (mapped.length > 0) {
       try {
-        // Authenticate the session context via withAuth to satisfy RLS constraints
+        // Authenticate the session context via `withAuth` to satisfy RLS constraints.
         await withAuth(uid, async (tx) => {
           for (const row of mapped) {
             const _result = await tx`
@@ -195,12 +189,9 @@ app.post("/", async (c) => {
                 ${row.date},
                 ${row.currency},
                 ${row.amount_cents.toString()},
-                ${
-              JSON.stringify(
-                row.metadata,
-                (_, v) => (typeof v === "bigint" ? v.toString() : v),
-              )
-            },
+                ${JSON.stringify(row.metadata, (_, v) =>
+                  typeof v === "bigint" ? v.toString() : v,
+                )},
                 ${row.actual_idr_received_cents?.toString() ?? null}
               )
               ON CONFLICT (user_id, source_tx_id) DO UPDATE SET
