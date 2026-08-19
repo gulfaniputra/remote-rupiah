@@ -1,4 +1,4 @@
-name: CI Verification
+name: Quality Gates
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  backend-tests:
-    name: Deno Backend Lint & Test
+  backend:
+    name: Backend (Deno)
     runs-on: ubuntu-latest
     steps:
       - name: Clone Repository
@@ -30,8 +30,8 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
 
-  frontend-tests:
-    name: Elm Frontend Build & Test
+  frontend:
+    name: Frontend (Elm)
     runs-on: ubuntu-latest
     steps:
       - name: Clone Repository
@@ -42,8 +42,13 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install Elm & elm-test
-        run: npm install -g elm@0.19.1 elm-test@0.19.1
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install Elm, elm-test & elm-format
+        run: npm install -g elm@0.19.1 elm-test@0.19.1 elm-format@0.8.7
 
       - name: Cache Elm dependencies
         uses: actions/cache@v3
@@ -53,8 +58,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-elm-
 
-      - name: Run Property-Based & Boundary Tests
-        run: cd frontend && elm-test
+      - name: Run Frontend Validation (Format + Tests)
+        run: deno task validate:frontend
 
       - name: Verify Elm Compiles with Optimization
         run: cd frontend && elm make src/Main.elm --optimize --output=/dev/null

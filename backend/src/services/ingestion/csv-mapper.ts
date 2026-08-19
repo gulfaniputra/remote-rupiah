@@ -4,9 +4,10 @@ export type Result<T, E> = { ok: true; value: T } | { ok: false; error: E };
 
 // Normalizes YYYY-MM-DD / ISO dates. Returns null on invalid input.
 export const normalizeDate = (input: string): Date | null =>
-  /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?(Z|[+-]\d{2}:?\d{2})?)?$/.test(
-    input.trim(),
-  ) && !isNaN(new Date(input.trim()).getTime())
+  /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{3})?(Z|[+-]\d{2}:?\d{2})?)?$/
+      .test(
+        input.trim(),
+      ) && !isNaN(new Date(input.trim()).getTime())
     ? new Date(input.trim())
     : null;
 
@@ -62,11 +63,10 @@ export const mapCsvRow = (
     const clean = row[amountKey].replace(/,/g, "").trim();
     return {
       ok: false,
-      error:
-        /^-?\d+(\.\d+)?$/.test(clean) &&
-        clean.split(".")[0].replace("-", "").length > 15
-          ? "Amount overflow or invalid bigint"
-          : `Invalid amount format: ${row[amountKey]}`,
+      error: /^-?\d+(\.\d+)?$/.test(clean) &&
+          clean.split(".")[0].replace("-", "").length > 15
+        ? "Amount overflow or invalid bigint"
+        : `Invalid amount format: ${row[amountKey]}`,
     };
   }
 

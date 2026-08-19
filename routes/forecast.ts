@@ -45,7 +45,7 @@ app.get("/", (c) => {
         avgFxSpreadCents: Number(r.avg_fx_spread_cents),
         latestMonth: r.latest_month || 0,
       },
-    }),
+    })
   );
 });
 
@@ -86,7 +86,7 @@ app.get("/fx-efficiency", (c) => {
         spread_cents: String(row.spread_cents),
         amount_idr_cents: String(row.amount_idr_cents),
       })),
-    }),
+    })
   );
 });
 

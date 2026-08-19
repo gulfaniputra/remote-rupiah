@@ -55,14 +55,16 @@ const parseCsvRows = async (body: string) => {
   const rows: Record<string, string>[] = [];
   let headers: string[] = [];
   let isFirst = true;
-  for await (const record of new ReadableStream({
-    start(controller) {
-      controller.enqueue(new TextEncoder().encode(body));
-      controller.close();
-    },
-  })
-    .pipeThrough(new TextDecoderStream())
-    .pipeThrough(new CsvParseStream())) {
+  for await (
+    const record of new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode(body));
+        controller.close();
+      },
+    })
+      .pipeThrough(new TextDecoderStream())
+      .pipeThrough(new CsvParseStream())
+  ) {
     if (isFirst) {
       headers = record.map((value) => String(value));
       isFirst = false;
@@ -135,28 +137,28 @@ app.post("/", async (c) => {
     const mapped = platform
       ? rows.map((row) => serialize(ROW_MAPPERS[platform](row)))
       : await (async () => {
-          const mapping = await loadCsvMapping(uid);
-          if (!mapping) {
-            return null;
-          }
+        const mapping = await loadCsvMapping(uid);
+        if (!mapping) {
+          return null;
+        }
 
-          const decoded = rows.map((row) => mapCsvRow(row, mapping, headers));
-          const failed = decoded.find((result) => !result.ok);
-          if (failed && !failed.ok) {
-            return c.json(
-              { success: false, error: failed.error, headers },
-              400,
-            );
-          }
-
-          return decoded.map((result, index) =>
-            serializeCanonical(
-              (result as { ok: true; value: CanonicalTx }).value,
-              crypto.randomUUID(),
-              rows[index] ?? {},
-            ),
+        const decoded = rows.map((row) => mapCsvRow(row, mapping, headers));
+        const failed = decoded.find((result) => !result.ok);
+        if (failed && !failed.ok) {
+          return c.json(
+            { success: false, error: failed.error, headers },
+            400,
           );
-        })();
+        }
+
+        return decoded.map((result, index) =>
+          serializeCanonical(
+            (result as { ok: true; value: CanonicalTx }).value,
+            crypto.randomUUID(),
+            rows[index] ?? {},
+          )
+        );
+      })();
 
     if (mapped === null) {
       return c.json(
@@ -189,9 +191,10 @@ app.post("/", async (c) => {
                 ${row.date},
                 ${row.currency},
                 ${row.amount_cents.toString()},
-                ${JSON.stringify(row.metadata, (_, v) =>
-                  typeof v === "bigint" ? v.toString() : v,
-                )},
+                ${
+              JSON.stringify(row.metadata, (_, v) =>
+                typeof v === "bigint" ? v.toString() : v)
+            },
                 ${row.actual_idr_received_cents?.toString() ?? null}
               )
               ON CONFLICT (user_id, source_tx_id) DO UPDATE SET

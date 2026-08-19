@@ -41,7 +41,7 @@ function getAccessToken(): string {
   const token = Deno.env.get("KMK_ACCESS_TOKEN");
   if (!token) {
     throw new Error(
-      "KMK_ACCESS_TOKEN env var is required. " +
+      "KMK_ACCESS_TOKEN env let is required. " +
         "Register at https://fiskal.kemenkeu.go.id to obtain one.",
     );
   }

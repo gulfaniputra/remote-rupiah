@@ -1,25 +1,24 @@
-# Secrets & Environment
+# Secrets & env
 .env
 .env.*
 !.env.example
 
 # Elm
 elm-stuff/
-
-# Ignore the compiled output
+frontend/elm.js
 public/elm.js
 
 # Deno
 node_modules/
 coverage/
 
-# Database & Migrations
+# db & migrations
 *.sql
 !migrations/
 !migrations/*.sql
 !db/*.sql
 
-# Financial Safety
+# Financial safety
 /data/raw/
 /exports/
 *.csv
@@ -27,9 +26,9 @@ coverage/
 *.xlsx
 *.pdf
 
-# System & Tooling
+# System & tooling
 .DS_Store
 .vscode/
 .idea/
 *.log
-repomix-output.xml
+repomix-output.md
