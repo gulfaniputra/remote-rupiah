@@ -1,0 +1,27 @@
+pre-commit:
+  parallel: true
+  commands:
+    deno-fmt:
+      glob: "**/*.ts"
+      run: deno fmt --check {staged_files}
+    deno-lint:
+      glob: "**/*.ts"
+      run: deno lint {staged_files}
+    deno-check:
+      glob: "**/*.ts"
+      run: deno check {staged_files}
+    elm-format:
+      glob: "frontend/**/*.elm"
+      run: elm-format --validate {staged_files}
+    json-fmt:
+      glob: "**/*.json"
+      run: deno fmt --check {staged_files}
+
+pre-push:
+  commands:
+    full-test-suite:
+      run: |
+        echo "Running full backend validation..."
+        deno task validate:backend
+        echo "Running full frontend validation..."
+        deno task validate:frontend
