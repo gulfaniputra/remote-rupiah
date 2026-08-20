@@ -6,6 +6,7 @@
 # Elm
 elm-stuff/
 frontend/elm.js
+frontend/dist/
 public/elm.js
 
 # Deno
