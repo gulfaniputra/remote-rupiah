@@ -1,8 +1,7 @@
 import postgres from "postgres";
 
 const isTesting = !Deno.mainModule.endsWith("main.ts");
-const defaultDbUrl =
-  "postgres://postgres:postgres@localhost:5432/remote_rupiah";
+const defaultDbUrl = "postgres://postgres:postgres@localhost:5432/remote_rupiah";
 
 const _dbUrl = (() => {
   try {
@@ -66,9 +65,7 @@ const mockSql = new Proxy(function () {}, {
   },
   apply(_, __, argumentsList) {
     const firstArg = argumentsList[0];
-    const queryStr = Array.isArray(firstArg)
-      ? firstArg.join("?")
-      : String(firstArg || "");
+    const queryStr = Array.isArray(firstArg) ? firstArg.join("?") : String(firstArg || "");
     const sqlValue = (index: number) => {
       const value = argumentsList[index];
       return typeof value === "string" ? value : String(value ?? "");
@@ -139,9 +136,7 @@ const mockSql = new Proxy(function () {}, {
           .find((value) => value.startsWith("{")) ||
           sqlValue(2) ||
           sqlValue(1);
-        testMocks.csvMappingsByUser[currentUserId] = rawMapping
-          ? JSON.parse(rawMapping)
-          : {};
+        testMocks.csvMappingsByUser[currentUserId] = rawMapping ? JSON.parse(rawMapping) : {};
         return [{ id: "mock-mapping-id" }];
       } else {
         const mapping = testMocks.csvMappingsByUser[currentUserId];

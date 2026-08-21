@@ -83,9 +83,7 @@ const VALID_CANONICAL_FIELDS: CanonicalField[] = [
  */
 export const schema: Schema = {
   id: (input: string): Result<ErrorCode, string> =>
-    input.trim() === ""
-      ? { ok: false, error: "INVALID_FORMAT" }
-      : { ok: true, value: input },
+    input.trim() === "" ? { ok: false, error: "INVALID_FORMAT" } : { ok: true, value: input },
 
   date: (input: string): Result<ErrorCode, Date> => {
     if (
@@ -98,9 +96,7 @@ export const schema: Schema = {
     if (isNaN(date.getTime())) {
       return { ok: false, error: "TRANSFORM_FAILED" };
     }
-    const [y, m, d] = input.split("T")[0].split("-").map((s) =>
-      parseInt(s, 10)
-    );
+    const [y, m, d] = input.split("T")[0].split("-").map((s) => parseInt(s, 10));
     const utcDate = new Date(Date.UTC(y, m - 1, d));
     return utcDate.getUTCFullYear() === y &&
         utcDate.getUTCMonth() === m - 1 &&
@@ -143,9 +139,7 @@ export const schema: Schema = {
   },
 
   source: (input: string): Result<ErrorCode, string> =>
-    input.trim() === ""
-      ? { ok: false, error: "INVALID_FORMAT" }
-      : { ok: true, value: input },
+    input.trim() === "" ? { ok: false, error: "INVALID_FORMAT" } : { ok: true, value: input },
 };
 
 /**

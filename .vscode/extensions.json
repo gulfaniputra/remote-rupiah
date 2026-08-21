@@ -1,0 +1,7 @@
+{
+  "recommendations": [
+    "denoland.vscode-deno",
+    "elmTooling.elm-ls-vscode",
+    "EditorConfig.EditorConfig"
+  ]
+}

@@ -15,9 +15,9 @@ export const resolveKmkWeek = (date: Date): Date =>
  * Format a Date object into a YYYY-MM-DD string using UTC components.
  */
 export const format = (date: Date): string =>
-  `${date.getUTCFullYear()}-${
-    String(date.getUTCMonth() + 1).padStart(2, "0")
-  }-${String(date.getUTCDate()).padStart(2, "0")}`;
+  `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${
+    String(date.getUTCDate()).padStart(2, "0")
+  }`;
 
 /**
  * Retrieve the KMK mid rate for USD from the database for the given date.
@@ -48,8 +48,6 @@ export async function getKmkRateByDate(
 
   return {
     effective_date: dateStr,
-    rate: `${cents < 0n ? "-" : ""}${absCents / 100n}.${
-      String(absCents % 100n).padStart(2, "0")
-    }`,
+    rate: `${cents < 0n ? "-" : ""}${absCents / 100n}.${String(absCents % 100n).padStart(2, "0")}`,
   };
 }

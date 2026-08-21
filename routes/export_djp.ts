@@ -91,9 +91,7 @@ app.post("/", zValidator("json", bodySchema), async (c) => {
 
           // PPh 24 Credit is 0 if not verified
           const withholdingCents = BigInt(t.withholding_cents || 0);
-          const pph24Credit = t.is_1042s_verified
-            ? (withholdingCents * rate) / 10000n
-            : 0n;
+          const pph24Credit = t.is_1042s_verified ? (withholdingCents * rate) / 10000n : 0n;
 
           ctrl.enqueue(
             new TextEncoder().encode(
@@ -108,8 +106,7 @@ app.post("/", zValidator("json", bodySchema), async (c) => {
 
     return c.body(stream, 200, {
       "Content-Type": "text/csv",
-      "Content-Disposition":
-        `attachment; filename="DJP_Coretax_Export_${year}.csv"`,
+      "Content-Disposition": `attachment; filename="DJP_Coretax_Export_${year}.csv"`,
     });
   } catch (err: unknown) {
     return c.json(

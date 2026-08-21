@@ -24,8 +24,7 @@ Deno.test("Ingest Route - Unauthorized when Authorization header is missing", as
     headers: {
       "Content-Type": "text/csv",
     },
-    body:
-      "Transfer ID,Created on,Source Currency,Amount Sent,Amount Received\n",
+    body: "Transfer ID,Created on,Source Currency,Amount Sent,Amount Received\n",
   });
   assertEquals(res.status, 401);
 });
@@ -38,8 +37,7 @@ Deno.test("Ingest Route - POST / ingests Wise CSV rows", async () => {
       Authorization: `Bearer ${token}`,
       "Content-Type": "text/csv",
     },
-    body:
-      "Transfer ID,Created on,Source Currency,Amount Sent,Amount Received\n" +
+    body: "Transfer ID,Created on,Source Currency,Amount Sent,Amount Received\n" +
       "tx-12345,2026-05-18T00:00:00Z,USD,1000.00,14000000.00\n",
   });
   assertEquals(res.status, 200);
@@ -57,8 +55,7 @@ Deno.test("Ingest Route - POST / ingests PayPal CSV rows", async () => {
       Authorization: `Bearer ${token}`,
       "Content-Type": "text/csv",
     },
-    body:
-      "Date,Currency,Amount,Transaction ID\n2026-05-18T00:00:00Z,USD,42.25,pp-123\n",
+    body: "Date,Currency,Amount,Transaction ID\n2026-05-18T00:00:00Z,USD,42.25,pp-123\n",
   });
   assertEquals(res.status, 200);
   const body = await res.json();

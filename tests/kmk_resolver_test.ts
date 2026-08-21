@@ -1,9 +1,5 @@
 import { assertEquals, assertRejects } from "@std/assert";
-import {
-  format,
-  getKmkRateByDate,
-  resolveKmkWeek,
-} from "../services/kmk_resolver.ts";
+import { format, getKmkRateByDate, resolveKmkWeek } from "../services/kmk_resolver.ts";
 import { testMocks } from "../db/client.ts";
 import sql from "../db/client.ts";
 import { app } from "../main.ts";

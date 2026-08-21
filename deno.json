@@ -4,7 +4,7 @@
     "serve:backend": "deno task dev",
     "build:frontend": "rm -rf frontend/elm-stuff && cd frontend && elm make src/Main.elm --output=elm.js && cd ..",
     "serve:frontend": "deno run --allow-net --allow-read jsr:@std/http/file-server frontend --port=8010",
-    "validate:backend": "deno fmt --check && deno lint && deno check main.ts routes/ services/ db/ backend/ tests/ && deno test -A",
+    "validate:backend": "deno fmt --check && deno lint && deno check main.ts routes/ services/ db/ backend/ tests/ && deno test --allow-net --allow-env --allow-read",
     "validate:frontend": "cd frontend && elm-format --validate src/ && elm-test",
     "lefthook": "deno run npm:lefthook",
     "hooks:install": "deno run npm:lefthook install"
@@ -21,6 +21,7 @@
   "imports": {
     "@std/assert": "jsr:@std/assert@1",
     "@std/csv": "jsr:@std/csv@1",
+    "@std/http": "jsr:@std/http@1",
     "lefthook": "npm:lefthook@^2.1.10",
     "zod": "npm:zod@^3.23.8",
     "@hono/zod-validator": "npm:@hono/zod-validator@^0.2.1",

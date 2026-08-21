@@ -4,9 +4,7 @@ export const mapWiseRow = (r: Record<string, string>) => {
   const d = new Date(r["Created on"]);
   if (isNaN(d.getTime())) {
     throw new Error(
-      `Invalid transaction date: "${r["Created on"]}" for Transfer ID ${
-        r["Transfer ID"]
-      }`,
+      `Invalid transaction date: "${r["Created on"]}" for Transfer ID ${r["Transfer ID"]}`,
     );
   }
   return {

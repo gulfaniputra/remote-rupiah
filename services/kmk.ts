@@ -119,16 +119,12 @@ export async function upsertKmkRates(
 
   for (const period of apiResponse.data.result) {
     const currenciesToProcess = allowedCurrencies
-      ? period.kurs.filter((k: KmkApiCurrency) =>
-        allowedCurrencies.includes(k.kode_mata_uang)
-      )
+      ? period.kurs.filter((k: KmkApiCurrency) => allowedCurrencies.includes(k.kode_mata_uang))
       : period.kurs;
 
     if (currenciesToProcess.length === 0 && allowedCurrencies) {
       result.errors.push(
-        `No matches for [${
-          allowedCurrencies.join(",")
-        }] in KMK ${period.no_kmk}`,
+        `No matches for [${allowedCurrencies.join(",")}] in KMK ${period.no_kmk}`,
       );
       continue;
     }

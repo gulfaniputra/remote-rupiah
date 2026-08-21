@@ -17,17 +17,14 @@ Deno.test("headers", () =>
     "Currency",
     "Fee",
   ]));
-Deno.test("5 rows default", () =>
-  assertEquals(parseCsvStream(CSV).rows.length, 5));
-Deno.test("maxRows=3", () =>
-  assertEquals(parseCsvStream(CSV, 3).rows.length, 3));
+Deno.test("5 rows default", () => assertEquals(parseCsvStream(CSV).rows.length, 5));
+Deno.test("maxRows=3", () => assertEquals(parseCsvStream(CSV, 3).rows.length, 3));
 Deno.test("row data", () => {
   const r = parseCsvStream(CSV).rows[0];
   assertEquals(r["Amount"], "1,250.55");
   assertEquals(r["Currency"], "USD");
 });
-Deno.test("total count", () =>
-  assertEquals(parseCsvStream(CSV).totalRowCount, 6));
+Deno.test("total count", () => assertEquals(parseCsvStream(CSV).totalRowCount, 6));
 Deno.test("empty", () =>
   assertEquals(parseCsvStream(""), {
     headers: [],

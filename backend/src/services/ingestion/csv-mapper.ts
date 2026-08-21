@@ -38,8 +38,7 @@ export const mapCsvRow = (
     return { ok: false, error: "Duplicate headers detected" };
   }
 
-  const src = (target: string) =>
-    Object.keys(mapping).find((k) => mapping[k] === target);
+  const src = (target: string) => Object.keys(mapping).find((k) => mapping[k] === target);
 
   const dateKey = src("date");
   const amountKey = src("amount");

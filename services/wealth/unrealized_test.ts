@@ -1,11 +1,5 @@
 import { assertEquals } from "@std/assert";
-import {
-  aggregate,
-  computeUnrealized,
-  getUnrealized,
-  runFIFO,
-  StubFx,
-} from "./unrealized.ts";
+import { aggregate, computeUnrealized, getUnrealized, runFIFO, StubFx } from "./unrealized.ts";
 import { Transaction } from "../ingestion/pipeline.ts";
 
 Deno.test("fifo exposes open lots", () => {
@@ -90,9 +84,7 @@ Deno.test("cost conservation invariant", () => {
   );
   const totalCostInput = input.reduce(
     (total, current) =>
-      current.amount > 0n
-        ? total + (current.actual_idr_received_cents ?? 0n)
-        : total,
+      current.amount > 0n ? total + (current.actual_idr_received_cents ?? 0n) : total,
     0n,
   );
 

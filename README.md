@@ -12,13 +12,12 @@
 
 [![Live Demo](https://img.shields.io/badge/Live_Demo-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)](https://remote-rupiah.pages.dev/)
 
-**remote-rupiah** is a tax compliance dashboard for Indonesian software
-developers billing U.S. clients. Computes FX conversion spreads, NPPN net income
-deductions (KLU 62010), and PPh 24 foreign tax credit caps.
+**remote-rupiah** is a tax compliance dashboard for Indonesian software developers billing U.S.
+clients. Computes FX conversion spreads, NPPN net income deductions (KLU 62010), and PPh 24 foreign
+tax credit caps.
 
-> **Status:** Core tax engine, RLS database schema, and CSV ingestion pipelines
-> are operational and tested. Production auth, provider auto-parsers, and CD
-> automation are partial.
+> **Status:** Core tax engine, RLS database schema, and CSV ingestion pipelines are operational and
+> tested. Production auth, provider auto-parsers, and CD automation are partial.
 
 ## Repository Structure
 
@@ -54,16 +53,15 @@ deductions (KLU 62010), and PPh 24 foreign tax credit caps.
 
 ## Domain Logic & Core Guarantees
 
-- **Zero-Float Money Arithmetic:** Elm `Money.decoder` enforces `amount_cents`
-  as `String`. Ingestion normalizes input directly to `BigInt` micro-units
-  (`"1,234.56"` → `123456n`) to prevent `IEEE 754` rounding loss.
-- **Phantom Currency Types:** `Money USD` and `Money IDR` are distinct phantom
-  types in Elm preventing currency mismatches at compile time.
-- **Tenant RLS Isolation:** PostgreSQL Row-Level Security (RLS) isolates tenant
-  rows using transaction-scoped session configuration
-  (`SET LOCAL app.current_user_id`).
-- **NPPN Net Income (KLU 62010):**
-  $\text{Net Taxable Income} = \text{Gross IDR} \times 0.50$ (PER-17/PJ/2015).
+- **Zero-Float Money Arithmetic:** Elm `Money.decoder` enforces `amount_cents` as `String`.
+  Ingestion normalizes input directly to `BigInt` micro-units (`"1,234.56"` → `123456n`) to prevent
+  `IEEE 754` rounding loss.
+- **Phantom Currency Types:** `Money USD` and `Money IDR` are distinct phantom types in Elm
+  preventing currency mismatches at compile time.
+- **Tenant RLS Isolation:** PostgreSQL Row-Level Security (RLS) isolates tenant rows using
+  transaction-scoped session configuration (`SET LOCAL app.current_user_id`).
+- **NPPN Net Income (KLU 62010):** $\text{Net Taxable Income} = \text{Gross IDR} \times 0.50$
+  (PER-17/PJ/2015).
 - **PPh 24 Credit Cap:**
   $\text{Cap} = \min\left(\text{US Tax Paid}, \frac{\text{Foreign Net Income}}{\text{Total Taxable Income}} \times \text{Total ID Tax Due}\right)$.
   Requires `is_1042s_verified = true`.

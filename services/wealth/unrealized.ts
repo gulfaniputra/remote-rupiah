@@ -114,9 +114,7 @@ export const runFIFO = (entries: Transaction[]): FIFOResult => {
         throw new Error("Insufficient open lots");
       }
 
-      const matched = remaining < current.amount_usd_cents
-        ? remaining
-        : current.amount_usd_cents;
+      const matched = remaining < current.amount_usd_cents ? remaining : current.amount_usd_cents;
       const costBasis = current.cost_basis_idr_cents * matched /
         current.amount_usd_cents;
       const proceeds = (entry.actual_idr_received_cents ?? 0n) * matched /
@@ -231,9 +229,7 @@ export const getUnrealizedForUser = (
           actual_idr_received_cents: row.actual_idr_received_cents
             ? BigInt(row.actual_idr_received_cents)
             : 0n,
-          metadata: typeof row.metadata === "string"
-            ? JSON.parse(row.metadata)
-            : row.metadata,
+          metadata: typeof row.metadata === "string" ? JSON.parse(row.metadata) : row.metadata,
         }]
       ),
       fx,

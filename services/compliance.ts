@@ -85,19 +85,17 @@ export const upsertDocument = (
   userId: string,
   payload: UpsertPayload,
 ): Promise<{ id: string }> =>
-  !userId
-    ? Promise.reject(new Error("Authentication required"))
-    : withAuth(userId, async (tx) => {
-      const rows = await tx`
+  !userId ? Promise.reject(new Error("Authentication required")) : withAuth(userId, async (tx) => {
+    const rows = await tx`
           INSERT INTO compliance_documents
             (user_id, document_type, tax_year, storage_key, mime_type, size_bytes)
           VALUES
             (${userId}, ${payload.documentType}, ${payload.taxYear},
              ${payload.storageKey}, ${payload.mimeType}, ${
-        validatePayload(
-          payload,
-        ).toString()
-      })
+      validatePayload(
+        payload,
+      ).toString()
+    })
           ON CONFLICT (user_id, document_type, tax_year)
           DO UPDATE SET
             storage_key  = EXCLUDED.storage_key,
@@ -107,8 +105,8 @@ export const upsertDocument = (
             uploaded_at  = NOW()
           RETURNING id
         `;
-      return { id: rows[0]?.id ?? "" };
-    });
+    return { id: rows[0]?.id ?? "" };
+  });
 
 // Service: `getNppnStatus`
 
@@ -169,11 +167,7 @@ export const getComplianceStatus = (
     const expiryRaw: string | null = profileRows[0]?.w8ben_expiry_date ?? null;
 
     return {
-      w8benStatus: !expiryRaw
-        ? "Missing"
-        : new Date(expiryRaw) >= new Date()
-        ? "Valid"
-        : "Expired",
+      w8benStatus: !expiryRaw ? "Missing" : new Date(expiryRaw) >= new Date() ? "Valid" : "Expired",
       w8benExpiryDate: expiryRaw,
       documents: docRows.map((r) => ({
         documentType: r.document_type as string,

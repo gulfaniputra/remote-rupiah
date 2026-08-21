@@ -1,0 +1,16 @@
+{
+  "deno.enable": true,
+  "deno.unstable": ["kv"],
+  "deno.config": "./deno.json",
+  "deno.cacheOnSave": true,
+  "deno.lintOnSave": true,
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "denoland.vscode-deno",
+  "[elm]": {
+    "editor.defaultFormatter": "elmTooling.elm-ls-vscode"
+  },
+  "files.associations": {
+    "*.elm": "elm",
+    "deno.json": "jsonc"
+  }
+}

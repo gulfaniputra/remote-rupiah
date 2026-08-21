@@ -3,10 +3,7 @@ import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { authMiddleware } from "../services/auth_middleware.ts";
 import { recordConversion } from "../services/wealth/fifo_manager.ts";
-import {
-  FixedEnvFx,
-  getUnrealizedForUser,
-} from "../services/wealth/unrealized.ts";
+import { FixedEnvFx, getUnrealizedForUser } from "../services/wealth/unrealized.ts";
 
 const app = new Hono();
 
@@ -17,9 +14,7 @@ app.post(
   zValidator(
     "json",
     z.object({
-      amountUsdCents: z.union([z.number().int(), z.bigint()]).transform((v) =>
-        BigInt(v)
-      ),
+      amountUsdCents: z.union([z.number().int(), z.bigint()]).transform((v) => BigInt(v)),
       source: z.string().min(1),
     }),
   ),

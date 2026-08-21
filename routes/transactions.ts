@@ -56,8 +56,7 @@ export const txOutputSchema = z.object({
   }, z.record(z.unknown()).nullable().optional()),
 });
 
-export const serializeTx = (row: Record<string, unknown>) =>
-  txOutputSchema.parse(row);
+export const serializeTx = (row: Record<string, unknown>) => txOutputSchema.parse(row);
 
 app.use("*", authMiddleware);
 
@@ -95,9 +94,7 @@ app.post("/", zValidator("json", schema), async (c) => {
     c.json(
       {
         success: true,
-        data: res[0]
-          ? serializeTx(res[0] as Record<string, unknown>)
-          : undefined,
+        data: res[0] ? serializeTx(res[0] as Record<string, unknown>) : undefined,
       },
       201,
     )
@@ -111,8 +108,7 @@ app.get(
     const uid = getUserId(c as unknown as Context<AppEnv>);
     return withAuth(
       uid,
-      (tx) =>
-        tx`SELECT * FROM transactions WHERE id = ${c.req.valid("param").id}`,
+      (tx) => tx`SELECT * FROM transactions WHERE id = ${c.req.valid("param").id}`,
     ).then((res) =>
       res[0]
         ? c.json({

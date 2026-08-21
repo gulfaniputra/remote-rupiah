@@ -191,10 +191,7 @@ app.post("/", async (c) => {
                 ${row.date},
                 ${row.currency},
                 ${row.amount_cents.toString()},
-                ${
-              JSON.stringify(row.metadata, (_, v) =>
-                typeof v === "bigint" ? v.toString() : v)
-            },
+                ${JSON.stringify(row.metadata, (_, v) => typeof v === "bigint" ? v.toString() : v)},
                 ${row.actual_idr_received_cents?.toString() ?? null}
               )
               ON CONFLICT (user_id, source_tx_id) DO UPDATE SET

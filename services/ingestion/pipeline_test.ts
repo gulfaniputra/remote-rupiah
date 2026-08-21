@@ -124,8 +124,7 @@ Deno.test("Ingestion - output includes id/date/amount/currency", async () => {
 });
 
 Deno.test("Ingestion - id stable across repeated runs", async () => {
-  const csv =
-    "tx_date,tx_amount,tx_currency,tx_source\n2026-05-01T00:00:00Z,1000.00,USD,wise\n";
+  const csv = "tx_date,tx_amount,tx_currency,tx_source\n2026-05-01T00:00:00Z,1000.00,USD,wise\n";
 
   const store1 = new MemoryPersistenceStore();
   await ingestCsvStream(stringToStream(csv), sampleConfig, store1, "lenient");

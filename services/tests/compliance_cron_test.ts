@@ -1,9 +1,5 @@
 import { assertEquals } from "@std/assert";
-import {
-  scanExpiredW8BEN,
-  scanNppnDeadline,
-  type W8BENScanResult,
-} from "../compliance_cron.ts";
+import { scanExpiredW8BEN, scanNppnDeadline, type W8BENScanResult } from "../compliance_cron.ts";
 import { testMocks } from "../../db/client.ts";
 
 // ---------------------------------------------------------------------------

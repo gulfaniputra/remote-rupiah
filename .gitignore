@@ -29,7 +29,6 @@ coverage/
 
 # System & tooling
 .DS_Store
-.vscode/
 .idea/
 *.log
 repomix-output.md

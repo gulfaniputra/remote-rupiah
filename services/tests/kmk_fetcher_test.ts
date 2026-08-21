@@ -19,8 +19,7 @@ Deno.test("shape", () => {
   assertEquals(Object.keys(r).length, 9);
 });
 Deno.test("currency 3 chars", () => assertEquals(mock().currency.length, 3));
-Deno.test("midRate numeric", () =>
-  assertEquals(mock({ midRate: 1620050n }).midRate > 0n, true));
+Deno.test("midRate numeric", () => assertEquals(mock({ midRate: 1620050n }).midRate > 0n, true));
 Deno.test("7-day window", () =>
   assertEquals(
     (new Date("2026-04-29").getTime() - new Date("2026-04-23").getTime()) /

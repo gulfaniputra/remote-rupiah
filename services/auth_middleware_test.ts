@@ -1,11 +1,7 @@
 import { assertEquals, assertRejects } from "@std/assert";
 import { Hono } from "hono";
 import { sign } from "hono/jwt";
-import {
-  authMiddleware,
-  generateDevToken,
-  getJwtSecret,
-} from "./auth_middleware.ts";
+import { authMiddleware, generateDevToken, getJwtSecret } from "./auth_middleware.ts";
 
 // ---------------------------------------------------------------------------
 // Helpers

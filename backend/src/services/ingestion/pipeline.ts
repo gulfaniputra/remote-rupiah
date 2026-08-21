@@ -32,9 +32,7 @@ export function isCanonicalTx(tx: unknown): tx is CanonicalTx {
  * Pure helper for deterministic ID generation.
  */
 export function generateDeterministicId(tx: CanonicalTx): string {
-  const str = `${
-    tx.date.toISOString().split("T")[0]
-  }|${tx.amount}|${tx.currency}`;
+  const str = `${tx.date.toISOString().split("T")[0]}|${tx.amount}|${tx.currency}`;
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = str.charCodeAt(i) + (hash << 6) + (hash << 16) - hash;

@@ -1,12 +1,7 @@
 import { Context, Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import {
-  backfillKmkRates,
-  listKmkRates,
-  lookupKmkRate,
-  syncKmkRates,
-} from "../services/kmk.ts";
+import { backfillKmkRates, listKmkRates, lookupKmkRate, syncKmkRates } from "../services/kmk.ts";
 
 const app = new Hono();
 
@@ -77,9 +72,7 @@ app.get(
   "/latest",
   (c) =>
     lookupKmkRate(new Date().toISOString().slice(0, 10), "USD").then((r) =>
-      r
-        ? c.json({ success: true, data: r })
-        : c.json({ error: "Not synced" }, 404)
+      r ? c.json({ success: true, data: r }) : c.json({ error: "Not synced" }, 404)
     ),
 );
 
@@ -95,9 +88,7 @@ app.get(
   (c) => {
     const { date, currency } = c.req.valid("query");
     return lookupKmkRate(date, currency).then((r) =>
-      r
-        ? c.json({ success: true, data: r })
-        : c.json({ error: "Not found" }, 404)
+      r ? c.json({ success: true, data: r }) : c.json({ error: "Not found" }, 404)
     );
   },
 );
@@ -126,21 +117,17 @@ app.post(
     z.object({ date: z.string().optional(), currency: z.string().optional() }),
   ),
   (c) =>
-    !check(c)
-      ? c.json({ error: "Unauthorized" }, 401)
-      : syncKmkRates(c.req.valid("json"))
-        .then((res) =>
-          c.json({ success: true, ...res }, res.errors.length ? 207 : 200)
+    !check(c) ? c.json({ error: "Unauthorized" }, 401) : syncKmkRates(c.req.valid("json"))
+      .then((res) => c.json({ success: true, ...res }, res.errors.length ? 207 : 200))
+      .catch((e: unknown) =>
+        c.json(
+          {
+            success: false,
+            error: e instanceof Error ? e.message : String(e),
+          },
+          502,
         )
-        .catch((e: unknown) =>
-          c.json(
-            {
-              success: false,
-              error: e instanceof Error ? e.message : String(e),
-            },
-            502,
-          )
-        ),
+      ),
 );
 
 app.post(
@@ -154,19 +141,17 @@ app.post(
   ),
   (c) => {
     const { weeks, currencies } = c.req.valid("json");
-    return !check(c)
-      ? c.json({ error: "Unauthorized" }, 401)
-      : backfillKmkRates(weeks, currencies)
-        .then((res) => c.json({ success: true, ...res }))
-        .catch((e: unknown) =>
-          c.json(
-            {
-              success: false,
-              error: e instanceof Error ? e.message : String(e),
-            },
-            500,
-          )
-        );
+    return !check(c) ? c.json({ error: "Unauthorized" }, 401) : backfillKmkRates(weeks, currencies)
+      .then((res) => c.json({ success: true, ...res }))
+      .catch((e: unknown) =>
+        c.json(
+          {
+            success: false,
+            error: e instanceof Error ? e.message : String(e),
+          },
+          500,
+        )
+      );
   },
 );
 

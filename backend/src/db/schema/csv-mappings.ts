@@ -15,7 +15,6 @@ export const CsvMappingSchema = z
       );
     },
     {
-      message:
-        "Mapping must contain all required target fields: date, amount, currency",
+      message: "Mapping must contain all required target fields: date, amount, currency",
     },
   );

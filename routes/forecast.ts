@@ -80,9 +80,7 @@ app.get("/fx-efficiency", (c) => {
         source: row.source,
         kmk_rate: row.kmk_rate,
         amount_cents: String(row.amount_cents),
-        actual_idr_cents: row.actual_idr_cents
-          ? String(row.actual_idr_cents)
-          : null,
+        actual_idr_cents: row.actual_idr_cents ? String(row.actual_idr_cents) : null,
         spread_cents: String(row.spread_cents),
         amount_idr_cents: String(row.amount_idr_cents),
       })),

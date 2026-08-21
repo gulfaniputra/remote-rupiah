@@ -54,9 +54,7 @@ Deno.test("KMK API Contract Verification (Mock)", () => {
   );
 
   if (result.success) {
-    const usd = result.data.data.result[0].kurs.find((k) =>
-      k.kode_mata_uang === "USD"
-    );
+    const usd = result.data.data.result[0].kurs.find((k) => k.kode_mata_uang === "USD");
     assertEquals(usd?.kurs_tengah, "17146.00");
   }
 });
