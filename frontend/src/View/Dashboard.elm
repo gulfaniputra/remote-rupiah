@@ -1,15 +1,23 @@
-module View.Dashboard exposing (DashboardHandlers, totalFxLeakage, totalUnrealized, view)
+module View.Dashboard exposing
+    ( DashboardHandlers
+    , groupFxLeakageBySource
+    , totalFxLeakage
+    , totalUnrealized
+    , view
+    )
 
 import Data.Compliance as C
 import Data.FxEfficiency exposing (FxEfficiencyData)
 import Data.State exposing (State(..))
 import Data.Transaction exposing (Transaction)
 import Data.Unrealized exposing (Unrealized)
+import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput)
 import Html.Keyed
-import Money
+import Maybe
+import Money exposing (IDR, Money)
 import TaxLogic as T
 
 
@@ -157,6 +165,10 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
 
         fmt m =
             toShorthand m
+
+        -- Group FX leakage by provider
+        groupedLeakage =
+            groupFxLeakageBySource fxLeakage
     in
     div []
         [ viewNppnAlert { onNppnNotify = handlers.onNppnNotify } complianceStatus
@@ -223,6 +235,15 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
                 [ h3 [] [ text "UNREALIZED FX GAIN/LOSS" ]
                 , div [ class "big-value font-mono text-secondary" ] [ text (fmt unrealizedIdr) ]
                 ]
+            , if List.isEmpty groupedLeakage then
+                text ""
+
+              else
+                div [ class "card card-default" ]
+                    [ h3 [] [ text "FX LEAKAGE BY PROVIDER" ]
+                    , div [ class "flex-col gap-1" ]
+                        (List.map renderProviderRow groupedLeakage)
+                    ]
             ]
         , div [ class "middle-grid" ]
             [ div [ class "chart-card" ]
@@ -292,6 +313,14 @@ totalUnrealized =
 totalFxLeakage : List FxEfficiencyData -> Money.Money Money.IDR
 totalFxLeakage =
     List.foldl (\position acc -> Money.add acc position.spreadCents) Money.zero
+
+
+renderProviderRow : ( String, Money IDR ) -> Html msg
+renderProviderRow ( source, amount ) =
+    div [ class "calc-row" ]
+        [ span [ class "text-secondary" ] [ text (formatSourceLabel source) ]
+        , span [ class "font-mono" ] [ text (toShorthand amount) ]
+        ]
 
 
 w8BenBadge : C.W8BenStatus -> Html msg
@@ -498,3 +527,24 @@ chunkString size str =
 
     else
         String.left size str :: chunkString size (String.dropLeft size str)
+
+
+groupFxLeakageBySource : List FxEfficiencyData -> List ( String, Money IDR )
+groupFxLeakageBySource fxList =
+    let
+        addFx fx dict =
+            let
+                source =
+                    fx.source |> Maybe.withDefault "unknown"
+
+                current =
+                    Dict.get source dict |> Maybe.withDefault Money.zero
+
+                updated =
+                    Money.add current fx.spreadCents
+            in
+            Dict.insert source updated dict
+    in
+    fxList
+        |> List.foldl addFx Dict.empty
+        |> Dict.toList

@@ -292,7 +292,7 @@ view : Model -> Html Msg
 view m =
     case m.appState of
         Loading ->
-            div [] [ text "Loading Remote Rupiah pipeline..." ]
+            div [] [ text "Loading remote-rupiah pipeline..." ]
 
         Failure err ->
             div [] [ text ("Error: " ++ err) ]

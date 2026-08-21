@@ -11,10 +11,15 @@ import Test.Html.Query as Query
 import Test.Html.Selector as Selector
 import View.Dashboard as Dashboard
 
+
 type TestMsg
     = UserTriggeredNppnAction
 
+
+
 -- Helper to reduce boilerplate for tests that don't need to track events
+
+
 noOpHandlers : Dashboard.DashboardHandlers ()
 noOpHandlers =
     { onSourceChange = \_ -> ()
@@ -28,6 +33,7 @@ noOpHandlers =
     , onExport = ()
     , onNppnNotify = ()
     }
+
 
 suite : Test
 suite =
@@ -44,7 +50,6 @@ suite =
             \_ ->
                 Dashboard.totalFxLeakage
                     [ { date = "2026-05-18", amountCents = Money.fromCents 100000, amountIdrCents = Money.fromCents 1615000000, kmkRate = Just "16120.00", actualIdrCents = Just (Money.fromCents 1610000000), spreadCents = Money.fromCents 5000000, source = Just "wise" }
-                    -- FIX: Converted fromCentsStr to native integers via fromCents to prevent type mismatches
                     , { date = "2026-05-19", amountCents = Money.fromCents 200000, amountIdrCents = Money.fromCents 3222500000, kmkRate = Just "16120.00", actualIdrCents = Just (Money.fromCents 3220000000), spreadCents = Money.fromCents 2500000, source = Just "wise" }
                     ]
                     |> Money.toCents
@@ -73,14 +78,15 @@ suite =
                     Nothing
                     noOpHandlers
                     |> Query.fromHtml
-                    |> \html ->
-                        Expect.all
-                            [ \q -> q |> Query.find [ Selector.id "tax-npwp" ] |> Query.has [ Selector.attribute (Attr.value "12.345.678.9-012.000") ]
-                            , \q -> q |> Query.find [ Selector.id "tax-nik" ] |> Query.has [ Selector.attribute (Attr.value "1234567890123456") ]
-                            , \q -> q |> Query.find [ Selector.id "tax-address" ] |> Query.has [ Selector.attribute (Attr.value "123 Sudirman") ]
-                            , \q -> q |> Query.find [ Selector.id "tax-klu" ] |> Query.has [ Selector.attribute (Attr.value "62010") ]
-                            ]
-                            html
+                    |> (\html ->
+                            Expect.all
+                                [ \q -> q |> Query.find [ Selector.id "tax-npwp" ] |> Query.has [ Selector.attribute (Attr.value "12.345.678.9-012.000") ]
+                                , \q -> q |> Query.find [ Selector.id "tax-nik" ] |> Query.has [ Selector.attribute (Attr.value "1234567890123456") ]
+                                , \q -> q |> Query.find [ Selector.id "tax-address" ] |> Query.has [ Selector.attribute (Attr.value "123 Sudirman") ]
+                                , \q -> q |> Query.find [ Selector.id "tax-klu" ] |> Query.has [ Selector.attribute (Attr.value "62010") ]
+                                ]
+                                html
+                       )
         , test "displays validation error when NPWP or NIK is invalid length" <|
             \_ ->
                 Dashboard.view
@@ -99,8 +105,11 @@ suite =
             [ test "Overdue + not notified → view contains 'deadline missed'" <|
                 \_ ->
                     let
-                        nppnStatus = { notified = False, notifiedAt = Nothing, deadline = "2026-03-31", daysRemaining = -5, isOverdue = True }
-                        complianceStatus = { w8benStatus = C.W8BenValid, w8benExpiryDate = Just "2099-12-31", documents = [], nppnStatus = nppnStatus }
+                        nppnStatus =
+                            { notified = False, notifiedAt = Nothing, deadline = "2026-03-31", daysRemaining = -5, isOverdue = True }
+
+                        complianceStatus =
+                            { w8benStatus = C.W8BenValid, w8benExpiryDate = Just "2099-12-31", documents = [], nppnStatus = nppnStatus }
                     in
                     Dashboard.view
                         (Ready { txs = [], unrealized = [], fxLeakage = [] })
@@ -115,8 +124,11 @@ suite =
             , test "14 days remaining + not notified → view contains 'due in'" <|
                 \_ ->
                     let
-                        nppnStatus = { notified = False, notifiedAt = Nothing, deadline = "2026-03-31", daysRemaining = 14, isOverdue = False }
-                        complianceStatus = { w8benStatus = C.W8BenValid, w8benExpiryDate = Just "2099-12-31", documents = [], nppnStatus = nppnStatus }
+                        nppnStatus =
+                            { notified = False, notifiedAt = Nothing, deadline = "2026-03-31", daysRemaining = 14, isOverdue = False }
+
+                        complianceStatus =
+                            { w8benStatus = C.W8BenValid, w8benExpiryDate = Just "2099-12-31", documents = [], nppnStatus = nppnStatus }
                     in
                     Dashboard.view
                         (Ready { txs = [], unrealized = [], fxLeakage = [] })
@@ -131,8 +143,11 @@ suite =
             , test "Notified → view contains 'NPPN filed'" <|
                 \_ ->
                     let
-                        nppnStatus = { notified = True, notifiedAt = Just "2026-03-15T10:00:00Z", deadline = "2026-03-31", daysRemaining = 0, isOverdue = False }
-                        complianceStatus = { w8benStatus = C.W8BenValid, w8benExpiryDate = Just "2099-12-31", documents = [], nppnStatus = nppnStatus }
+                        nppnStatus =
+                            { notified = True, notifiedAt = Just "2026-03-15T10:00:00Z", deadline = "2026-03-31", daysRemaining = 0, isOverdue = False }
+
+                        complianceStatus =
+                            { w8benStatus = C.W8BenValid, w8benExpiryDate = Just "2099-12-31", documents = [], nppnStatus = nppnStatus }
                     in
                     Dashboard.view
                         (Ready { txs = [], unrealized = [], fxLeakage = [] })
@@ -147,8 +162,11 @@ suite =
             , test "Not notified → notify button click triggers onNppnNotify" <|
                 \_ ->
                     let
-                        nppnStatus = { notified = False, notifiedAt = Nothing, deadline = "2026-03-31", daysRemaining = 30, isOverdue = False }
-                        complianceStatus = { w8benStatus = C.W8BenValid, w8benExpiryDate = Just "2099-12-31", documents = [], nppnStatus = nppnStatus }
+                        nppnStatus =
+                            { notified = False, notifiedAt = Nothing, deadline = "2026-03-31", daysRemaining = 30, isOverdue = False }
+
+                        complianceStatus =
+                            { w8benStatus = C.W8BenValid, w8benExpiryDate = Just "2099-12-31", documents = [], nppnStatus = nppnStatus }
 
                         handlers : Dashboard.DashboardHandlers TestMsg
                         handlers =
@@ -177,5 +195,62 @@ suite =
                         |> Query.find [ Selector.tag "button" ]
                         |> Event.simulate Event.click
                         |> Event.expect UserTriggeredNppnAction
+            ]
+        , describe "groupFxLeakageBySource"
+            [ test "groups leakage by source correctly" <|
+                \_ ->
+                    let
+                        fx1 =
+                            { date = "2026-05-18"
+                            , amountCents = Money.fromCents 100000
+                            , amountIdrCents = Money.fromCents 1615000000
+                            , kmkRate = Just "16120.00"
+                            , actualIdrCents = Just (Money.fromCents 1610000000)
+                            , spreadCents = Money.fromCents 5000000
+                            , source = Just "wise"
+                            }
+
+                        fx2 =
+                            { fx1 | spreadCents = Money.fromCents 2000000, source = Just "paypal" }
+
+                        fx3 =
+                            { fx1 | spreadCents = Money.fromCents 3000000, source = Just "wise" }
+
+                        result =
+                            Dashboard.groupFxLeakageBySource [ fx1, fx2, fx3 ]
+
+                        expected =
+                            [ ( "wise", Money.fromCents 8000000 )
+                            , ( "paypal", Money.fromCents 2000000 )
+                            ]
+
+                        sortedResult =
+                            List.sortBy Tuple.first result
+
+                        sortedExpected =
+                            List.sortBy Tuple.first expected
+                    in
+                    Expect.equal sortedResult sortedExpected
+            , test "handles missing source as 'unknown'" <|
+                \_ ->
+                    let
+                        fx =
+                            { date = "2026-05-18"
+                            , amountCents = Money.fromCents 100000
+                            , amountIdrCents = Money.fromCents 1615000000
+                            , kmkRate = Just "16120.00"
+                            , actualIdrCents = Just (Money.fromCents 1610000000)
+                            , spreadCents = Money.fromCents 5000000
+                            , source = Nothing
+                            }
+
+                        result =
+                            Dashboard.groupFxLeakageBySource [ fx ]
+                    in
+                    Expect.equal result [ ( "unknown", Money.fromCents 5000000 ) ]
+            , test "returns empty list for empty input" <|
+                \_ ->
+                    Dashboard.groupFxLeakageBySource []
+                        |> Expect.equal []
             ]
         ]

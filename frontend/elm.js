@@ -8918,6 +8918,20 @@ var $author$project$View$Dashboard$formatSourceLabel = function (source) {
 			return source;
 	}
 };
+var $author$project$View$Dashboard$groupFxLeakageBySource = function (fxList) {
+	var addFx = F2(
+		function (fx, dict) {
+			var source = A2($elm$core$Maybe$withDefault, 'unknown', fx.source);
+			var current = A2(
+				$elm$core$Maybe$withDefault,
+				$author$project$Money$zero,
+				A2($elm$core$Dict$get, source, dict));
+			var updated = A2($author$project$Money$add, current, fx.spreadCents);
+			return A3($elm$core$Dict$insert, source, updated, dict);
+		});
+	return $elm$core$Dict$toList(
+		A3($elm$core$List$foldl, addFx, $elm$core$Dict$empty, fxList));
+};
 var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$html$Html$input = _VirtualDom_node('input');
 var $elm$core$String$filter = _String_filter;
@@ -9052,6 +9066,41 @@ var $author$project$View$Dashboard$toShorthand = function (money) {
 			suffix) : ($elm$core$String$fromInt(whole) + ('.' + ($elm$core$String$fromInt(frac) + suffix)));
 	}();
 	return 'IDR ' + (sign + formatted);
+};
+var $author$project$View$Dashboard$renderProviderRow = function (_v0) {
+	var source = _v0.a;
+	var amount = _v0.b;
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('calc-row')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$span,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('text-secondary')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(
+						$author$project$View$Dashboard$formatSourceLabel(source))
+					])),
+				A2(
+				$elm$html$Html$span,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('font-mono')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(
+						$author$project$View$Dashboard$toShorthand(amount))
+					]))
+			]));
 };
 var $author$project$View$Dashboard$summaryCard = F3(
 	function (label, value, cls) {
@@ -9252,6 +9301,7 @@ var $author$project$View$Dashboard$renderReady = F9(
 				$author$project$Money$zero,
 				txs));
 		var unrealizedIdr = $author$project$View$Dashboard$totalUnrealized(unrealized);
+		var groupedLeakage = $author$project$View$Dashboard$groupFxLeakageBySource(fxLeakage);
 		var fxLeakageIdr = $author$project$View$Dashboard$totalFxLeakage(fxLeakage);
 		var fmt = function (m) {
 			return $author$project$View$Dashboard$toShorthand(m);
@@ -9597,6 +9647,29 @@ var $author$project$View$Dashboard$renderReady = F9(
 											$elm$html$Html$text(
 											fmt(unrealizedIdr))
 										]))
+								])),
+							$elm$core$List$isEmpty(groupedLeakage) ? $elm$html$Html$text('') : A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('card card-default')
+								]),
+							_List_fromArray(
+								[
+									A2(
+									$elm$html$Html$h3,
+									_List_Nil,
+									_List_fromArray(
+										[
+											$elm$html$Html$text('FX LEAKAGE BY PROVIDER')
+										])),
+									A2(
+									$elm$html$Html$div,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('flex-col gap-1')
+										]),
+									A2($elm$core$List$map, $author$project$View$Dashboard$renderProviderRow, groupedLeakage))
 								]))
 						])),
 					A2(
@@ -9914,7 +9987,7 @@ var $author$project$Main$view = function (m) {
 				_List_Nil,
 				_List_fromArray(
 					[
-						$elm$html$Html$text('Loading Remote Rupiah pipeline...')
+						$elm$html$Html$text('Loading remote-rupiah pipeline...')
 					]));
 		case 'Failure':
 			var err = _v0.a;

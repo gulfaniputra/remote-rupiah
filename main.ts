@@ -64,7 +64,7 @@ app.use(
 );
 
 // Core & Auth Endpoints
-app.get("/", (c) => c.text("Remote Rupiah API"));
+app.get("/", (c) => c.text("remote-rupiah API"));
 
 app.get("/api/auth/token", async (c) => {
   if (Deno.env.get("ALLOW_DEV_AUTH") !== "true") {
