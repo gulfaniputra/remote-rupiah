@@ -11,12 +11,42 @@ suite : Test
 suite =
     describe "Tax Logic Comprehensive Suite"
         [ describe "Legacy Tests"
-            [ test "nppn" <| \_ -> Expect.equal (Money.fromCents 817500000) (calculateNppnProfit (Money.fromCents 100000) 1635000)
-            , test "pph24" <| \_ -> Expect.equal (Money.fromCents 1000000000) (calculatePPh24Credit { foreignNetIncome = Money.fromCents 10000000000, totalTaxableIncome = Money.fromCents 20000000000, totalIndoTaxDue = Money.fromCents 2000000000, actualForeignTaxPaid = Money.fromCents 1500000000 })
-            , test "neg" <| \_ -> Expect.equal "0" (generateTaxReport defaultBrackets (Money.fromCents -10000) Money.zero).totalTaxDue
-            , test "cap" <| \_ -> Expect.equal "0" (generateTaxReport defaultBrackets (Money.fromCents 20000000000) (Money.fromCents 1000000000)).totalTaxDue
-            , test "jump" <| \_ -> Expect.equal "300000015" (generateTaxReport defaultBrackets (Money.fromCents 12000000200) Money.zero).totalTaxDue
-            , fuzz (Fuzz.intRange 0 100000000) "fz" <| \c -> Expect.equal (Money.fromCents (c * 8000)) (calculateNppnProfit (Money.fromCents c) 1600000)
+            [ test "nppn" <|
+                \_ ->
+                    Expect.equal
+                        (Money.fromCents 817500000)
+                        (calculateNppnProfit (Money.fromCents 100000) 1635000)
+            , test "pph24" <|
+                \_ ->
+                    Expect.equal
+                        (Money.fromCents 1000000000)
+                        (calculatePPh24Credit
+                            { foreignNetIncome = Money.fromCents 10000000000
+                            , totalTaxableIncome = Money.fromCents 20000000000
+                            , totalIndoTaxDue = Money.fromCents 2000000000
+                            , actualForeignTaxPaid = Money.fromCents 1500000000
+                            }
+                        )
+            , test "neg" <|
+                \_ ->
+                    Expect.equal
+                        "0"
+                        (generateTaxReport defaultBrackets (Money.fromCents -10000) Money.zero).totalTaxDue
+            , test "cap" <|
+                \_ ->
+                    Expect.equal
+                        "0"
+                        (generateTaxReport defaultBrackets (Money.fromCents 20000000000) (Money.fromCents 1000000000)).totalTaxDue
+            , test "jump" <|
+                \_ ->
+                    Expect.equal
+                        "300000015"
+                        (generateTaxReport defaultBrackets (Money.fromCents 12000000200) Money.zero).totalTaxDue
+            , fuzz (Fuzz.intRange 0 100000000) "fz" <|
+                \c ->
+                    Expect.equal
+                        (Money.fromCents (c * 8000))
+                        (calculateNppnProfit (Money.fromCents c) 1600000)
             ]
         , describe "Progressive Tax Unit Tests"
             [ describe "60M Boundary"
@@ -78,19 +108,14 @@ suite =
                         totalTax =
                             Money.fromCentsStr "900000000"
 
-                        -- 9M IDR
                         foreignIncome =
                             Money.fromCentsStr "4000000000"
 
-                        -- 40M IDR
                         totalIncome =
                             Money.fromCentsStr "10000000000"
 
-                        -- 100M IDR
                         foreignTaxPaid =
                             Money.fromCentsStr "300000000"
-
-                        -- 3M IDR (cap = 3.6M IDR)
                     in
                     calculatePPh24 totalTax foreignIncome totalIncome foreignTaxPaid
                         |> Money.toCents
@@ -109,8 +134,6 @@ suite =
 
                         foreignTaxPaid =
                             Money.fromCentsStr "360000000"
-
-                        -- 3.6M IDR (cap = 3.6M IDR)
                     in
                     calculatePPh24 totalTax foreignIncome totalIncome foreignTaxPaid
                         |> Money.toCents
@@ -129,8 +152,6 @@ suite =
 
                         foreignTaxPaid =
                             Money.fromCentsStr "400000000"
-
-                        -- 4M IDR (cap = 3.6M IDR)
                     in
                     calculatePPh24 totalTax foreignIncome totalIncome foreignTaxPaid
                         |> Money.toCents
@@ -206,35 +227,71 @@ suite =
         , describe "Missing Exported Functions"
             [ describe "calculateUsWithholding"
                 [ test "10% of 1000" <|
-                    \_ -> calculateUsWithholding (Money.fromCents 100000) |> Money.toAuthoritativeString |> Expect.equal "10000"
+                    \_ ->
+                        calculateUsWithholding (Money.fromCents 100000)
+                            |> Money.toAuthoritativeString
+                            |> Expect.equal "10000"
                 , test "10% of zero" <|
-                    \_ -> calculateUsWithholding Money.zero |> Money.toAuthoritativeString |> Expect.equal "0"
+                    \_ ->
+                        calculateUsWithholding Money.zero
+                            |> Money.toAuthoritativeString
+                            |> Expect.equal "0"
                 , fuzz (Fuzz.intRange 0 100000000) "withholding is always positive or zero" <|
-                    \c -> calculateUsWithholding (Money.fromCents c) |> Money.toCents |> Expect.atLeast 0
+                    \c ->
+                        calculateUsWithholding (Money.fromCents c)
+                            |> Money.toCents
+                            |> Expect.atLeast 0
                 ]
             , describe "minMoney"
                 [ test "a < b" <|
-                    \_ -> minMoney (Money.fromCents 100) (Money.fromCents 200) |> Money.toAuthoritativeString |> Expect.equal "100"
+                    \_ ->
+                        minMoney (Money.fromCents 100) (Money.fromCents 200)
+                            |> Money.toAuthoritativeString
+                            |> Expect.equal "100"
                 , test "a > b" <|
-                    \_ -> minMoney (Money.fromCents 300) (Money.fromCents 100) |> Money.toAuthoritativeString |> Expect.equal "100"
+                    \_ ->
+                        minMoney (Money.fromCents 300) (Money.fromCents 100)
+                            |> Money.toAuthoritativeString
+                            |> Expect.equal "100"
                 , test "a == b" <|
-                    \_ -> minMoney (Money.fromCents 200) (Money.fromCents 200) |> Money.toAuthoritativeString |> Expect.equal "200"
+                    \_ ->
+                        minMoney (Money.fromCents 200) (Money.fromCents 200)
+                            |> Money.toAuthoritativeString
+                            |> Expect.equal "200"
                 ]
             , describe "nonNegative"
                 [ test "positive stays positive" <|
-                    \_ -> nonNegative (Money.fromCents 100) |> Money.toAuthoritativeString |> Expect.equal "100"
+                    \_ ->
+                        nonNegative (Money.fromCents 100)
+                            |> Money.toAuthoritativeString
+                            |> Expect.equal "100"
                 , test "negative clamped to zero" <|
-                    \_ -> nonNegative (Money.fromCents -100) |> Money.toAuthoritativeString |> Expect.equal "0"
+                    \_ ->
+                        nonNegative (Money.fromCents -100)
+                            |> Money.toAuthoritativeString
+                            |> Expect.equal "0"
                 , test "zero stays zero" <|
-                    \_ -> nonNegative Money.zero |> Money.toAuthoritativeString |> Expect.equal "0"
+                    \_ ->
+                        nonNegative Money.zero
+                            |> Money.toAuthoritativeString
+                            |> Expect.equal "0"
                 ]
             , describe "calculateFinalPayable"
                 [ test "tax > credit" <|
-                    \_ -> calculateFinalPayable (Money.fromCents 500) (Money.fromCents 200) |> Money.toAuthoritativeString |> Expect.equal "300"
+                    \_ ->
+                        calculateFinalPayable (Money.fromCents 500) (Money.fromCents 200)
+                            |> Money.toAuthoritativeString
+                            |> Expect.equal "300"
                 , test "tax == credit" <|
-                    \_ -> calculateFinalPayable (Money.fromCents 500) (Money.fromCents 500) |> Money.toAuthoritativeString |> Expect.equal "0"
+                    \_ ->
+                        calculateFinalPayable (Money.fromCents 500) (Money.fromCents 500)
+                            |> Money.toAuthoritativeString
+                            |> Expect.equal "0"
                 , test "credit > tax clamped to zero" <|
-                    \_ -> calculateFinalPayable (Money.fromCents 200) (Money.fromCents 500) |> Money.toAuthoritativeString |> Expect.equal "0"
+                    \_ ->
+                        calculateFinalPayable (Money.fromCents 200) (Money.fromCents 500)
+                            |> Money.toAuthoritativeString
+                            |> Expect.equal "0"
                 , fuzz2 (Fuzz.intRange 0 100000000) (Fuzz.intRange 0 100000000) "payable is always non-negative" <|
                     \tax credit ->
                         calculateFinalPayable (Money.fromCents tax) (Money.fromCents credit)
@@ -243,11 +300,20 @@ suite =
                 ]
             , describe "calculateIndoTax"
                 [ test "delegates to progressive tax: zero income" <|
-                    \_ -> calculateIndoTax defaultBrackets Money.zero |> Money.toAuthoritativeString |> Expect.equal "0"
+                    \_ ->
+                        calculateIndoTax defaultBrackets Money.zero
+                            |> Money.toAuthoritativeString
+                            |> Expect.equal "0"
                 , test "delegates to progressive tax: known bracket" <|
-                    \_ -> calculateIndoTax defaultBrackets (Money.fromCentsStr "6000000000") |> Money.toAuthoritativeString |> Expect.equal "300000000"
+                    \_ ->
+                        calculateIndoTax defaultBrackets (Money.fromCentsStr "6000000000")
+                            |> Money.toAuthoritativeString
+                            |> Expect.equal "300000000"
                 , fuzz (Fuzz.intRange 0 500000000000) "indoTax >= 0" <|
-                    \c -> calculateIndoTax defaultBrackets (Money.fromCents c) |> Money.toCents |> Expect.atLeast 0
+                    \c ->
+                        calculateIndoTax defaultBrackets (Money.fromCents c)
+                            |> Money.toCents
+                            |> Expect.atLeast 0
                 ]
             ]
         , describe "Integer Boundary Safety Fuzz"
@@ -267,7 +333,15 @@ suite =
                             calculateUsWithholding income
 
                         finalPayable =
-                            calculateFinalPayable tax (calculatePPh24Credit { foreignNetIncome = nppn, totalTaxableIncome = nppn, totalIndoTaxDue = tax, actualForeignTaxPaid = withholding })
+                            calculateFinalPayable
+                                tax
+                                (calculatePPh24Credit
+                                    { foreignNetIncome = nppn
+                                    , totalTaxableIncome = nppn
+                                    , totalIndoTaxDue = tax
+                                    , actualForeignTaxPaid = withholding
+                                    }
+                                )
                     in
                     Expect.all
                         [ \_ -> Money.toCents tax |> Expect.atLeast 0
@@ -313,7 +387,9 @@ suite =
                 \dom for wht ->
                     let
                         input =
-                            { income = { domestic = Money.fromCents dom, foreign = Money.fromCents for }, foreignTaxPaid = Money.fromCents wht }
+                            { income = { domestic = Money.fromCents dom, foreign = Money.fromCents for }
+                            , foreignTaxPaid = Money.fromCents wht
+                            }
 
                         res =
                             calculateTax defaultBrackets input
@@ -323,11 +399,90 @@ suite =
                 \dom for wht ->
                     let
                         input =
-                            { income = { domestic = Money.fromCents dom, foreign = Money.fromCents for }, foreignTaxPaid = Money.fromCents wht }
+                            { income = { domestic = Money.fromCents dom, foreign = Money.fromCents for }
+                            , foreignTaxPaid = Money.fromCents wht
+                            }
 
                         res =
                             calculateTax defaultBrackets input
                     in
                     Expect.atMost wht (Money.toCents res.pph24Credit)
+            ]
+
+        -- NEW EDGE‑CASE DESCRIBE BLOCKS
+        , describe "calculateFXLeakage edge cases"
+            [ test "zero USD yields zero leak" <|
+                \_ ->
+                    TaxLogic.calculateFXLeakage Money.zero 16000 Money.zero
+                        |> Money.toCents
+                        |> Expect.equal 0
+            , test "rate zero (should not happen but guard) yields zero leak" <|
+                \_ ->
+                    TaxLogic.calculateFXLeakage (Money.fromCents 100) 0 (Money.fromCents 1500000)
+                        |> Money.toCents
+                        |> Expect.equal 0
+            , test "large values do not overflow" <|
+                \_ ->
+                    TaxLogic.calculateFXLeakage (Money.fromCents 100000000) 16000 (Money.fromCents 1600000000000)
+                        |> Money.toCents
+                        |> Expect.atLeast 0
+            ]
+        , describe "calculateFinalPayable edge cases"
+            [ test "tax == credit -> zero" <|
+                \_ ->
+                    TaxLogic.calculateFinalPayable (Money.fromCents 500) (Money.fromCents 500)
+                        |> Money.toCents
+                        |> Expect.equal 0
+            , test "tax == 0 -> zero regardless of credit" <|
+                \_ ->
+                    TaxLogic.calculateFinalPayable Money.zero (Money.fromCents 100)
+                        |> Money.toCents
+                        |> Expect.equal 0
+            , test "credit > tax -> zero" <|
+                \_ ->
+                    TaxLogic.calculateFinalPayable (Money.fromCents 100) (Money.fromCents 200)
+                        |> Money.toCents
+                        |> Expect.equal 0
+            ]
+        , describe "generateTaxReport edge cases"
+            [ test "zero gross -> zero tax due" <|
+                \_ ->
+                    let
+                        report =
+                            TaxLogic.generateTaxReport TaxLogic.defaultBrackets Money.zero Money.zero
+                    in
+                    report.totalTaxDue |> Expect.equal "0"
+            , test "foreignTaxPaid > tax -> cap works, totalTaxDue zero" <|
+                \_ ->
+                    let
+                        gross =
+                            Money.fromCents 10000000
+
+                        foreignTax =
+                            Money.fromCents 100000000
+
+                        report =
+                            TaxLogic.generateTaxReport TaxLogic.defaultBrackets gross foreignTax
+                    in
+                    String.toInt report.totalTaxDue
+                        |> Maybe.withDefault -1
+                        |> Expect.equal 0
+            ]
+        , describe "projectYearEndLiability edge cases"
+            [ test "m = 0 returns zero" <|
+                \_ ->
+                    TaxLogic.projectYearEndLiability TaxLogic.defaultBrackets (Money.fromCents 100000) 0
+                        |> Money.toCents
+                        |> Expect.equal 0
+            , test "m = -1 returns zero" <|
+                \_ ->
+                    TaxLogic.projectYearEndLiability TaxLogic.defaultBrackets (Money.fromCents 100000) -1
+                        |> Money.toCents
+                        |> Expect.equal 0
+            , test "zero YTD gross returns zero for any m" <|
+                \_ ->
+                    TaxLogic.projectYearEndLiability TaxLogic.defaultBrackets Money.zero 6
+                        |> Money.toCents
+                        |> Expect.equal 0
             ]
         ]
