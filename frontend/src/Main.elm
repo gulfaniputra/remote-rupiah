@@ -11,6 +11,7 @@ import Data.Transaction exposing (Transaction)
 import Data.Unrealized exposing (Unrealized)
 import Html exposing (..)
 import Http
+import Pages.Landing as Landing
 import Time
 import View.Dashboard as D
 
@@ -48,7 +49,8 @@ port downloadCsv : { filename : String, content : String } -> Cmd msg
 
 
 type AppState
-    = Loading
+    = Landing
+    | Loading
     | Failure String
     | MappingRequired CsvMapper.Model
     | Ready
@@ -80,7 +82,8 @@ epoch =
 
 
 type Msg
-    = GotTransactions (Result Api.TransactionFetchError (List Transaction))
+    = GoToDashboard
+    | GotTransactions (Result Api.TransactionFetchError (List Transaction))
     | GotUnrealized (Result Http.Error (List Unrealized))
     | GotFxEfficiency (Result Http.Error (List FxEfficiencyData))
     | CsvMapperMsg CsvMapper.Msg
@@ -113,6 +116,17 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg m =
     case msg of
+        GoToDashboard ->
+            ( { m | appState = Loading }
+            , Cmd.batch
+                [ Api.fetchTransactions m.apiUrl m.token GotTransactions
+                , Api.fetchUnrealized m.apiUrl m.token GotUnrealized
+                , Api.fetchFxEfficiency m.apiUrl m.token GotFxEfficiency
+                , Api.fetchTaxProfile m.apiUrl m.token GotTaxProfile
+                , Api.fetchComplianceStatus m.apiUrl m.token GotComplianceStatus
+                ]
+            )
+
         GotTransactions (Ok txs) ->
             ( { m | txs = txs, appState = Ready }, Cmd.none )
 
@@ -291,6 +305,9 @@ update msg m =
 view : Model -> Html Msg
 view m =
     case m.appState of
+        Landing ->
+            Landing.view GoToDashboard
+
         Loading ->
             div [] [ text "Loading remote-rupiah pipeline..." ]
 
@@ -337,7 +354,7 @@ main =
     Browser.element
         { init =
             \flags ->
-                ( { appState = Loading
+                ( { appState = Landing
                   , txs = []
                   , unrealized = []
                   , fxLeakage = []
@@ -350,13 +367,7 @@ main =
                   , uploadStatus = ""
                   , taxProfile = TaxProfile.empty
                   }
-                , Cmd.batch
-                    [ Api.fetchTransactions flags.apiUrl flags.token GotTransactions
-                    , Api.fetchUnrealized flags.apiUrl flags.token GotUnrealized
-                    , Api.fetchFxEfficiency flags.apiUrl flags.token GotFxEfficiency
-                    , Api.fetchTaxProfile flags.apiUrl flags.token GotTaxProfile
-                    , Api.fetchComplianceStatus flags.apiUrl flags.token GotComplianceStatus
-                    ]
+                , Cmd.none
                 )
         , update = update
         , view = view

@@ -4676,22 +4676,7 @@ var $author$project$Main$FileSelected = function (a) {
 var $author$project$Main$FileUploadCompleted = function (a) {
 	return {$: 'FileUploadCompleted', a: a};
 };
-var $author$project$Main$GotComplianceStatus = function (a) {
-	return {$: 'GotComplianceStatus', a: a};
-};
-var $author$project$Main$GotFxEfficiency = function (a) {
-	return {$: 'GotFxEfficiency', a: a};
-};
-var $author$project$Main$GotTaxProfile = function (a) {
-	return {$: 'GotTaxProfile', a: a};
-};
-var $author$project$Main$GotTransactions = function (a) {
-	return {$: 'GotTransactions', a: a};
-};
-var $author$project$Main$GotUnrealized = function (a) {
-	return {$: 'GotUnrealized', a: a};
-};
-var $author$project$Main$Loading = {$: 'Loading'};
+var $author$project$Main$Landing = {$: 'Landing'};
 var $elm$core$Maybe$Nothing = {$: 'Nothing'};
 var $elm$core$Result$Err = function (a) {
 	return {$: 'Err', a: a};
@@ -5088,7 +5073,6 @@ var $elm$core$Result$isOk = function (result) {
 	}
 };
 var $elm$json$Json$Decode$andThen = _Json_andThen;
-var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Sub$batch = _Platform_batch;
 var $elm$json$Json$Decode$string = _Json_decodeString;
 var $author$project$Main$csvSelected = _Platform_incomingPort('csvSelected', $elm$json$Json$Decode$string);
@@ -5412,84 +5396,82 @@ var $elm$time$Time$Posix = function (a) {
 };
 var $elm$time$Time$millisToPosix = $elm$time$Time$Posix;
 var $author$project$Main$epoch = $elm$time$Time$millisToPosix(0);
-var $author$project$Data$Compliance$ComplianceStatusResponse = F4(
-	function (w8benStatus, w8benExpiryDate, documents, nppnStatus) {
-		return {documents: documents, nppnStatus: nppnStatus, w8benExpiryDate: w8benExpiryDate, w8benStatus: w8benStatus};
-	});
-var $author$project$Data$Compliance$DocumentRecord = F3(
-	function (documentType, taxYear, isVerified) {
-		return {documentType: documentType, isVerified: isVerified, taxYear: taxYear};
-	});
-var $elm$json$Json$Decode$bool = _Json_decodeBool;
 var $elm$json$Json$Decode$field = _Json_decodeField;
-var $elm$json$Json$Decode$int = _Json_decodeInt;
-var $elm$json$Json$Decode$map3 = _Json_map3;
-var $author$project$Data$Compliance$documentRecordDecoder = A4(
-	$elm$json$Json$Decode$map3,
-	$author$project$Data$Compliance$DocumentRecord,
-	A2($elm$json$Json$Decode$field, 'documentType', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'taxYear', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'isVerified', $elm$json$Json$Decode$bool));
-var $elm$json$Json$Decode$list = _Json_decodeList;
-var $elm$json$Json$Decode$map4 = _Json_map4;
-var $author$project$Data$Compliance$NppnStatus = F5(
-	function (notified, notifiedAt, deadline, daysRemaining, isOverdue) {
-		return {daysRemaining: daysRemaining, deadline: deadline, isOverdue: isOverdue, notified: notified, notifiedAt: notifiedAt};
-	});
-var $elm$json$Json$Decode$map5 = _Json_map5;
-var $elm$json$Json$Decode$null = _Json_decodeNull;
-var $elm$json$Json$Decode$oneOf = _Json_oneOf;
-var $elm$json$Json$Decode$nullable = function (decoder) {
-	return $elm$json$Json$Decode$oneOf(
-		_List_fromArray(
-			[
-				$elm$json$Json$Decode$null($elm$core$Maybe$Nothing),
-				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder)
-			]));
+var $elm$core$Platform$Cmd$batch = _Platform_batch;
+var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
+var $author$project$Main$CsvMapperMsg = function (a) {
+	return {$: 'CsvMapperMsg', a: a};
 };
-var $author$project$Data$Compliance$nppnStatusDecoder = A6(
-	$elm$json$Json$Decode$map5,
-	$author$project$Data$Compliance$NppnStatus,
-	A2($elm$json$Json$Decode$field, 'notified', $elm$json$Json$Decode$bool),
-	A2(
-		$elm$json$Json$Decode$field,
-		'notifiedAt',
-		$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string)),
-	A2($elm$json$Json$Decode$field, 'deadline', $elm$json$Json$Decode$string),
-	A2($elm$json$Json$Decode$field, 'daysRemaining', $elm$json$Json$Decode$int),
-	A2($elm$json$Json$Decode$field, 'isOverdue', $elm$json$Json$Decode$bool));
-var $author$project$Data$Compliance$W8BenExpired = {$: 'W8BenExpired'};
-var $author$project$Data$Compliance$W8BenMissing = {$: 'W8BenMissing'};
-var $author$project$Data$Compliance$W8BenValid = {$: 'W8BenValid'};
-var $elm$json$Json$Decode$fail = _Json_fail;
-var $author$project$Data$Compliance$w8BenStatusDecoder = A2(
-	$elm$json$Json$Decode$andThen,
-	function (s) {
-		switch (s) {
-			case 'Valid':
-				return $elm$json$Json$Decode$succeed($author$project$Data$Compliance$W8BenValid);
-			case 'Expired':
-				return $elm$json$Json$Decode$succeed($author$project$Data$Compliance$W8BenExpired);
-			case 'Missing':
-				return $elm$json$Json$Decode$succeed($author$project$Data$Compliance$W8BenMissing);
-			default:
-				return $elm$json$Json$Decode$fail('Unknown W8BenStatus: ' + s);
-		}
-	},
-	$elm$json$Json$Decode$string);
-var $author$project$Data$Compliance$complianceStatusDecoder = A5(
-	$elm$json$Json$Decode$map4,
-	$author$project$Data$Compliance$ComplianceStatusResponse,
-	A2($elm$json$Json$Decode$field, 'w8benStatus', $author$project$Data$Compliance$w8BenStatusDecoder),
-	A2(
-		$elm$json$Json$Decode$field,
-		'w8benExpiryDate',
-		$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string)),
-	A2(
-		$elm$json$Json$Decode$field,
-		'documents',
-		$elm$json$Json$Decode$list($author$project$Data$Compliance$documentRecordDecoder)),
-	A2($elm$json$Json$Decode$field, 'nppnStatus', $author$project$Data$Compliance$nppnStatusDecoder));
+var $author$project$Main$Failure = function (a) {
+	return {$: 'Failure', a: a};
+};
+var $author$project$Main$GotComplianceStatus = function (a) {
+	return {$: 'GotComplianceStatus', a: a};
+};
+var $author$project$Main$GotExportDjp = function (a) {
+	return {$: 'GotExportDjp', a: a};
+};
+var $author$project$Main$GotFxEfficiency = function (a) {
+	return {$: 'GotFxEfficiency', a: a};
+};
+var $author$project$Main$GotNppnNotify = function (a) {
+	return {$: 'GotNppnNotify', a: a};
+};
+var $author$project$Main$GotSaveTaxProfile = function (a) {
+	return {$: 'GotSaveTaxProfile', a: a};
+};
+var $author$project$Main$GotTaxProfile = function (a) {
+	return {$: 'GotTaxProfile', a: a};
+};
+var $author$project$Main$GotTransactions = function (a) {
+	return {$: 'GotTransactions', a: a};
+};
+var $author$project$Main$GotUnrealized = function (a) {
+	return {$: 'GotUnrealized', a: a};
+};
+var $author$project$Main$Loading = {$: 'Loading'};
+var $author$project$Main$MappingRequired = function (a) {
+	return {$: 'MappingRequired', a: a};
+};
+var $author$project$Main$Ready = {$: 'Ready'};
+var $author$project$Main$Verified = F2(
+	function (a, b) {
+		return {$: 'Verified', a: a, b: b};
+	});
+var $elm$json$Json$Encode$null = _Json_encodeNull;
+var $author$project$Main$clearCredentials = _Platform_outgoingPort(
+	'clearCredentials',
+	function ($) {
+		return $elm$json$Json$Encode$null;
+	});
+var $elm$json$Json$Encode$object = function (pairs) {
+	return _Json_wrap(
+		A3(
+			$elm$core$List$foldl,
+			F2(
+				function (_v0, obj) {
+					var k = _v0.a;
+					var v = _v0.b;
+					return A3(_Json_addField, k, v, obj);
+				}),
+			_Json_emptyObject(_Utils_Tuple0),
+			pairs));
+};
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Main$downloadCsv = _Platform_outgoingPort(
+	'downloadCsv',
+	function ($) {
+		return $elm$json$Json$Encode$object(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					'content',
+					$elm$json$Json$Encode$string($.content)),
+					_Utils_Tuple2(
+					'filename',
+					$elm$json$Json$Encode$string($.filename))
+				]));
+	});
 var $elm$http$Http$BadStatus_ = F2(
 	function (a, b) {
 		return {$: 'BadStatus_', a: a, b: b};
@@ -6032,8 +6014,6 @@ var $elm$core$Dict$update = F3(
 			return A2($elm$core$Dict$remove, targetKey, dictionary);
 		}
 	});
-var $elm$http$Http$emptyBody = _Http_emptyBody;
-var $elm$json$Json$Decode$decodeString = _Json_runOnString;
 var $elm$core$Basics$composeR = F3(
 	function (f, g, x) {
 		return g(
@@ -6047,17 +6027,6 @@ var $elm$http$Http$expectStringResponse = F2(
 			$elm$core$Basics$identity,
 			A2($elm$core$Basics$composeR, toResult, toMsg));
 	});
-var $elm$core$Result$mapError = F2(
-	function (f, result) {
-		if (result.$ === 'Ok') {
-			var v = result.a;
-			return $elm$core$Result$Ok(v);
-		} else {
-			var e = result.a;
-			return $elm$core$Result$Err(
-				f(e));
-		}
-	});
 var $elm$http$Http$BadBody = function (a) {
 	return {$: 'BadBody', a: a};
 };
@@ -6069,6 +6038,17 @@ var $elm$http$Http$BadUrl = function (a) {
 };
 var $elm$http$Http$NetworkError = {$: 'NetworkError'};
 var $elm$http$Http$Timeout = {$: 'Timeout'};
+var $elm$core$Result$mapError = F2(
+	function (f, result) {
+		if (result.$ === 'Ok') {
+			var v = result.a;
+			return $elm$core$Result$Ok(v);
+		} else {
+			var e = result.a;
+			return $elm$core$Result$Err(
+				f(e));
+		}
+	});
 var $elm$http$Http$resolve = F2(
 	function (toResult, response) {
 		switch (response.$) {
@@ -6092,24 +6072,24 @@ var $elm$http$Http$resolve = F2(
 					toResult(body));
 		}
 	});
-var $elm$http$Http$expectJson = F2(
-	function (toMsg, decoder) {
-		return A2(
-			$elm$http$Http$expectStringResponse,
-			toMsg,
-			$elm$http$Http$resolve(
-				function (string) {
-					return A2(
-						$elm$core$Result$mapError,
-						$elm$json$Json$Decode$errorToString,
-						A2($elm$json$Json$Decode$decodeString, decoder, string));
-				}));
-	});
+var $elm$http$Http$expectString = function (toMsg) {
+	return A2(
+		$elm$http$Http$expectStringResponse,
+		toMsg,
+		$elm$http$Http$resolve($elm$core$Result$Ok));
+};
 var $elm$http$Http$Header = F2(
 	function (a, b) {
 		return {$: 'Header', a: a, b: b};
 	});
 var $elm$http$Http$header = $elm$http$Http$Header;
+var $elm$json$Json$Encode$int = _Json_wrap;
+var $elm$http$Http$jsonBody = function (value) {
+	return A2(
+		_Http_pair,
+		'application/json',
+		A2($elm$json$Json$Encode$encode, 0, value));
+};
 var $elm$http$Http$Request = function (a) {
 	return {$: 'Request', a: a};
 };
@@ -6278,6 +6258,121 @@ var $elm$http$Http$request = function (r) {
 		$elm$http$Http$Request(
 			{allowCookiesFromOtherDomains: false, body: r.body, expect: r.expect, headers: r.headers, method: r.method, timeout: r.timeout, tracker: r.tracker, url: r.url}));
 };
+var $author$project$Api$exportDjp = F4(
+	function (apiUrl, token, year, toMsg) {
+		return $elm$http$Http$request(
+			{
+				body: $elm$http$Http$jsonBody(
+					$elm$json$Json$Encode$object(
+						_List_fromArray(
+							[
+								_Utils_Tuple2(
+								'year',
+								$elm$json$Json$Encode$int(year))
+							]))),
+				expect: $elm$http$Http$expectString(toMsg),
+				headers: _List_fromArray(
+					[
+						A2($elm$http$Http$header, 'Authorization', 'Bearer ' + token)
+					]),
+				method: 'POST',
+				timeout: $elm$core$Maybe$Just(15000),
+				tracker: $elm$core$Maybe$Nothing,
+				url: apiUrl + '/api/export/djp'
+			});
+	});
+var $author$project$Data$Compliance$ComplianceStatusResponse = F4(
+	function (w8benStatus, w8benExpiryDate, documents, nppnStatus) {
+		return {documents: documents, nppnStatus: nppnStatus, w8benExpiryDate: w8benExpiryDate, w8benStatus: w8benStatus};
+	});
+var $author$project$Data$Compliance$DocumentRecord = F3(
+	function (documentType, taxYear, isVerified) {
+		return {documentType: documentType, isVerified: isVerified, taxYear: taxYear};
+	});
+var $elm$json$Json$Decode$bool = _Json_decodeBool;
+var $elm$json$Json$Decode$int = _Json_decodeInt;
+var $elm$json$Json$Decode$map3 = _Json_map3;
+var $author$project$Data$Compliance$documentRecordDecoder = A4(
+	$elm$json$Json$Decode$map3,
+	$author$project$Data$Compliance$DocumentRecord,
+	A2($elm$json$Json$Decode$field, 'documentType', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'taxYear', $elm$json$Json$Decode$int),
+	A2($elm$json$Json$Decode$field, 'isVerified', $elm$json$Json$Decode$bool));
+var $elm$json$Json$Decode$list = _Json_decodeList;
+var $elm$json$Json$Decode$map4 = _Json_map4;
+var $author$project$Data$Compliance$NppnStatus = F5(
+	function (notified, notifiedAt, deadline, daysRemaining, isOverdue) {
+		return {daysRemaining: daysRemaining, deadline: deadline, isOverdue: isOverdue, notified: notified, notifiedAt: notifiedAt};
+	});
+var $elm$json$Json$Decode$map5 = _Json_map5;
+var $elm$json$Json$Decode$null = _Json_decodeNull;
+var $elm$json$Json$Decode$oneOf = _Json_oneOf;
+var $elm$json$Json$Decode$nullable = function (decoder) {
+	return $elm$json$Json$Decode$oneOf(
+		_List_fromArray(
+			[
+				$elm$json$Json$Decode$null($elm$core$Maybe$Nothing),
+				A2($elm$json$Json$Decode$map, $elm$core$Maybe$Just, decoder)
+			]));
+};
+var $author$project$Data$Compliance$nppnStatusDecoder = A6(
+	$elm$json$Json$Decode$map5,
+	$author$project$Data$Compliance$NppnStatus,
+	A2($elm$json$Json$Decode$field, 'notified', $elm$json$Json$Decode$bool),
+	A2(
+		$elm$json$Json$Decode$field,
+		'notifiedAt',
+		$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string)),
+	A2($elm$json$Json$Decode$field, 'deadline', $elm$json$Json$Decode$string),
+	A2($elm$json$Json$Decode$field, 'daysRemaining', $elm$json$Json$Decode$int),
+	A2($elm$json$Json$Decode$field, 'isOverdue', $elm$json$Json$Decode$bool));
+var $author$project$Data$Compliance$W8BenExpired = {$: 'W8BenExpired'};
+var $author$project$Data$Compliance$W8BenMissing = {$: 'W8BenMissing'};
+var $author$project$Data$Compliance$W8BenValid = {$: 'W8BenValid'};
+var $elm$json$Json$Decode$fail = _Json_fail;
+var $author$project$Data$Compliance$w8BenStatusDecoder = A2(
+	$elm$json$Json$Decode$andThen,
+	function (s) {
+		switch (s) {
+			case 'Valid':
+				return $elm$json$Json$Decode$succeed($author$project$Data$Compliance$W8BenValid);
+			case 'Expired':
+				return $elm$json$Json$Decode$succeed($author$project$Data$Compliance$W8BenExpired);
+			case 'Missing':
+				return $elm$json$Json$Decode$succeed($author$project$Data$Compliance$W8BenMissing);
+			default:
+				return $elm$json$Json$Decode$fail('Unknown W8BenStatus: ' + s);
+		}
+	},
+	$elm$json$Json$Decode$string);
+var $author$project$Data$Compliance$complianceStatusDecoder = A5(
+	$elm$json$Json$Decode$map4,
+	$author$project$Data$Compliance$ComplianceStatusResponse,
+	A2($elm$json$Json$Decode$field, 'w8benStatus', $author$project$Data$Compliance$w8BenStatusDecoder),
+	A2(
+		$elm$json$Json$Decode$field,
+		'w8benExpiryDate',
+		$elm$json$Json$Decode$nullable($elm$json$Json$Decode$string)),
+	A2(
+		$elm$json$Json$Decode$field,
+		'documents',
+		$elm$json$Json$Decode$list($author$project$Data$Compliance$documentRecordDecoder)),
+	A2($elm$json$Json$Decode$field, 'nppnStatus', $author$project$Data$Compliance$nppnStatusDecoder));
+var $elm$http$Http$emptyBody = _Http_emptyBody;
+var $elm$json$Json$Decode$decodeString = _Json_runOnString;
+var $elm$http$Http$expectJson = F2(
+	function (toMsg, decoder) {
+		return A2(
+			$elm$http$Http$expectStringResponse,
+			toMsg,
+			$elm$http$Http$resolve(
+				function (string) {
+					return A2(
+						$elm$core$Result$mapError,
+						$elm$json$Json$Decode$errorToString,
+						A2($elm$json$Json$Decode$decodeString, decoder, string));
+				}));
+	});
 var $author$project$Api$fetchComplianceStatus = F3(
 	function (apiUrl, token, toMsg) {
 		return $elm$http$Http$request(
@@ -7063,99 +7158,6 @@ var $author$project$Api$fetchUnrealized = F3(
 				url: apiUrl + '/api/wealth/unrealized'
 			});
 	});
-var $author$project$Main$CsvMapperMsg = function (a) {
-	return {$: 'CsvMapperMsg', a: a};
-};
-var $author$project$Main$Failure = function (a) {
-	return {$: 'Failure', a: a};
-};
-var $author$project$Main$GotExportDjp = function (a) {
-	return {$: 'GotExportDjp', a: a};
-};
-var $author$project$Main$GotNppnNotify = function (a) {
-	return {$: 'GotNppnNotify', a: a};
-};
-var $author$project$Main$GotSaveTaxProfile = function (a) {
-	return {$: 'GotSaveTaxProfile', a: a};
-};
-var $author$project$Main$MappingRequired = function (a) {
-	return {$: 'MappingRequired', a: a};
-};
-var $author$project$Main$Ready = {$: 'Ready'};
-var $author$project$Main$Verified = F2(
-	function (a, b) {
-		return {$: 'Verified', a: a, b: b};
-	});
-var $elm$json$Json$Encode$null = _Json_encodeNull;
-var $author$project$Main$clearCredentials = _Platform_outgoingPort(
-	'clearCredentials',
-	function ($) {
-		return $elm$json$Json$Encode$null;
-	});
-var $elm$json$Json$Encode$object = function (pairs) {
-	return _Json_wrap(
-		A3(
-			$elm$core$List$foldl,
-			F2(
-				function (_v0, obj) {
-					var k = _v0.a;
-					var v = _v0.b;
-					return A3(_Json_addField, k, v, obj);
-				}),
-			_Json_emptyObject(_Utils_Tuple0),
-			pairs));
-};
-var $elm$json$Json$Encode$string = _Json_wrap;
-var $author$project$Main$downloadCsv = _Platform_outgoingPort(
-	'downloadCsv',
-	function ($) {
-		return $elm$json$Json$Encode$object(
-			_List_fromArray(
-				[
-					_Utils_Tuple2(
-					'content',
-					$elm$json$Json$Encode$string($.content)),
-					_Utils_Tuple2(
-					'filename',
-					$elm$json$Json$Encode$string($.filename))
-				]));
-	});
-var $elm$http$Http$expectString = function (toMsg) {
-	return A2(
-		$elm$http$Http$expectStringResponse,
-		toMsg,
-		$elm$http$Http$resolve($elm$core$Result$Ok));
-};
-var $elm$json$Json$Encode$int = _Json_wrap;
-var $elm$http$Http$jsonBody = function (value) {
-	return A2(
-		_Http_pair,
-		'application/json',
-		A2($elm$json$Json$Encode$encode, 0, value));
-};
-var $author$project$Api$exportDjp = F4(
-	function (apiUrl, token, year, toMsg) {
-		return $elm$http$Http$request(
-			{
-				body: $elm$http$Http$jsonBody(
-					$elm$json$Json$Encode$object(
-						_List_fromArray(
-							[
-								_Utils_Tuple2(
-								'year',
-								$elm$json$Json$Encode$int(year))
-							]))),
-				expect: $elm$http$Http$expectString(toMsg),
-				headers: _List_fromArray(
-					[
-						A2($elm$http$Http$header, 'Authorization', 'Bearer ' + token)
-					]),
-				method: 'POST',
-				timeout: $elm$core$Maybe$Just(15000),
-				tracker: $elm$core$Maybe$Nothing,
-				url: apiUrl + '/api/export/djp'
-			});
-	});
 var $author$project$CsvMapper$Idle = {$: 'Idle'};
 var $elm$core$List$any = F2(
 	function (isOkay, list) {
@@ -7211,7 +7213,6 @@ var $author$project$CsvMapper$init = F3(
 		};
 	});
 var $elm$core$Platform$Cmd$map = _Platform_map;
-var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $elm$json$Json$Encode$bool = _Json_wrap;
 var $author$project$Api$notifyNppn = F3(
 	function (apiUrl, token, toMsg) {
@@ -7515,6 +7516,20 @@ var $author$project$Api$verify1042s = F4(
 var $author$project$Main$update = F2(
 	function (msg, m) {
 		switch (msg.$) {
+			case 'GoToDashboard':
+				return _Utils_Tuple2(
+					_Utils_update(
+						m,
+						{appState: $author$project$Main$Loading}),
+					$elm$core$Platform$Cmd$batch(
+						_List_fromArray(
+							[
+								A3($author$project$Api$fetchTransactions, m.apiUrl, m.token, $author$project$Main$GotTransactions),
+								A3($author$project$Api$fetchUnrealized, m.apiUrl, m.token, $author$project$Main$GotUnrealized),
+								A3($author$project$Api$fetchFxEfficiency, m.apiUrl, m.token, $author$project$Main$GotFxEfficiency),
+								A3($author$project$Api$fetchTaxProfile, m.apiUrl, m.token, $author$project$Main$GotTaxProfile),
+								A3($author$project$Api$fetchComplianceStatus, m.apiUrl, m.token, $author$project$Main$GotComplianceStatus)
+							])));
 			case 'GotTransactions':
 				if (msg.a.$ === 'Ok') {
 					var txs = msg.a.a;
@@ -7808,6 +7823,7 @@ var $author$project$Main$uploadCompleted = _Platform_incomingPort('uploadComplet
 var $author$project$Main$Export = function (a) {
 	return {$: 'Export', a: a};
 };
+var $author$project$Main$GoToDashboard = {$: 'GoToDashboard'};
 var $author$project$Main$NppnNotify = {$: 'NppnNotify'};
 var $author$project$Data$State$Ready = function (a) {
 	return {$: 'Ready', a: a};
@@ -8094,6 +8110,318 @@ var $author$project$CsvMapper$view = function (model) {
 							[
 								$elm$html$Html$text(
 								_Utils_eq(model.status, $author$project$CsvMapper$Loading) ? 'Saving…' : 'Save Mapping')
+							]))
+					]))
+			]));
+};
+var $elm$html$Html$a = _VirtualDom_node('a');
+var $elm$svg$Svg$Attributes$d = _VirtualDom_attribute('d');
+var $elm$svg$Svg$Attributes$fill = _VirtualDom_attribute('fill');
+var $elm$svg$Svg$Attributes$height = _VirtualDom_attribute('height');
+var $elm$svg$Svg$trustedNode = _VirtualDom_nodeNS('http://www.w3.org/2000/svg');
+var $elm$svg$Svg$path = $elm$svg$Svg$trustedNode('path');
+var $elm$svg$Svg$Attributes$stroke = _VirtualDom_attribute('stroke');
+var $elm$svg$Svg$Attributes$strokeLinecap = _VirtualDom_attribute('stroke-linecap');
+var $elm$svg$Svg$Attributes$strokeLinejoin = _VirtualDom_attribute('stroke-linejoin');
+var $elm$svg$Svg$Attributes$strokeWidth = _VirtualDom_attribute('stroke-width');
+var $elm$svg$Svg$svg = $elm$svg$Svg$trustedNode('svg');
+var $elm$svg$Svg$Attributes$viewBox = _VirtualDom_attribute('viewBox');
+var $elm$svg$Svg$Attributes$width = _VirtualDom_attribute('width');
+var $author$project$Icons$barChart3 = A2(
+	$elm$svg$Svg$svg,
+	_List_fromArray(
+		[
+			$elm$svg$Svg$Attributes$width('16'),
+			$elm$svg$Svg$Attributes$height('16'),
+			$elm$svg$Svg$Attributes$viewBox('0 0 24 24'),
+			$elm$svg$Svg$Attributes$fill('none'),
+			$elm$svg$Svg$Attributes$stroke('currentColor'),
+			$elm$svg$Svg$Attributes$strokeWidth('2'),
+			$elm$svg$Svg$Attributes$strokeLinecap('round'),
+			$elm$svg$Svg$Attributes$strokeLinejoin('round')
+		]),
+	_List_fromArray(
+		[
+			A2(
+			$elm$svg$Svg$path,
+			_List_fromArray(
+				[
+					$elm$svg$Svg$Attributes$d('M3 3v18h18')
+				]),
+			_List_Nil),
+			A2(
+			$elm$svg$Svg$path,
+			_List_fromArray(
+				[
+					$elm$svg$Svg$Attributes$d('M7 16l4-8 4 4 4-6')
+				]),
+			_List_Nil)
+		]));
+var $elm$html$Html$h1 = _VirtualDom_node('h1');
+var $elm$html$Html$Attributes$href = function (url) {
+	return A2(
+		$elm$html$Html$Attributes$stringProperty,
+		'href',
+		_VirtualDom_noJavaScriptUri(url));
+};
+var $elm$html$Html$p = _VirtualDom_node('p');
+var $elm$html$Html$Attributes$rel = _VirtualDom_attribute('rel');
+var $author$project$Icons$shield = A2(
+	$elm$svg$Svg$svg,
+	_List_fromArray(
+		[
+			$elm$svg$Svg$Attributes$width('16'),
+			$elm$svg$Svg$Attributes$height('16'),
+			$elm$svg$Svg$Attributes$viewBox('0 0 24 24'),
+			$elm$svg$Svg$Attributes$fill('none'),
+			$elm$svg$Svg$Attributes$stroke('currentColor'),
+			$elm$svg$Svg$Attributes$strokeWidth('2'),
+			$elm$svg$Svg$Attributes$strokeLinecap('round'),
+			$elm$svg$Svg$Attributes$strokeLinejoin('round')
+		]),
+	_List_fromArray(
+		[
+			A2(
+			$elm$svg$Svg$path,
+			_List_fromArray(
+				[
+					$elm$svg$Svg$Attributes$d('M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z')
+				]),
+			_List_Nil)
+		]));
+var $elm$html$Html$Attributes$target = $elm$html$Html$Attributes$stringProperty('target');
+var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
+var $elm$svg$Svg$Attributes$points = _VirtualDom_attribute('points');
+var $elm$svg$Svg$polygon = $elm$svg$Svg$trustedNode('polygon');
+var $author$project$Icons$zap = A2(
+	$elm$svg$Svg$svg,
+	_List_fromArray(
+		[
+			$elm$svg$Svg$Attributes$width('16'),
+			$elm$svg$Svg$Attributes$height('16'),
+			$elm$svg$Svg$Attributes$viewBox('0 0 24 24'),
+			$elm$svg$Svg$Attributes$fill('none'),
+			$elm$svg$Svg$Attributes$stroke('currentColor'),
+			$elm$svg$Svg$Attributes$strokeWidth('2'),
+			$elm$svg$Svg$Attributes$strokeLinecap('round'),
+			$elm$svg$Svg$Attributes$strokeLinejoin('round')
+		]),
+	_List_fromArray(
+		[
+			A2(
+			$elm$svg$Svg$polygon,
+			_List_fromArray(
+				[
+					$elm$svg$Svg$Attributes$points('13 2 3 14 12 14 11 22 21 10 12 10')
+				]),
+			_List_Nil)
+		]));
+var $author$project$Pages$Landing$view = function (goToDashboardMsg) {
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('landing-root')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('landing-orb-cyan')
+					]),
+				_List_Nil),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('landing-orb-purple')
+					]),
+				_List_Nil),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('landing-main')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('landing-badge')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text('ELM · DENO · HONO · POSTGRES')
+							])),
+						A2(
+						$elm$html$Html$h1,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('landing-headline')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$span,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('landing-headline-cyan')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('remote')
+									])),
+								A2(
+								$elm$html$Html$span,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('landing-headline-white')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('-rupiah')
+									]))
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('landing-sub')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$p,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('landing-sub-text')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Tax compliance dashboard for Indonesian Software Developers billing U.S. clients')
+									])),
+								A2(
+								$elm$html$Html$p,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('landing-sub-muted')
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('NPPN Net Income · PPh 24 Foreign Tax Credit · FX Spread Tracking')
+									]))
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('landing-cta-row')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$button,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('landing-btn-primary'),
+										$elm$html$Html$Attributes$type_('button'),
+										$elm$html$Html$Events$onClick(goToDashboardMsg)
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Launch Demo'),
+										A2(
+										$elm$html$Html$span,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('arrow')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text('→')
+											]))
+									])),
+								A2(
+								$elm$html$Html$a,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('landing-btn-secondary'),
+										$elm$html$Html$Attributes$href('https://github.com/gulfaniputra/remote-rupiah'),
+										$elm$html$Html$Attributes$target('_blank'),
+										$elm$html$Html$Attributes$rel('noopener noreferrer')
+									]),
+								_List_fromArray(
+									[
+										$author$project$Icons$shield,
+										$elm$html$Html$text('View Source')
+									]))
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('landing-features')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('landing-feature-item')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$span,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('landing-feature-icon-green')
+											]),
+										_List_fromArray(
+											[$author$project$Icons$shield])),
+										$elm$html$Html$text('Tenant‑Scoped RLS Queries')
+									])),
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('landing-feature-item')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$span,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('landing-feature-icon-gold')
+											]),
+										_List_fromArray(
+											[$author$project$Icons$zap])),
+										$elm$html$Html$text('Edge‑Native Deno API')
+									])),
+								A2(
+								$elm$html$Html$div,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('landing-feature-item')
+									]),
+								_List_fromArray(
+									[
+										A2(
+										$elm$html$Html$span,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('landing-feature-icon-cyan')
+											]),
+										_List_fromArray(
+											[$author$project$Icons$barChart3])),
+										$elm$html$Html$text('BigInt Money Arithmetic')
+									]))
 							]))
 					]))
 			]));
@@ -9981,6 +10309,8 @@ var $author$project$View$Dashboard$view = F7(
 var $author$project$Main$view = function (m) {
 	var _v0 = m.appState;
 	switch (_v0.$) {
+		case 'Landing':
+			return $author$project$Pages$Landing$view($author$project$Main$GoToDashboard);
 		case 'Loading':
 			return A2(
 				$elm$html$Html$div,
@@ -10037,16 +10367,8 @@ var $author$project$Main$main = $elm$browser$Browser$element(
 	{
 		init: function (flags) {
 			return _Utils_Tuple2(
-				{apiUrl: flags.apiUrl, appState: $author$project$Main$Loading, complianceStatus: $elm$core$Maybe$Nothing, fxLeakage: _List_Nil, kmk: $elm$core$Maybe$Nothing, source: 'wise', t: $author$project$Main$epoch, taxProfile: $author$project$Data$TaxProfile$empty, token: flags.token, txs: _List_Nil, unrealized: _List_Nil, uploadStatus: ''},
-				$elm$core$Platform$Cmd$batch(
-					_List_fromArray(
-						[
-							A3($author$project$Api$fetchTransactions, flags.apiUrl, flags.token, $author$project$Main$GotTransactions),
-							A3($author$project$Api$fetchUnrealized, flags.apiUrl, flags.token, $author$project$Main$GotUnrealized),
-							A3($author$project$Api$fetchFxEfficiency, flags.apiUrl, flags.token, $author$project$Main$GotFxEfficiency),
-							A3($author$project$Api$fetchTaxProfile, flags.apiUrl, flags.token, $author$project$Main$GotTaxProfile),
-							A3($author$project$Api$fetchComplianceStatus, flags.apiUrl, flags.token, $author$project$Main$GotComplianceStatus)
-						])));
+				{apiUrl: flags.apiUrl, appState: $author$project$Main$Landing, complianceStatus: $elm$core$Maybe$Nothing, fxLeakage: _List_Nil, kmk: $elm$core$Maybe$Nothing, source: 'wise', t: $author$project$Main$epoch, taxProfile: $author$project$Data$TaxProfile$empty, token: flags.token, txs: _List_Nil, unrealized: _List_Nil, uploadStatus: ''},
+				$elm$core$Platform$Cmd$none);
 		},
 		subscriptions: function (_v0) {
 			return $elm$core$Platform$Sub$batch(

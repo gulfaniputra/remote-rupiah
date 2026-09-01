@@ -40,6 +40,7 @@ export const app = new Hono();
 const allowedOrigins = [
   "https://remote-rupiah.pages.dev",
   "http://localhost:8010",
+  "http://0.0.0.0:8010",
 ];
 
 // CORS Middleware with dynamic origin matching
@@ -162,10 +163,14 @@ app.get("/health/kmk", async (c) => {
 });
 
 // Runtime Initialization
-if (Deno.env.has("DENO_DEPLOYMENT_ID")) {
-  console.log("[System] Initializing production cron jobs...");
-  initKmkCron();
-  registerComplianceCron();
+try {
+  if (Deno.env.has("DENO_DEPLOYMENT_ID")) {
+    console.log("[System] Initializing production cron jobs...");
+    initKmkCron();
+    registerComplianceCron();
+  }
+} catch {
+  // Not running with --allow-env (e.g. during tests) — skip cron init
 }
 
 if (import.meta.main) {
