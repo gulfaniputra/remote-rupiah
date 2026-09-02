@@ -1,0 +1,85 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  "model": {
+    "model": "openrouter/deepseek/deepseek-v4-pro",
+    "limit": {
+      "context": 128000,
+      "output": 8192
+    }
+  },
+  "small_model": {
+    "model": "openrouter/deepseek/deepseek-v4-flash",
+    "limit": {
+      "context": 128000,
+      "output": 4096
+    }
+  },
+
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "deno *": "allow",
+      "deno task *": "allow",
+      "deno test *": "allow",
+      "deno fmt *": "allow",
+      "deno lint *": "allow",
+      "deno check *": "allow",
+      "elm *": "allow",
+      "elm-format *": "allow",
+      "elm-test *": "allow",
+      "npm *": "allow",
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "git branch*": "allow",
+      "git push*": "ask",
+      "git push --force*": "deny",
+      "rm *": "deny",
+      "sudo *": "deny"
+    },
+    "read": {
+      "*": "allow",
+      "*.env": "deny",
+      "*.env.*": "deny",
+      "*.pem": "deny"
+    },
+    "write": {
+      "*": "ask",
+      "*.ts": "allow",
+      "*.elm": "allow",
+      "*.json": "allow",
+      "*.jsonc": "allow",
+      "*.md": "allow",
+      "*.sql": "allow",
+      "*.yml": "allow",
+      "*.yaml": "allow",
+      "*.css": "allow",
+      "*.html": "allow",
+      "*.js": "allow"
+    }
+  },
+
+  "agent": {
+    "plan": {
+      "description": "Architectural planner for remote-rupiah. Analyzes codebase and drafts implementation plans.",
+      "temperature": 0.1,
+      "steps": 10,
+      "maxTokens": 4000,
+      "prompt": "You are a Principal Software Architect for the remote-rupiah project. Your task is to produce a highly structured, step-by-step implementation plan in Markdown. Follow these rules:\n- Read AGENTS.md in the repository root to understand the stack, commands, and architecture.\n- Focus on module boundaries, file paths, and dependencies.\n- Do not write code blocks longer than 5 lines.\n- Do not edit any files directly.\n- End every plan with a checklist of acceptance criteria.",
+      "permission": {
+        "edit": "deny"
+      }
+    },
+    "task": {
+      "model": "openrouter/deepseek/deepseek-v4-flash"
+    },
+    "title": {
+      "model": "openrouter/deepseek/deepseek-v4-flash"
+    },
+    "build": {
+      "model": "openrouter/deepseek/deepseek-v4-flash",
+      "prompt": "You are a Staff Software Engineer. Execute the given plan exactly. Write production-grade, well-tested code. After editing files, you MUST run the relevant test command (deno task validate:backend or deno task validate:frontend) and verify the output. If a test fails, fix it immediately. Do not stop until all acceptance criteria are satisfied."
+    }
+  }
+}
