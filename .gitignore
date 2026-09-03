@@ -32,3 +32,6 @@ coverage/
 .idea/
 *.log
 repomix-output.md
+
+# OpenCode
+.opencode/

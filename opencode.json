@@ -97,7 +97,7 @@
 
     "build": {
       "description": "Primary execution agent for multi-file editing & test execution.",
-      "model": "openrouter/deepseek/deepseek-v4-pro",
+      "model": "openrouter/deepseek/deepseek-v4-flash",
       "reasoningEffort": "medium",
       "temperature": 0.3,
       "steps": 30,
