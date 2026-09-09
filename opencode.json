@@ -5,8 +5,13 @@
     "openrouter": {
       "apiKey": "env:OPENROUTER_API_KEY",
       "allowFallbacks": true,
+      "maxPrice": {
+        "prompt": 0.000002,
+        "completion": 0.000010
+      },
       "provider": {
-        "order": ["DeepSeek", "Fireworks AI", "Together AI"]
+        "order": ["DeepSeek", "Fireworks AI", "Together AI"],
+        "allow_fallbacks": true
       }
     }
   },
@@ -23,6 +28,28 @@
     "context": 1048576,
     "output": 8192
   },
+
+  "exclude": [
+    "**/node_modules/**",
+    "**/.git/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.next/**",
+    "**/.deno/**",
+    "**/drizzle/**",
+    "**/*.log",
+    "**/*.lock",
+    "**/coverage/**",
+    "**/.shadow-cljs/**",
+    "**/*.min.js",
+    "**/*.min.css",
+    "**/package-lock.json",
+    "**/pnpm-lock.yaml",
+    "**/yarn.lock",
+    "**/elm-stuff/**",
+    "**/frontend/elm.js",
+    "**/public/elm.js"
+  ],
 
   "autoupdate": true,
   "autoSummarize": true,
@@ -99,7 +126,7 @@
       "description": "Primary execution agent for multi-file editing & test execution.",
       "model": "openrouter/deepseek/deepseek-v4-flash",
       "reasoningEffort": "medium",
-      "temperature": 0.3,
+      "temperature": 0.1,
       "steps": 30,
       "maxTokens": 8192,
       "prompt": "You are a Staff Software Engineer. Execute the given plan exactly. Write production-grade, well-tested code. After editing files, you MUST run the relevant test command (npm test, deno test, etc.) and verify the output. If a test fails, fix it immediately. Do not stop until all acceptance criteria from the plan are satisfied."
