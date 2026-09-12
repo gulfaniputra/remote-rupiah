@@ -64,6 +64,24 @@ Deno.test("Ingest Route - POST / ingests PayPal CSV rows", async () => {
   assertEquals(body.platform, "paypal");
 });
 
+Deno.test("Ingest Route - POST / ingests Payoneer CSV rows", async () => {
+  const token = await makeToken("test-user-id-123");
+  const res = await app.request("http://localhost/", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "text/csv",
+    },
+    body: "Date,Description,Amount,Currency,Status,Transaction ID\n" +
+      "2026-06-01T00:00:00Z,Payment from client,1250.00,USD,Completed,pnr-123456\n",
+  });
+  assertEquals(res.status, 200);
+  const body = await res.json();
+  assertEquals(body.success, true);
+  assertEquals(body.ingested, 1);
+  assertEquals(body.platform, "payoneer");
+});
+
 Deno.test("Ingest Route - unknown CSV without mapping returns 428", async () => {
   testMocks.clear();
   const token = await makeToken("test-user-id-123");

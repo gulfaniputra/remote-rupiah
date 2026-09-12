@@ -6,6 +6,7 @@ import { detectPlatform } from "../services/ingestion/detector.ts";
 import { mapCsvRow } from "../backend/src/services/ingestion/csv-mapper.ts";
 import { mapRevolutRow } from "../services/ingestion/revolut_parser.ts";
 import { mapPaypalRow } from "../services/ingestion/paypal_parser.ts";
+import { mapPayoneerRow } from "../services/ingestion/payoneer_parser.ts";
 import { mapWiseRow } from "../services/ingestion/wise_parser.ts";
 import { CanonicalTx } from "../backend/src/domain/canonical-tx.ts";
 
@@ -14,6 +15,7 @@ const MAX_PAYLOAD_BYTES = 5 * 1024 * 1024;
 const ROW_MAPPERS = {
   wise: mapWiseRow,
   revolut: mapRevolutRow,
+  payoneer: mapPayoneerRow,
   paypal: mapPaypalRow,
 } as const;
 

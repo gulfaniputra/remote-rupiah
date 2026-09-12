@@ -17,6 +17,24 @@ Deno.test("detectPlatform identifies Revolut headers", () => {
   );
 });
 
+Deno.test("detectPlatform identifies Payoneer headers", () => {
+  assertEquals(
+    detectPlatform(
+      "Date,Description,Amount,Currency,Status,Transaction ID",
+    ),
+    "payoneer",
+  );
+});
+
+Deno.test("detectPlatform identifies Payoneer headers with Completion Date", () => {
+  assertEquals(
+    detectPlatform(
+      "Completion Date,Description,Amount,Currency,Status",
+    ),
+    "payoneer",
+  );
+});
+
 Deno.test("detectPlatform identifies PayPal headers", () => {
   assertEquals(detectPlatform("Date,Amount,Currency"), "paypal");
 });

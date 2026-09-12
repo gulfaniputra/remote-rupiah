@@ -9240,6 +9240,12 @@ var $author$project$View$Dashboard$formatSourceLabel = function (source) {
 	switch (source) {
 		case 'wise':
 			return 'Wise';
+		case 'paypal':
+			return 'PayPal';
+		case 'revolut':
+			return 'Revolut';
+		case 'payoneer':
+			return 'Payoneer';
 		case 'bank':
 			return 'Banks';
 		default:
@@ -9717,6 +9723,39 @@ var $author$project$View$Dashboard$renderReady = F9(
 														[
 															$elm$html$Html$text(
 															$author$project$View$Dashboard$formatSourceLabel('wise'))
+														])),
+													A2(
+													$elm$html$Html$option,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$value('revolut')
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text(
+															$author$project$View$Dashboard$formatSourceLabel('revolut'))
+														])),
+													A2(
+													$elm$html$Html$option,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$value('paypal')
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text(
+															$author$project$View$Dashboard$formatSourceLabel('paypal'))
+														])),
+													A2(
+													$elm$html$Html$option,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$value('payoneer')
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text(
+															$author$project$View$Dashboard$formatSourceLabel('payoneer'))
 														])),
 													A2(
 													$elm$html$Html$option,

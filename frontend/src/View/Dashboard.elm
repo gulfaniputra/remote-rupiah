@@ -51,6 +51,15 @@ formatSourceLabel source =
         "wise" ->
             "Wise"
 
+        "paypal" ->
+            "PayPal"
+
+        "revolut" ->
+            "Revolut"
+
+        "payoneer" ->
+            "Payoneer"
+
         "bank" ->
             "Banks"
 
@@ -181,6 +190,9 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
                         , onInput handlers.onSourceChange
                         ]
                         [ option [ value "wise" ] [ text (formatSourceLabel "wise") ]
+                        , option [ value "revolut" ] [ text (formatSourceLabel "revolut") ]
+                        , option [ value "paypal" ] [ text (formatSourceLabel "paypal") ]
+                        , option [ value "payoneer" ] [ text (formatSourceLabel "payoneer") ]
                         , option [ value "bank" ] [ text (formatSourceLabel "bank") ]
                         ]
                     ]

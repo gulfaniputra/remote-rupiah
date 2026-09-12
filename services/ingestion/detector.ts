@@ -1,4 +1,4 @@
-export type Platform = "wise" | "revolut" | "paypal";
+export type Platform = "wise" | "revolut" | "payoneer" | "paypal";
 
 const normalizeHeader = (header: string) =>
   header.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(
@@ -37,6 +37,23 @@ export const detectPlatform = (headerRow: string): Platform | null => {
     hasAll(headers, ["started_date", "type", "currency", "amount"])
   ) {
     return "revolut";
+  }
+
+  if (
+    hasAll(headers, [
+      "date",
+      "description",
+      "amount",
+      "currency",
+    ]) ||
+    hasAll(headers, [
+      "completion_date",
+      "description",
+      "amount",
+      "currency",
+    ])
+  ) {
+    return "payoneer";
   }
 
   if (hasAll(headers, ["date", "amount", "currency"])) {
