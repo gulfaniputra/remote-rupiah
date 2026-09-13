@@ -1,17 +1,20 @@
 {
   "$schema": "https://opencode.ai/config.json",
 
-  "providers": {
+  "provider": {
     "openrouter": {
-      "apiKey": "env:OPENROUTER_API_KEY",
-      "allowFallbacks": true,
-      "maxPrice": {
-        "prompt": 0.000002,
-        "completion": 0.000010
+      "options": {
+        "allowFallbacks": true,
+        "maxPrice": {
+          "prompt": 0.000002,
+          "completion": 0.000010
+        },
+        "order": ["DeepSeek", "Fireworks AI", "Together AI"]
       },
-      "provider": {
-        "order": ["DeepSeek", "Fireworks AI", "Together AI"],
-        "allow_fallbacks": true
+      "models": {
+        "deepseek/deepseek-v4-pro": {
+          "limit": { "context": 1048576, "output": 8192 }
+        }
       }
     }
   },
@@ -24,10 +27,6 @@
   ],
 
   "model": "openrouter/deepseek/deepseek-v4-pro",
-  "limit": {
-    "context": 1048576,
-    "output": 8192
-  },
 
   "exclude": [
     "**/node_modules/**",
@@ -52,7 +51,6 @@
   ],
 
   "autoupdate": true,
-  "autoSummarize": true,
 
   "permission": {
     "*": "ask",
@@ -81,17 +79,18 @@
       "*.env": "deny",
       "*.env.*": "deny",
       "*.pem": "deny"
-    }
+    },
+    "websearch": "allow"
   },
 
   "agent": {
     "coder": {
       "description": "Main interactive coding assistant.",
       "model": "openrouter/deepseek/deepseek-v4-pro",
-      "reasoningEffort": "high",
       "temperature": 0.2,
       "steps": 25,
-      "maxTokens": 8192
+      "maxTokens": 8192,
+      "options": { "reasoningEffort": "high" }
     },
 
     "task": {
@@ -112,10 +111,10 @@
     "plan": {
       "description": "Architectural planner. Analyzes codebase & drafts plans without editing files.",
       "model": "openrouter/deepseek/deepseek-v4-pro",
-      "reasoningEffort": "high",
       "temperature": 0.1,
       "steps": 15,
       "maxTokens": 8192,
+      "options": { "reasoningEffort": "high" },
       "prompt": "You are a Principal Software Architect. Your sole responsibility is to produce a highly structured, step-by-step implementation plan in Markdown. Do not write code blocks longer than 5 lines. Do not edit any files. Focus on module boundaries, dependency injection points, and file paths. End every plan with a checklist of acceptance criteria.",
       "permission": {
         "edit": "deny"
@@ -125,10 +124,10 @@
     "build": {
       "description": "Primary execution agent for multi-file editing & test execution.",
       "model": "openrouter/deepseek/deepseek-v4-flash",
-      "reasoningEffort": "medium",
       "temperature": 0.1,
       "steps": 30,
       "maxTokens": 8192,
+      "options": { "reasoningEffort": "medium" },
       "prompt": "You are a Staff Software Engineer. Execute the given plan exactly. Write production-grade, well-tested code. After editing files, you MUST run the relevant test command (npm test, deno test, etc.) and verify the output. If a test fails, fix it immediately. Do not stop until all acceptance criteria from the plan are satisfied."
     }
   }

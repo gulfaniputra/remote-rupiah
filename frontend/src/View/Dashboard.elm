@@ -48,6 +48,9 @@ isValidNik =
 formatSourceLabel : String -> String
 formatSourceLabel source =
     case source of
+        "bca" ->
+            "BCA"
+
         "wise" ->
             "Wise"
 
@@ -190,9 +193,10 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
                         , onInput handlers.onSourceChange
                         ]
                         [ option [ value "wise" ] [ text (formatSourceLabel "wise") ]
-                        , option [ value "revolut" ] [ text (formatSourceLabel "revolut") ]
                         , option [ value "paypal" ] [ text (formatSourceLabel "paypal") ]
+                        , option [ value "revolut" ] [ text (formatSourceLabel "revolut") ]
                         , option [ value "payoneer" ] [ text (formatSourceLabel "payoneer") ]
+                        , option [ value "bca" ] [ text (formatSourceLabel "bca") ]
                         , option [ value "bank" ] [ text (formatSourceLabel "bank") ]
                         ]
                     ]

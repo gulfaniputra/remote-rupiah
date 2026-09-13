@@ -8,6 +8,7 @@ import { mapRevolutRow } from "../services/ingestion/revolut_parser.ts";
 import { mapPaypalRow } from "../services/ingestion/paypal_parser.ts";
 import { mapPayoneerRow } from "../services/ingestion/payoneer_parser.ts";
 import { mapWiseRow } from "../services/ingestion/wise_parser.ts";
+import { mapBcaRow } from "../services/ingestion/bca_parser.ts";
 import { CanonicalTx } from "../backend/src/domain/canonical-tx.ts";
 
 const app = new Hono();
@@ -17,6 +18,7 @@ const ROW_MAPPERS = {
   revolut: mapRevolutRow,
   payoneer: mapPayoneerRow,
   paypal: mapPaypalRow,
+  bca: mapBcaRow,
 } as const;
 
 app.use("*", authMiddleware);

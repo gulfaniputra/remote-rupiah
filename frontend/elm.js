@@ -9238,6 +9238,8 @@ var $author$project$View$Dashboard$evidenceLockerPanel = function (maybeStatus) 
 };
 var $author$project$View$Dashboard$formatSourceLabel = function (source) {
 	switch (source) {
+		case 'bca':
+			return 'BCA';
 		case 'wise':
 			return 'Wise';
 		case 'paypal':
@@ -9728,17 +9730,6 @@ var $author$project$View$Dashboard$renderReady = F9(
 													$elm$html$Html$option,
 													_List_fromArray(
 														[
-															$elm$html$Html$Attributes$value('revolut')
-														]),
-													_List_fromArray(
-														[
-															$elm$html$Html$text(
-															$author$project$View$Dashboard$formatSourceLabel('revolut'))
-														])),
-													A2(
-													$elm$html$Html$option,
-													_List_fromArray(
-														[
 															$elm$html$Html$Attributes$value('paypal')
 														]),
 													_List_fromArray(
@@ -9750,12 +9741,34 @@ var $author$project$View$Dashboard$renderReady = F9(
 													$elm$html$Html$option,
 													_List_fromArray(
 														[
+															$elm$html$Html$Attributes$value('revolut')
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text(
+															$author$project$View$Dashboard$formatSourceLabel('revolut'))
+														])),
+													A2(
+													$elm$html$Html$option,
+													_List_fromArray(
+														[
 															$elm$html$Html$Attributes$value('payoneer')
 														]),
 													_List_fromArray(
 														[
 															$elm$html$Html$text(
 															$author$project$View$Dashboard$formatSourceLabel('payoneer'))
+														])),
+													A2(
+													$elm$html$Html$option,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$value('bca')
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text(
+															$author$project$View$Dashboard$formatSourceLabel('bca'))
 														])),
 													A2(
 													$elm$html$Html$option,
