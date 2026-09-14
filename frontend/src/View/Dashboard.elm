@@ -7,7 +7,7 @@ module View.Dashboard exposing
     )
 
 import Data.Compliance as C
-import Data.FxEfficiency exposing (FxEfficiencyData)
+import Data.FxEfficiency exposing (FxEfficiencyData, ProviderComparison, computeProviderComparisons)
 import Data.State exposing (State(..))
 import Data.Transaction exposing (Transaction)
 import Data.Unrealized exposing (Unrealized)
@@ -177,10 +177,6 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
 
         fmt m =
             toShorthand m
-
-        -- Group FX leakage by provider
-        groupedLeakage =
-            groupFxLeakageBySource fxLeakage
     in
     div []
         [ viewNppnAlert { onNppnNotify = handlers.onNppnNotify } complianceStatus
@@ -251,15 +247,7 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
                 [ h3 [] [ text "UNREALIZED FX GAIN/LOSS" ]
                 , div [ class "big-value font-mono text-secondary" ] [ text (fmt unrealizedIdr) ]
                 ]
-            , if List.isEmpty groupedLeakage then
-                text ""
-
-              else
-                div [ class "card card-default" ]
-                    [ h3 [] [ text "FX LEAKAGE BY PROVIDER" ]
-                    , div [ class "flex-col gap-1" ]
-                        (List.map renderProviderRow groupedLeakage)
-                    ]
+            , viewProviderComparison (computeProviderComparisons fxLeakage)
             ]
         , div [ class "middle-grid" ]
             [ div [ class "chart-card" ]
@@ -336,6 +324,85 @@ renderProviderRow ( source, amount ) =
     div [ class "calc-row" ]
         [ span [ class "text-secondary" ] [ text (formatSourceLabel source) ]
         , span [ class "font-mono" ] [ text (toShorthand amount) ]
+        ]
+
+
+viewProviderComparison : List ProviderComparison -> Html msg
+viewProviderComparison comparisons =
+    if List.isEmpty comparisons then
+        text ""
+
+    else
+        let
+            maxLeakage =
+                comparisons
+                    |> List.map (\pc -> Money.toCents pc.totalLeakage)
+                    |> List.maximum
+                    |> Maybe.withDefault 1
+
+            maxBarWidth =
+                if maxLeakage > 0 then
+                    toFloat maxLeakage
+
+                else
+                    1.0
+        in
+        div [ class "card card-default" ]
+            [ h3 [] [ text "FX PROVIDER COMPARISON" ]
+            , div [ class "flex-col gap-2" ]
+                (List.map (renderProviderComparisonRow maxBarWidth) comparisons)
+            ]
+
+
+renderProviderComparisonRow : Float -> ProviderComparison -> Html msg
+renderProviderComparisonRow maxBarWidth pc =
+    let
+        barPct =
+            if maxBarWidth > 0 then
+                toFloat (Money.toCents pc.totalLeakage) / maxBarWidth * 100.0
+
+            else
+                0.0
+
+        barStyle =
+            String.fromFloat barPct ++ "%"
+
+        rounded =
+            round (pc.avgSpreadPercent * 10)
+
+        intPart =
+            rounded // 10
+
+        fracPart =
+            modBy 10 rounded
+
+        spreadDisplay =
+            String.fromInt intPart ++ "." ++ String.fromInt fracPart ++ "%"
+    in
+    div [ class "flex-col gap-1" ]
+        [ div [ class "flex gap-2" ]
+            [ span [ class "font-mono text-sm flex-1" ] [ text (formatSourceLabel pc.source) ]
+            , span [ class "font-mono text-sm" ] [ text (toShorthand pc.totalLeakage) ]
+            ]
+        , div [ class "flex gap-2 text-xs text-secondary" ]
+            [ span [] [ text spreadDisplay ]
+            , span [] [ text (String.fromInt pc.txCount ++ " tx") ]
+            ]
+        , div
+            [ style "background" "var(--bg-input)"
+            , style "border-radius" "4px"
+            , style "height" "8px"
+            , style "overflow" "hidden"
+            ]
+            [ div
+                [ style "width" barStyle
+                , style "height" "8px"
+                , style "background" "var(--color-primary)"
+                , style "border-radius" "4px"
+                , style "transition" "width 0.3s ease"
+                ]
+                []
+            ]
         ]
 
 

@@ -1,6 +1,7 @@
 module DashboardViewTest exposing (suite)
 
 import Data.Compliance as C
+import Data.FxEfficiency exposing (FxEfficiencyData, ProviderComparison, computeProviderComparisons)
 import Data.State exposing (State(..))
 import Expect
 import Html.Attributes as Attr
@@ -195,6 +196,150 @@ suite =
                         |> Query.find [ Selector.tag "button" ]
                         |> Event.simulate Event.click
                         |> Event.expect UserTriggeredNppnAction
+            ]
+        , describe "Provider comparison"
+            [ test "renders comparison card with FX leakage data" <|
+                \_ ->
+                    let
+                        fxWise =
+                            { date = "2026-05-18"
+                            , amountCents = Money.fromCents 100000
+                            , amountIdrCents = Money.fromCents 1615000000
+                            , kmkRate = Just "16120.00"
+                            , actualIdrCents = Just (Money.fromCents 1610000000)
+                            , spreadCents = Money.fromCents 5000000
+                            , source = Just "wise"
+                            }
+
+                        fxPaypal =
+                            { fxWise | spreadCents = Money.fromCents 2000000, source = Just "paypal" }
+                    in
+                    Dashboard.view
+                        (Ready { txs = [], unrealized = [], fxLeakage = [ fxWise, fxPaypal ] })
+                        0
+                        "wise"
+                        ""
+                        { npwp = "", nik = "", address = "", kluCode = "" }
+                        Nothing
+                        noOpHandlers
+                        |> Query.fromHtml
+                        |> Query.has [ Selector.text "FX PROVIDER COMPARISON" ]
+            , test "shows provider names, leakage amounts, and tx counts" <|
+                \_ ->
+                    let
+                        fxWise =
+                            { date = "2026-05-18"
+                            , amountCents = Money.fromCents 100000
+                            , amountIdrCents = Money.fromCents 1615000000
+                            , kmkRate = Just "16120.00"
+                            , actualIdrCents = Just (Money.fromCents 1610000000)
+                            , spreadCents = Money.fromCents 5000000
+                            , source = Just "wise"
+                            }
+
+                        fxPaypal =
+                            { fxWise | spreadCents = Money.fromCents 2000000, source = Just "paypal" }
+                    in
+                    Dashboard.view
+                        (Ready { txs = [], unrealized = [], fxLeakage = [ fxWise, fxPaypal ] })
+                        0
+                        "wise"
+                        ""
+                        { npwp = "", nik = "", address = "", kluCode = "" }
+                        Nothing
+                        noOpHandlers
+                        |> Query.fromHtml
+                        |> Query.findAll [ Selector.class "flex-1" ]
+                        |> Query.first
+                        |> Query.has [ Selector.text "Wise" ]
+            , test "empty FX leakage renders no comparison card heading" <|
+                \_ ->
+                    Dashboard.view
+                        (Ready { txs = [], unrealized = [], fxLeakage = [] })
+                        0
+                        "wise"
+                        ""
+                        { npwp = "", nik = "", address = "", kluCode = "" }
+                        Nothing
+                        noOpHandlers
+                        |> Query.fromHtml
+                        |> Query.hasNot [ Selector.text "FX PROVIDER COMPARISON" ]
+            , describe "computeProviderComparisons"
+                [ test "sorts providers by total leakage descending" <|
+                    \_ ->
+                        let
+                            fxWise =
+                                { date = "2026-05-18"
+                                , amountCents = Money.fromCents 100000
+                                , amountIdrCents = Money.fromCents 1615000000
+                                , kmkRate = Just "16120.00"
+                                , actualIdrCents = Just (Money.fromCents 1610000000)
+                                , spreadCents = Money.fromCents 5000000
+                                , source = Just "wise"
+                                }
+
+                            fxPaypal =
+                                { fxWise | spreadCents = Money.fromCents 2000000, source = Just "paypal" }
+
+                            result =
+                                computeProviderComparisons [ fxWise, fxPaypal ]
+                        in
+                        Expect.equal
+                            (List.map .source result)
+                            [ "wise", "paypal" ]
+                , test "includes transaction count" <|
+                    \_ ->
+                        let
+                            fx1 =
+                                { date = "2026-05-18"
+                                , amountCents = Money.fromCents 100000
+                                , amountIdrCents = Money.fromCents 1615000000
+                                , kmkRate = Just "16120.00"
+                                , actualIdrCents = Just (Money.fromCents 1610000000)
+                                , spreadCents = Money.fromCents 5000000
+                                , source = Just "wise"
+                                }
+
+                            fx2 =
+                                { fx1 | spreadCents = Money.fromCents 3000000 }
+
+                            comparisons =
+                                computeProviderComparisons [ fx1, fx2 ]
+                        in
+                        case comparisons of
+                            [ pc ] ->
+                                Expect.equal pc.txCount 2
+
+                            _ ->
+                                Expect.fail "Expected exactly one provider"
+                , test "avgSpreadPercent is correct for known values" <|
+                    \_ ->
+                        let
+                            -- 5M spread on 1615M amount = 0.3096%
+                            fx1 =
+                                { date = "2026-05-18"
+                                , amountCents = Money.fromCents 100000
+                                , amountIdrCents = Money.fromCents 1615000000
+                                , kmkRate = Just "16120.00"
+                                , actualIdrCents = Just (Money.fromCents 1610000000)
+                                , spreadCents = Money.fromCents 5000000
+                                , source = Just "wise"
+                                }
+
+                            comparisons =
+                                computeProviderComparisons [ fx1 ]
+                        in
+                        case comparisons of
+                            [ pc ] ->
+                                Expect.lessThan 1.0 pc.avgSpreadPercent
+
+                            _ ->
+                                Expect.fail "Expected exactly one provider"
+                , test "returns empty list for empty input" <|
+                    \_ ->
+                        computeProviderComparisons []
+                            |> Expect.equal []
+                ]
             ]
         , describe "groupFxLeakageBySource"
             [ test "groups leakage by source correctly" <|

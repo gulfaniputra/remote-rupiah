@@ -8926,6 +8926,143 @@ var $author$project$TaxLogic$calculatePPh24 = F4(
 var $author$project$TaxLogic$calculatePPh24Credit = function (p) {
 	return A4($author$project$TaxLogic$calculatePPh24, p.totalIndoTaxDue, p.foreignNetIncome, p.totalTaxableIncome, p.actualForeignTaxPaid);
 };
+var $author$project$Data$FxEfficiency$groupBySource = F2(
+	function (fx, dict) {
+		var source = A2($elm$core$Maybe$withDefault, 'unknown', fx.source);
+		var current = A2(
+			$elm$core$Maybe$withDefault,
+			_List_Nil,
+			A2($elm$core$Dict$get, source, dict));
+		var updated = A2($elm$core$List$cons, fx, current);
+		return A3($elm$core$Dict$insert, source, updated, dict);
+	});
+var $elm$core$List$sortBy = _List_sortBy;
+var $elm$core$String$concat = function (strings) {
+	return A2($elm$core$String$join, '', strings);
+};
+var $elm$core$String$cons = _String_cons;
+var $elm$core$String$fromChar = function (_char) {
+	return A2($elm$core$String$cons, _char, '');
+};
+var $elm$core$Bitwise$and = _Bitwise_and;
+var $elm$core$Bitwise$shiftRightBy = _Bitwise_shiftRightBy;
+var $elm$core$String$repeatHelp = F3(
+	function (n, chunk, result) {
+		return (n <= 0) ? result : A3(
+			$elm$core$String$repeatHelp,
+			n >> 1,
+			_Utils_ap(chunk, chunk),
+			(!(n & 1)) ? result : _Utils_ap(result, chunk));
+	});
+var $elm$core$String$repeat = F2(
+	function (n, chunk) {
+		return A3($elm$core$String$repeatHelp, n, chunk, '');
+	});
+var $elm$core$String$padLeft = F3(
+	function (n, _char, string) {
+		return _Utils_ap(
+			A2(
+				$elm$core$String$repeat,
+				n - $elm$core$String$length(string),
+				$elm$core$String$fromChar(_char)),
+			string);
+	});
+var $cmditch$elm_bigint$BigInt$fillZeroes = function (x) {
+	return A3(
+		$elm$core$String$padLeft,
+		$cmditch$elm_bigint$Constants$maxDigitMagnitude,
+		_Utils_chr('0'),
+		$elm$core$String$fromInt(x));
+};
+var $cmditch$elm_bigint$BigInt$revMagnitudeToString = function (_v0) {
+	var digits = _v0.a;
+	var _v1 = $elm$core$List$reverse(digits);
+	if (!_v1.b) {
+		return '0';
+	} else {
+		var x = _v1.a;
+		var xs = _v1.b;
+		return $elm$core$String$concat(
+			A2(
+				$elm$core$List$cons,
+				$elm$core$String$fromInt(x),
+				A2($elm$core$List$map, $cmditch$elm_bigint$BigInt$fillZeroes, xs)));
+	}
+};
+var $cmditch$elm_bigint$BigInt$toString = function (bigInt) {
+	switch (bigInt.$) {
+		case 'Zer':
+			return '0';
+		case 'Pos':
+			var mag = bigInt.a;
+			return $cmditch$elm_bigint$BigInt$revMagnitudeToString(mag);
+		default:
+			var mag = bigInt.a;
+			return '-' + $cmditch$elm_bigint$BigInt$revMagnitudeToString(mag);
+	}
+};
+var $author$project$Money$toAuthoritativeString = function (_v0) {
+	var b = _v0.a;
+	return $cmditch$elm_bigint$BigInt$toString(b);
+};
+var $author$project$Money$toCents = A2(
+	$elm$core$Basics$composeR,
+	$author$project$Money$toAuthoritativeString,
+	A2(
+		$elm$core$Basics$composeR,
+		$elm$core$String$toInt,
+		$elm$core$Maybe$withDefault(-1)));
+var $author$project$Data$FxEfficiency$avgSpreadPercent = function (records) {
+	var totalSpread = A3(
+		$elm$core$List$foldl,
+		F2(
+			function (r, acc) {
+				return acc + $author$project$Money$toCents(r.spreadCents);
+			}),
+		0,
+		records);
+	var totalAmountIdr = A3(
+		$elm$core$List$foldl,
+		F2(
+			function (r, acc) {
+				return acc + $author$project$Money$toCents(r.amountIdrCents);
+			}),
+		0,
+		records);
+	return (totalAmountIdr > 0) ? ((totalSpread / totalAmountIdr) * 100.0) : 0.0;
+};
+var $author$project$Data$FxEfficiency$totalLeakage = A2(
+	$elm$core$List$foldl,
+	F2(
+		function (r, acc) {
+			return A2($author$project$Money$add, acc, r.spreadCents);
+		}),
+	$author$project$Money$zero);
+var $author$project$Data$FxEfficiency$toProviderComparison = function (_v0) {
+	var source = _v0.a;
+	var records = _v0.b;
+	return {
+		avgSpreadPercent: $author$project$Data$FxEfficiency$avgSpreadPercent(records),
+		source: source,
+		totalLeakage: $author$project$Data$FxEfficiency$totalLeakage(records),
+		txCount: $elm$core$List$length(records)
+	};
+};
+var $author$project$Data$FxEfficiency$computeProviderComparisons = function (fxList) {
+	return A2(
+		$elm$core$List$sortBy,
+		A2(
+			$elm$core$Basics$composeR,
+			function ($) {
+				return $.totalLeakage;
+			},
+			A2($elm$core$Basics$composeR, $author$project$Money$toCents, $elm$core$Basics$negate)),
+		A2(
+			$elm$core$List$map,
+			$author$project$Data$FxEfficiency$toProviderComparison,
+			$elm$core$Dict$toList(
+				A3($elm$core$List$foldl, $author$project$Data$FxEfficiency$groupBySource, $elm$core$Dict$empty, fxList))));
+};
 var $author$project$Money$fromCentsStr = A2(
 	$elm$core$Basics$composeR,
 	$cmditch$elm_bigint$BigInt$fromIntString,
@@ -9254,20 +9391,6 @@ var $author$project$View$Dashboard$formatSourceLabel = function (source) {
 			return source;
 	}
 };
-var $author$project$View$Dashboard$groupFxLeakageBySource = function (fxList) {
-	var addFx = F2(
-		function (fx, dict) {
-			var source = A2($elm$core$Maybe$withDefault, 'unknown', fx.source);
-			var current = A2(
-				$elm$core$Maybe$withDefault,
-				$author$project$Money$zero,
-				A2($elm$core$Dict$get, source, dict));
-			var updated = A2($author$project$Money$add, current, fx.spreadCents);
-			return A3($elm$core$Dict$insert, source, updated, dict);
-		});
-	return $elm$core$Dict$toList(
-		A3($elm$core$List$foldl, addFx, $elm$core$Dict$empty, fxList));
-};
 var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$html$Html$input = _VirtualDom_node('input');
 var $elm$core$String$filter = _String_filter;
@@ -9307,81 +9430,6 @@ var $author$project$TaxLogic$projectYearEndLiability = F3(
 	});
 var $elm$core$Basics$modBy = _Basics_modBy;
 var $elm$core$Basics$round = _Basics_round;
-var $elm$core$String$concat = function (strings) {
-	return A2($elm$core$String$join, '', strings);
-};
-var $elm$core$String$cons = _String_cons;
-var $elm$core$String$fromChar = function (_char) {
-	return A2($elm$core$String$cons, _char, '');
-};
-var $elm$core$Bitwise$and = _Bitwise_and;
-var $elm$core$Bitwise$shiftRightBy = _Bitwise_shiftRightBy;
-var $elm$core$String$repeatHelp = F3(
-	function (n, chunk, result) {
-		return (n <= 0) ? result : A3(
-			$elm$core$String$repeatHelp,
-			n >> 1,
-			_Utils_ap(chunk, chunk),
-			(!(n & 1)) ? result : _Utils_ap(result, chunk));
-	});
-var $elm$core$String$repeat = F2(
-	function (n, chunk) {
-		return A3($elm$core$String$repeatHelp, n, chunk, '');
-	});
-var $elm$core$String$padLeft = F3(
-	function (n, _char, string) {
-		return _Utils_ap(
-			A2(
-				$elm$core$String$repeat,
-				n - $elm$core$String$length(string),
-				$elm$core$String$fromChar(_char)),
-			string);
-	});
-var $cmditch$elm_bigint$BigInt$fillZeroes = function (x) {
-	return A3(
-		$elm$core$String$padLeft,
-		$cmditch$elm_bigint$Constants$maxDigitMagnitude,
-		_Utils_chr('0'),
-		$elm$core$String$fromInt(x));
-};
-var $cmditch$elm_bigint$BigInt$revMagnitudeToString = function (_v0) {
-	var digits = _v0.a;
-	var _v1 = $elm$core$List$reverse(digits);
-	if (!_v1.b) {
-		return '0';
-	} else {
-		var x = _v1.a;
-		var xs = _v1.b;
-		return $elm$core$String$concat(
-			A2(
-				$elm$core$List$cons,
-				$elm$core$String$fromInt(x),
-				A2($elm$core$List$map, $cmditch$elm_bigint$BigInt$fillZeroes, xs)));
-	}
-};
-var $cmditch$elm_bigint$BigInt$toString = function (bigInt) {
-	switch (bigInt.$) {
-		case 'Zer':
-			return '0';
-		case 'Pos':
-			var mag = bigInt.a;
-			return $cmditch$elm_bigint$BigInt$revMagnitudeToString(mag);
-		default:
-			var mag = bigInt.a;
-			return '-' + $cmditch$elm_bigint$BigInt$revMagnitudeToString(mag);
-	}
-};
-var $author$project$Money$toAuthoritativeString = function (_v0) {
-	var b = _v0.a;
-	return $cmditch$elm_bigint$BigInt$toString(b);
-};
-var $author$project$Money$toCents = A2(
-	$elm$core$Basics$composeR,
-	$author$project$Money$toAuthoritativeString,
-	A2(
-		$elm$core$Basics$composeR,
-		$elm$core$String$toInt,
-		$elm$core$Maybe$withDefault(-1)));
 var $author$project$View$Dashboard$toShorthand = function (money) {
 	var thousand = 1000 * 100;
 	var million = 1000000 * 100;
@@ -9402,41 +9450,6 @@ var $author$project$View$Dashboard$toShorthand = function (money) {
 			suffix) : ($elm$core$String$fromInt(whole) + ('.' + ($elm$core$String$fromInt(frac) + suffix)));
 	}();
 	return 'IDR ' + (sign + formatted);
-};
-var $author$project$View$Dashboard$renderProviderRow = function (_v0) {
-	var source = _v0.a;
-	var amount = _v0.b;
-	return A2(
-		$elm$html$Html$div,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('calc-row')
-			]),
-		_List_fromArray(
-			[
-				A2(
-				$elm$html$Html$span,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('text-secondary')
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text(
-						$author$project$View$Dashboard$formatSourceLabel(source))
-					])),
-				A2(
-				$elm$html$Html$span,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('font-mono')
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text(
-						$author$project$View$Dashboard$toShorthand(amount))
-					]))
-			]));
 };
 var $author$project$View$Dashboard$summaryCard = F3(
 	function (label, value, cls) {
@@ -9623,6 +9636,158 @@ var $author$project$View$Dashboard$viewNppnAlert = F2(
 					]))));
 		}
 	});
+var $elm$core$List$maximum = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(
+			A3($elm$core$List$foldl, $elm$core$Basics$max, x, xs));
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
+var $elm$core$String$fromFloat = _String_fromNumber;
+var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
+var $author$project$View$Dashboard$renderProviderComparisonRow = F2(
+	function (maxBarWidth, pc) {
+		var rounded = $elm$core$Basics$round(pc.avgSpreadPercent * 10);
+		var intPart = (rounded / 10) | 0;
+		var fracPart = A2($elm$core$Basics$modBy, 10, rounded);
+		var spreadDisplay = $elm$core$String$fromInt(intPart) + ('.' + ($elm$core$String$fromInt(fracPart) + '%'));
+		var barPct = (maxBarWidth > 0) ? (($author$project$Money$toCents(pc.totalLeakage) / maxBarWidth) * 100.0) : 0.0;
+		var barStyle = $elm$core$String$fromFloat(barPct) + '%';
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('flex-col gap-1')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('flex gap-2')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$span,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('font-mono text-sm flex-1')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text(
+									$author$project$View$Dashboard$formatSourceLabel(pc.source))
+								])),
+							A2(
+							$elm$html$Html$span,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('font-mono text-sm')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text(
+									$author$project$View$Dashboard$toShorthand(pc.totalLeakage))
+								]))
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('flex gap-2 text-xs text-secondary')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$span,
+							_List_Nil,
+							_List_fromArray(
+								[
+									$elm$html$Html$text(spreadDisplay)
+								])),
+							A2(
+							$elm$html$Html$span,
+							_List_Nil,
+							_List_fromArray(
+								[
+									$elm$html$Html$text(
+									$elm$core$String$fromInt(pc.txCount) + ' tx')
+								]))
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							A2($elm$html$Html$Attributes$style, 'background', 'var(--bg-input)'),
+							A2($elm$html$Html$Attributes$style, 'border-radius', '4px'),
+							A2($elm$html$Html$Attributes$style, 'height', '8px'),
+							A2($elm$html$Html$Attributes$style, 'overflow', 'hidden')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									A2($elm$html$Html$Attributes$style, 'width', barStyle),
+									A2($elm$html$Html$Attributes$style, 'height', '8px'),
+									A2($elm$html$Html$Attributes$style, 'background', 'var(--color-primary)'),
+									A2($elm$html$Html$Attributes$style, 'border-radius', '4px'),
+									A2($elm$html$Html$Attributes$style, 'transition', 'width 0.3s ease')
+								]),
+							_List_Nil)
+						]))
+				]));
+	});
+var $author$project$View$Dashboard$viewProviderComparison = function (comparisons) {
+	if ($elm$core$List$isEmpty(comparisons)) {
+		return $elm$html$Html$text('');
+	} else {
+		var maxLeakage = A2(
+			$elm$core$Maybe$withDefault,
+			1,
+			$elm$core$List$maximum(
+				A2(
+					$elm$core$List$map,
+					function (pc) {
+						return $author$project$Money$toCents(pc.totalLeakage);
+					},
+					comparisons)));
+		var maxBarWidth = (maxLeakage > 0) ? maxLeakage : 1.0;
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('card card-default')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$h3,
+					_List_Nil,
+					_List_fromArray(
+						[
+							$elm$html$Html$text('FX PROVIDER COMPARISON')
+						])),
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('flex-col gap-2')
+						]),
+					A2(
+						$elm$core$List$map,
+						$author$project$View$Dashboard$renderProviderComparisonRow(maxBarWidth),
+						comparisons))
+				]));
+	}
+};
 var $author$project$View$Dashboard$renderReady = F9(
 	function (txs, unrealized, fxLeakage, kmkVal, source, uploadStatus, profile, complianceStatus, handlers) {
 		var whtIdr = $elm$core$List$isEmpty(txs) ? $author$project$Money$zero : function (m) {
@@ -9637,7 +9802,6 @@ var $author$project$View$Dashboard$renderReady = F9(
 				$author$project$Money$zero,
 				txs));
 		var unrealizedIdr = $author$project$View$Dashboard$totalUnrealized(unrealized);
-		var groupedLeakage = $author$project$View$Dashboard$groupFxLeakageBySource(fxLeakage);
 		var fxLeakageIdr = $author$project$View$Dashboard$totalFxLeakage(fxLeakage);
 		var fmt = function (m) {
 			return $author$project$View$Dashboard$toShorthand(m);
@@ -10028,29 +10192,8 @@ var $author$project$View$Dashboard$renderReady = F9(
 											fmt(unrealizedIdr))
 										]))
 								])),
-							$elm$core$List$isEmpty(groupedLeakage) ? $elm$html$Html$text('') : A2(
-							$elm$html$Html$div,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('card card-default')
-								]),
-							_List_fromArray(
-								[
-									A2(
-									$elm$html$Html$h3,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text('FX LEAKAGE BY PROVIDER')
-										])),
-									A2(
-									$elm$html$Html$div,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('flex-col gap-1')
-										]),
-									A2($elm$core$List$map, $author$project$View$Dashboard$renderProviderRow, groupedLeakage))
-								]))
+							$author$project$View$Dashboard$viewProviderComparison(
+							$author$project$Data$FxEfficiency$computeProviderComparisons(fxLeakage))
 						])),
 					A2(
 					$elm$html$Html$div,
