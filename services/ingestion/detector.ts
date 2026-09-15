@@ -1,4 +1,11 @@
-export type Platform = "wise" | "revolut" | "payoneer" | "paypal" | "bca";
+export type Platform =
+  | "wise"
+  | "revolut"
+  | "payoneer"
+  | "paypal"
+  | "bca"
+  | "mandiri"
+  | "bni";
 
 const normalizeHeader = (header: string) =>
   header.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(
@@ -60,12 +67,34 @@ export const detectPlatform = (headerRow: string): Platform | null => {
     return "paypal";
   }
 
+  // BNI: uses "Debit" (not "Debet")
   if (
-    hasAll(headers, ["tgl_transaksi", "keterangan", "cabang"]) ||
-    hasAll(headers, ["tanggal", "keterangan", "jumlah"]) ||
+    hasAll(headers, ["tgl_transaksi", "keterangan", "debit", "kredit"]) ||
+    hasAll(headers, ["tanggal", "keterangan", "debit", "kredit"])
+  ) {
+    return "bni";
+  }
+
+  // BCA KlikBCA: uses "Debet" (not "Debit") with Tgl. Transaksi
+  if (
+    hasAll(headers, ["tgl_transaksi", "keterangan", "cabang", "debet", "kredit"]) ||
     hasAll(headers, ["tgl_transaksi", "keterangan", "debet", "kredit"])
   ) {
     return "bca";
+  }
+
+  // BCA mobile: uses "Jumlah" column (single column amount)
+  if (
+    hasAll(headers, ["tanggal", "keterangan", "jumlah"])
+  ) {
+    return "bca";
+  }
+
+  // Mandiri: uses "Debet" with "Tanggal" (not "Tgl. Transaksi") and includes "Cabang"
+  if (
+    hasAll(headers, ["tanggal", "keterangan", "cabang", "debet", "kredit"])
+  ) {
+    return "mandiri";
   }
 
   return null;

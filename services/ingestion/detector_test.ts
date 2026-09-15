@@ -39,6 +39,33 @@ Deno.test("detectPlatform identifies PayPal headers", () => {
   assertEquals(detectPlatform("Date,Amount,Currency"), "paypal");
 });
 
+Deno.test("detectPlatform identifies Mandiri headers", () => {
+  assertEquals(
+    detectPlatform(
+      "Tanggal,Keterangan,Cabang,Debet,Kredit,Saldo",
+    ),
+    "mandiri",
+  );
+});
+
+Deno.test("detectPlatform identifies BNI headers with Debit spelling", () => {
+  assertEquals(
+    detectPlatform(
+      "Tanggal,Keterangan,Cabang,Debit,Kredit,Saldo",
+    ),
+    "bni",
+  );
+});
+
+Deno.test("detectPlatform identifies BNI headers with Tgl. Transaksi", () => {
+  assertEquals(
+    detectPlatform(
+      "Tgl. Transaksi,Keterangan,Cabang,Debit,Kredit,Saldo",
+    ),
+    "bni",
+  );
+});
+
 Deno.test("detectPlatform returns null for unknown headers", () => {
   assertEquals(detectPlatform("Foo,Bar,Baz"), null);
 });
