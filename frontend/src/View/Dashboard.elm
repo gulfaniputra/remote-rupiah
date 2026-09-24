@@ -63,8 +63,11 @@ formatSourceLabel source =
         "payoneer" ->
             "Payoneer"
 
-        "bank" ->
-            "Banks"
+        "mandiri" ->
+            "Mandiri"
+
+        "bni" ->
+            "BNI"
 
         _ ->
             source
@@ -193,7 +196,8 @@ renderReady txs unrealized fxLeakage kmkVal source uploadStatus profile complian
                         , option [ value "revolut" ] [ text (formatSourceLabel "revolut") ]
                         , option [ value "payoneer" ] [ text (formatSourceLabel "payoneer") ]
                         , option [ value "bca" ] [ text (formatSourceLabel "bca") ]
-                        , option [ value "bank" ] [ text (formatSourceLabel "bank") ]
+                        , option [ value "mandiri" ] [ text (formatSourceLabel "mandiri") ]
+                        , option [ value "bni" ] [ text (formatSourceLabel "bni") ]
                         ]
                     ]
                 , button [ class "btn btn-primary mt-3", onClick handlers.onUpload ] [ text "Upload CSV" ]

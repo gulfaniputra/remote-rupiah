@@ -82,6 +82,42 @@ Deno.test("Ingest Route - POST / ingests Payoneer CSV rows", async () => {
   assertEquals(body.platform, "payoneer");
 });
 
+Deno.test("Ingest Route - source query param overrides auto-detection", async () => {
+  const token = await makeToken("test-user-id-123");
+  // These headers do not match any detector rule (would otherwise 428),
+  // but the Mandiri parser can read Debet/Kredit columns.
+  const res = await app.request("http://localhost/?source=mandiri", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "text/csv",
+    },
+    body: "Tanggal,Keterangan,Debet,Kredit\n" +
+      "18/05/2026,Client payment,,14000000.00\n",
+  });
+  assertEquals(res.status, 200);
+  const body = await res.json();
+  assertEquals(body.success, true);
+  assertEquals(body.ingested, 1);
+  assertEquals(body.platform, "mandiri");
+});
+
+Deno.test("Ingest Route - unknown source query param returns 400", async () => {
+  const token = await makeToken("test-user-id-123");
+  const res = await app.request("http://localhost/?source=foo", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "text/csv",
+    },
+    body: "Transfer ID,Created on,Source Currency,Amount Sent,Amount Received\n",
+  });
+  assertEquals(res.status, 400);
+  const body = await res.json();
+  assertEquals(body.success, false);
+  assertEquals(body.error, "Unknown source: foo");
+});
+
 Deno.test("Ingest Route - unknown CSV without mapping returns 428", async () => {
   testMocks.clear();
   const token = await makeToken("test-user-id-123");

@@ -32,7 +32,7 @@ port clearCredentials : () -> Cmd msg
 port requestCsvFile : () -> Cmd msg
 
 
-port uploadCsv : { token : String, csv : String } -> Cmd msg
+port uploadCsv : { token : String, source : String, csv : String } -> Cmd msg
 
 
 port csvSelected : (String -> msg) -> Sub msg
@@ -160,7 +160,7 @@ update msg m =
             ( m, requestCsvFile () )
 
         FileSelected csv ->
-            ( { m | uploadStatus = "Uploading CSV..." }, uploadCsv { token = m.token, csv = csv } )
+            ( { m | uploadStatus = "Uploading CSV..." }, uploadCsv { token = m.token, source = m.source, csv = csv } )
 
         FileUploadCompleted result ->
             let

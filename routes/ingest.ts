@@ -25,6 +25,12 @@ const ROW_MAPPERS = {
   bni: mapBniRow,
 } as const;
 
+type Provider = keyof typeof ROW_MAPPERS;
+
+const PROVIDERS = Object.keys(ROW_MAPPERS) as Provider[];
+
+const isProvider = (value: string): value is Provider => (PROVIDERS as string[]).includes(value);
+
 app.use("*", authMiddleware);
 
 const readBodyWithLimit = async (
@@ -138,7 +144,18 @@ app.post("/", async (c) => {
     }
 
     const { headers, rows } = await parseCsvRows(body);
-    const platform = detectPlatform(headers.join(","));
+    const sourceParam = c.req.query("source");
+    let platform: Provider | null;
+    if (sourceParam === undefined) {
+      platform = detectPlatform(headers.join(","));
+    } else if (isProvider(sourceParam)) {
+      platform = sourceParam;
+    } else {
+      return c.json(
+        { success: false, error: `Unknown source: ${sourceParam}` },
+        400,
+      );
+    }
     const uid = (c.get as (key: string) => unknown)("userId") as string;
     if (!uid) return c.json({ success: false, error: "Unauthorized" }, 401);
 

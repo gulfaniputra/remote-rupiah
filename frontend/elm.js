@@ -7493,6 +7493,9 @@ var $author$project$Main$uploadCsv = _Platform_outgoingPort(
 					'csv',
 					$elm$json$Json$Encode$string($.csv)),
 					_Utils_Tuple2(
+					'source',
+					$elm$json$Json$Encode$string($.source)),
+					_Utils_Tuple2(
 					'token',
 					$elm$json$Json$Encode$string($.token))
 				]));
@@ -7610,7 +7613,7 @@ var $author$project$Main$update = F2(
 						m,
 						{uploadStatus: 'Uploading CSV...'}),
 					$author$project$Main$uploadCsv(
-						{csv: csv, token: m.token}));
+						{csv: csv, source: m.source, token: m.token}));
 			case 'FileUploadCompleted':
 				var result = msg.a;
 				var refreshCmd = A2($elm$core$String$startsWith, 'Upload complete', result) ? $elm$core$Platform$Cmd$batch(
@@ -9385,8 +9388,10 @@ var $author$project$View$Dashboard$formatSourceLabel = function (source) {
 			return 'Revolut';
 		case 'payoneer':
 			return 'Payoneer';
-		case 'bank':
-			return 'Banks';
+		case 'mandiri':
+			return 'Mandiri';
+		case 'bni':
+			return 'BNI';
 		default:
 			return source;
 	}
@@ -9938,12 +9943,23 @@ var $author$project$View$Dashboard$renderReady = F9(
 													$elm$html$Html$option,
 													_List_fromArray(
 														[
-															$elm$html$Html$Attributes$value('bank')
+															$elm$html$Html$Attributes$value('mandiri')
 														]),
 													_List_fromArray(
 														[
 															$elm$html$Html$text(
-															$author$project$View$Dashboard$formatSourceLabel('bank'))
+															$author$project$View$Dashboard$formatSourceLabel('mandiri'))
+														])),
+													A2(
+													$elm$html$Html$option,
+													_List_fromArray(
+														[
+															$elm$html$Html$Attributes$value('bni')
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text(
+															$author$project$View$Dashboard$formatSourceLabel('bni'))
 														]))
 												]))
 										])),

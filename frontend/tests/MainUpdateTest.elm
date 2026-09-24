@@ -69,8 +69,10 @@ suite =
             \_ ->
                 Main.update (Main.GotTransactions (Ok [ mockTx ])) loadingModel
                     |> Tuple.first
-                    |> \m -> ( m.appState, m.txs )
-                    |> Expect.equal ( Ready, [ mockTx ] )
+                    |> (\m ->
+                            ( m.appState, m.txs )
+                                |> Expect.equal ( Ready, [ mockTx ] )
+                       )
         , test "GotUnrealized Ok sets unrealized" <|
             \_ ->
                 Main.update (Main.GotUnrealized (Ok [ mockUnrealized ])) loadingModel
@@ -118,14 +120,28 @@ suite =
             \_ ->
                 Main.update (Main.GotTransactions (Ok [])) loadingModel
                     |> Tuple.first
-                    |> \m -> ( m.appState, m.txs )
-                    |> Expect.equal ( Ready, [] )
+                    |> (\m ->
+                            ( m.appState, m.txs )
+                                |> Expect.equal ( Ready, [] )
+                       )
         , test "UpdateSource mutates selected source" <|
             \_ ->
-                Main.update (Main.UpdateSource "bank") loadingModel
+                Main.update (Main.UpdateSource "mandiri") loadingModel
                     |> Tuple.first
                     |> .source
-                    |> Expect.equal "bank"
+                    |> Expect.equal "mandiri"
+        , test "FileSelected sets upload status and keeps selected source" <|
+            \_ ->
+                let
+                    model =
+                        { loadingModel | source = "bni" }
+                in
+                Main.update (Main.FileSelected "Date,Amount\n2026-05-18,42.25\n") model
+                    |> Tuple.first
+                    |> (\m ->
+                            ( m.uploadStatus, m.source )
+                                |> Expect.equal ( "Uploading CSV...", "bni" )
+                       )
         , test "Export message sets status to Exporting..." <|
             \_ ->
                 Main.update (Main.Export 2026) loadingModel
