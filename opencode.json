@@ -3,134 +3,55 @@
 
   "provider": {
     "openrouter": {
-      "options": {
-        "allowFallbacks": true,
-        "maxPrice": {
-          "prompt": 0.000002,
-          "completion": 0.000010
-        },
-        "order": ["DeepSeek", "Fireworks AI", "Together AI"]
-      },
       "models": {
+        "z-ai/glm-5.2": {
+          "options": {
+            "provider": {
+              "order": ["fireworks", "together"],
+              "allow_fallbacks": true
+            }
+          }
+        },
         "deepseek/deepseek-v4.1-flash": {
-          "limit": { "context": 1048576, "output": 8192 }
+          "options": {
+            "provider": {
+              "order": ["deepseek", "fireworks", "together"],
+              "allow_fallbacks": true
+            }
+          }
         }
       }
     }
   },
 
-  "plugin": [
-    "opencode-mcp-triage",
-    "/home/gulfaniputra/.config/opencode/plugins/opencode-context-cache.mjs",
-    "@tuanhung303/opencode-acp@latest",
-    "@atonev/opencode-short-term-memory@1.3.0"
-  ],
-
-  "model": "openrouter/deepseek/deepseek-v4.1-flash",
-
-  "exclude": [
-    "**/node_modules/**",
-    "**/.git/**",
-    "**/dist/**",
-    "**/build/**",
-    "**/.next/**",
-    "**/.deno/**",
-    "**/drizzle/**",
-    "**/*.log",
-    "**/*.lock",
-    "**/coverage/**",
-    "**/.shadow-cljs/**",
-    "**/*.min.js",
-    "**/*.min.css",
-    "**/package-lock.json",
-    "**/pnpm-lock.yaml",
-    "**/yarn.lock",
-    "**/elm-stuff/**",
-    "**/frontend/elm.js",
-    "**/public/elm.js"
-  ],
-
-  "autoupdate": true,
+  "watcher": {
+    "ignore": [
+      "**/node_modules/**",
+      "**/.git/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/.next/**",
+      "**/.deno/**",
+      "**/coverage/**",
+      "**/.shadow-cljs/**",
+      "**/elm-stuff/**",
+      "**/*.log"
+    ]
+  },
 
   "permission": {
-    "*": "ask",
-    "bash": {
-      "*": "ask",
-      "git status*": "allow",
-      "git diff*": "allow",
-      "git log*": "allow",
-      "git branch*": "allow",
-      "npm test*": "allow",
-      "npm run lint*": "allow",
-      "deno check*": "allow",
-      "deno test*": "allow",
-      "deno fmt*": "allow",
-      "grep *": "allow",
-      "rg *": "allow",
-      "curl *": "ask",
-      "rm *": "deny",
-      "git push --force*": "deny",
-      "wget *": "ask",
-      "chmod *": "ask",
-      "sudo *": "deny"
-    },
     "read": {
-      "*": "allow",
-      "*.env": "deny",
-      "*.env.*": "deny",
-      "*.pem": "deny"
-    },
-    "websearch": "allow"
+      "*.lock": "deny",
+      "*package-lock.json": "deny",
+      "*pnpm-lock.yaml": "deny",
+      "*.min.js": "deny",
+      "*.min.css": "deny",
+      "*/elm.js": "deny"
+    }
   },
 
   "agent": {
-    "coder": {
-      "description": "Main interactive coding assistant.",
-      "model": "openrouter/deepseek/deepseek-v4.1-flash",
-      "temperature": 0.2,
-      "steps": 25,
-      "maxTokens": 8192,
-      "options": { "reasoningEffort": "medium" }
-    },
-
-    "task": {
-      "description": "Fast background executor for searches & file reads.",
-      "model": "openrouter/deepseek/deepseek-v4-flash-0731",
-      "temperature": 0.0,
-      "steps": 10,
-      "maxTokens": 1500,
-      "options": { "reasoningEffort": "low" }
-    },
-
-    "title": {
-      "description": "Generates short session titles from the first user message.",
-      "model": "openrouter/deepseek/deepseek-v4-flash-0731",
-      "temperature": 0.0,
-      "maxTokens": 80
-    },
-
-    "plan": {
-      "description": "Architectural planner. Analyzes codebase & drafts plans without editing files.",
-      "model": "openrouter/deepseek/deepseek-v4.1-flash",
-      "temperature": 0.1,
-      "steps": 15,
-      "maxTokens": 8192,
-      "options": { "reasoningEffort": "high" },
-      "prompt": "You are a Principal Software Architect. Your sole responsibility is to produce a highly structured, step-by-step implementation plan in Markdown. Do not write code blocks longer than 5 lines. Do not edit any files. Focus on module boundaries, dependency injection points, and file paths. End every plan with a checklist of acceptance criteria.",
-      "permission": {
-        "edit": "deny",
-        "bash": "deny"
-      }
-    },
-
-    "build": {
-      "description": "Primary execution agent for multi-file editing & test execution.",
-      "model": "openrouter/deepseek/deepseek-v4-flash-0731",
-      "temperature": 0.1,
-      "steps": 30,
-      "maxTokens": 8192,
-      "options": { "reasoningEffort": "low" },
-      "prompt": "You are a Staff Software Engineer. Execute the given plan exactly. Write production-grade, well-tested code. After editing files, you MUST run the relevant test command (npm test, deno test, etc.) and verify the output. If a test fails, fix it immediately. Do not stop until all acceptance criteria from the plan are satisfied."
-    }
+    "build": { "steps": 30 },
+    "explore": { "model": "openrouter/deepseek/deepseek-v4.1-flash" }
   }
 }
